@@ -3,12 +3,13 @@
 import { useRef, useState } from "react";
 import { gsap } from "gsap";
 
-import StrokeText from "@/components/reactbits/StrokeText";
-import WebThreads from "@/components/reactbits/WebThreads";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { SlothLogo } from "@/components/branding/SlothLogo";
+import CircularText from "@/components/reactbits/CircularText";
+import MagicRings from "@/components/reactbits/MagicRings";
 
 /**
- * The first interaction of the product is deliberately small: the SOTERIA
+ * The first interaction of the product is deliberately small: the S.L.O.T.H.
  * wordmark is the entry point for the two dashboards that will follow.
  */
 export function AegisLanding() {
@@ -39,9 +40,9 @@ export function AegisLanding() {
         ease: "power2.out",
       })
       .to(wordmarkRef.current, {
-        scale: 1.3,
+        scale: 1.5,
         opacity: 0,
-        filter: "blur(12px)",
+        filter: "blur(8px)",
         duration: 0.65,
         ease: "power3.in",
       })
@@ -60,75 +61,58 @@ export function AegisLanding() {
 
   return (
     <main ref={landingRef} className="aegis-landing">
-      <div className="aegis-threads" aria-hidden="true">
-        <WebThreads
-          colors={["#3b1abd", "#6652d3", "#9b90ef"]}
-          coreColor="#3b1abd"
-          backgroundColor="transparent"
-          threadCount={9}
-          speed={0.12}
-          frequency={5.5}
-          spread={0.2}
-          taper={0.65}
-          glow={0.035}
-          falloff={0.58}
-          thickness={1.3}
-          brightness={0.72}
-          opacity={0.52}
-          depth={0.15}
-          mirror
-          shimmer
-          grain={0.025}
+      <div className="aegis-orb" aria-hidden="true">
+        <MagicRings
+          color="#36e0ff"
+          colorTwo="#5574ff"
+          ringCount={7}
+          motion="pulse"
+          speed={0.72}
+          lineThickness={2.2}
+          glow={1.25}
+          baseRadius={0.34}
+          radiusStep={0.1}
+          expansion={0.16}
+          taper={1.4}
+          dispersion={0.18}
+          opacity={0.82}
+          followMouse
+          mouseInfluence={0.18}
+          hoverScale={1.08}
+          hoverIntensity={0.8}
+          parallax={0.04}
+          clickBurst
           intro
-          mouseInteraction
-          mouseStrength={0.35}
-          pulseOnClick
+          theme="dark"
         />
       </div>
       <button
         ref={wordmarkRef}
         className="aegis-wordmark"
         type="button"
-        aria-label="Enter SOTERIA mission dashboard"
-        aria-busy={isEntering}
-        onClick={enterDashboard}
+         aria-label="Enter S.L.O.T.H. mission dashboard — Space Mission Lucidity Observation & Tracking Hub"
+         aria-busy={isEntering}
+         onClick={enterDashboard}
       >
-        <span className="aegis-wordmark__stroke-stack" aria-hidden="true">
-          <span className="aegis-wordmark__stroke-layer aegis-wordmark__stroke-layer--border">
-            <StrokeText
-              text="SOTERIA"
-              strokeColor="#0d0630"
-              fillColor="#0d0630"
-              strokeWidth={6}
-              fontSize={120}
-              fontWeight={400}
-              fontFamily="var(--font-bebas-neue)"
-              letterSpacing={-2}
-              drawDuration={2.8}
-              fillDelay={0.18}
-              fillMode="wipe"
-              wipeFrom="left"
-              trigger="mount"
-            />
-          </span>
-          <span className="aegis-wordmark__stroke-layer aegis-wordmark__stroke-layer--blue">
-            <StrokeText
-              text="SOTERIA"
-              strokeColor="#ffffff"
-              fillColor="#ffffff"
-              strokeWidth={1.4}
-              fontSize={120}
-              fontWeight={400}
-              fontFamily="var(--font-bebas-neue)"
-              letterSpacing={-2}
-              drawDuration={2.8}
-              fillDelay={0.18}
-              fillMode="wipe"
-              wipeFrom="left"
-              trigger="mount"
-            />
-          </span>
-        </span>
+         <span className="aegis-wordmark__logo-wrap">
+           <CircularText
+              className="aegis-wordmark__circular-text"
+              text="SPACE MISSION LUCIDITY OBSERVATION & TRACKING HUB  •  "
+              repeat={2}
+              spinDuration={34}
+             onHover="slowDown"
+             direction="clockwise"
+             size={520}
+              fontSize={21}
+              fontWeight={700}
+              textRadius={205}
+             color="rgba(255, 255, 255, 0.92)"
+             ring
+             ringColor="rgba(54, 224, 255, 0.2)"
+           >
+             <SlothLogo className="aegis-wordmark__logo aegis-wordmark__intro-logo" src="/introduction-logo.jpeg" alt="S.L.O.T.H. mission logo" />
+           </CircularText>
+         </span>
       </button>
     </main>
   );

@@ -4,6 +4,7 @@ import type { ConversationAiProvider, ConversationContext, ProviderOptions, Oper
 import { AgentError, invalidAiOutput } from "../core/errors";
 import { withDeadline } from "../core/deadline";
 import { CONVERSATION_INSTRUCTIONS } from "../prompts/conversation";
+import { OPERATIONAL_INSTRUCTIONS } from "../prompts/operational";
 
 export const DEFAULT_NVIDIA_MODEL = "nvidia/nemotron-3.5-super-vl-120b-a12b";
 const NVIDIA_CHAT_ENDPOINT = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -47,7 +48,7 @@ export class NvidiaConversationProvider implements ConversationAiProvider, Opera
   }
 
   async generateOperational(input: Parameters<OperationalAiProvider["generateOperational"]>[0], options?: ProviderOptions) {
-    return this.generate(input, `Produci un report operativo in italiano basato esclusivamente sui dati forniti. Il contesto contiene solo osservazioni autorizzate: non inventare fatti e non citare dati mancanti. Ogni finding deve indicare evidenze presenti tramite sensorReadingId, observationId o visionObservationId. Le discrepanze sono deduzioni e citano le fonti. Una visione webcam USABLE descrive soltanto chiusure durante l'intervallo osservato: indica copertura e durata, senza dedurre stanchezza, sonno o diagnosi. Misure sintetiche o INSUFFICIENT sono solo incertezze, non evidenze per conclusioni o proposte. Non fare diagnosi. Se appropriato segnala humanReview. Per questo prototipo restituisci proposal:null e una noChangeReason esplicita: la decisione sulle variazioni spetta a Terra. Non includere dati fuori dal contesto.`, OperationalOutputSchema, options);
+    return this.generate(input, OPERATIONAL_INSTRUCTIONS, OperationalOutputSchema, options);
   }
 
   async generateDiary(input: Parameters<DiaryAiProvider["generateDiary"]>[0], options?: ProviderOptions) {

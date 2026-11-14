@@ -38,26 +38,6 @@
   overflow: hidden;
   border-radius: 14px;
 }
-.human-vitals-body .explorer-toolbar {
-  min-height: 49px;
-  border-bottom: 1px solid rgba(59, 26, 189, .12);
-  padding: 0 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.human-vitals-body .toolbar-title {
-  color: #626970;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 500 10px/1.3 var(--hvb-mono);
-  letter-spacing: .12em;
-}
-.human-vitals-body .toolbar-title svg { color: #3b1abd; }
-.human-vitals-body .toolbar-actions { display: flex; align-items: center; gap: 8px; }
-.human-vitals-body .toolbar-button,
 .human-vitals-body .icon-button {
   border: 1px solid rgba(59, 26, 189, .16);
   border-radius: 5px;
@@ -66,14 +46,6 @@
   cursor: pointer;
   transition: background .2s, border-color .2s, color .2s;
 }
-.human-vitals-body .toolbar-button {
-  padding: 7px 9px;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.human-vitals-body .toolbar-button:hover,
 .human-vitals-body .icon-button:hover {
   color: #3b1abd;
   border-color: rgba(59, 26, 189, .5);
@@ -83,9 +55,16 @@
   flex: 1;
   min-height: 0;
   position: relative;
+  isolation: isolate;
   background: radial-gradient(ellipse at center, rgba(98, 105, 112, .12), transparent 58%);
 }
-.human-vitals-body .body-canvas canvas { display: block; width: 100% !important; height: 100% !important; min-height: 0; }
+.human-vitals-body .body-canvas > div:not(.canvas-dot-grid):not(.vitals-panel):not(.canvas-hint) { position: relative; z-index: 1; }
+.human-vitals-body .body-canvas > div:not(.canvas-dot-grid) canvas { display: block; width: 100% !important; height: 100% !important; min-height: 0; }
+.human-vitals-body .body-canvas .canvas-dot-grid,
+.human-vitals-body .body-canvas .dot-grid__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.human-vitals-body .body-canvas .canvas-dot-grid { z-index: 0; }
+.human-vitals-body .body-canvas .vitals-panel,
+.human-vitals-body .body-canvas .canvas-hint { z-index: 5; }
 .human-vitals-body .canvas-hint {
   position: absolute;
   bottom: 16px;
@@ -132,10 +111,8 @@
   bottom: auto;
   width: min(374px, calc(100% - 32px));
   max-height: calc(100% - 32px);
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(59, 26, 189, .28) transparent;
   align-self: stretch;
   min-height: 0;
   height: auto;
@@ -145,7 +122,7 @@
 .human-vitals-body .panel-closing { animation: panel-out .22s ease both; pointer-events: none; }
 .human-vitals-body .panel-actions { display: flex; align-items: center; gap: 6px; }
 .human-vitals-body .panel-content { min-height: 0; display: flex; flex-direction: column; animation: panel-content-in .24s ease both; }
-.human-vitals-body .panel-topline { display: flex; justify-content: space-between; align-items: center; }
+.human-vitals-body .panel-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .human-vitals-body .panel-kicker {
   color: #3b1abd;
   display: inline-flex;
@@ -155,13 +132,13 @@
   letter-spacing: .12em;
 }
 .human-vitals-body .icon-button { width: 30px; height: 30px; display: grid; place-items: center; box-shadow: 2px 2px 5px rgba(203, 208, 214, .75), -2px -2px 5px rgba(255, 255, 255, .86); }
-.human-vitals-body .panel-title-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.human-vitals-body .panel-title-row { display: flex; align-items: center; gap: 10px; min-width: 0; margin: 0; }
 .human-vitals-body .zone-status-dot { width: 11px; height: 11px; border: 2px solid var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent); }
 .human-vitals-body .zone-status-dot[data-status="attention"] { border-color: #ffc85b; box-shadow: 0 0 15px #ffc85b; }
 .human-vitals-body .zone-status-dot[data-status="critical"] { border-color: #ff7280; box-shadow: 0 0 15px #ff7280; }
-.human-vitals-body .panel-title-row h2 { margin: 0 0 5px; color: #272c31; font-size: 22px; letter-spacing: -.035em; }
+.human-vitals-body .panel-title-row h2 { overflow: hidden; margin: 0 0 3px; color: #272c31; font-size: 20px; letter-spacing: -.035em; text-overflow: ellipsis; white-space: nowrap; }
 .human-vitals-body .zone-path { color: #7a8188; font: 800 9px/1.3 var(--hvb-mono); letter-spacing: .12em; }
-.human-vitals-body .panel-description { min-height: 42px; color: #626970; line-height: 1.5; font-size: 12px; margin: 15px 0 17px; }
+.human-vitals-body .panel-description { min-height: 0; color: #626970; line-height: 1.4; font-size: 12px; margin: 14px 0 14px; }
 .human-vitals-body .metric-list { border-top: 1px solid rgba(98, 105, 112, .17); }
 .human-vitals-body .metric-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(98, 105, 112, .12); }
 .human-vitals-body .metric-label { color: #626970; font-size: 12px; }
@@ -178,15 +155,19 @@
 .human-vitals-body .panel-note { display: flex; align-items: flex-start; gap: 7px; color: #7a8188; border-top: 1px solid rgba(98, 105, 112, .12); margin-top: 12px; padding-top: 11px; font-size: 10px; line-height: 1.4; }
 .human-vitals-body .panel-note svg { flex: 0 0 auto; color: #3b1abd; margin-top: 1px; }
 
-.human-vitals-body .signal-card { margin: 0 0 15px; padding: 10px 10px 8px; border: 1px solid color-mix(in srgb, var(--accent) 25%, rgba(98, 105, 112, .16)); border-radius: 10px; background: rgba(255, 255, 255, .48); box-shadow: inset 2px 2px 5px rgba(203, 208, 214, .42), inset -2px -2px 5px rgba(255, 255, 255, .62); overflow: hidden; }
+.human-vitals-body .signal-card { margin: 0 0 15px; padding: 0 0 6px; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: hidden; }
 .human-vitals-body .signal-heading { display: flex; justify-content: space-between; gap: 8px; color: #4b5158; font: 800 10px var(--hvb-mono); letter-spacing: .07em; }
 .human-vitals-body .signal-heading > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
 .human-vitals-body .signal-live { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 9px var(--accent); animation: signal-pulse 1.4s ease-in-out infinite; }
 .human-vitals-body .signal-meta, .human-vitals-body .signal-caption { color: #7a8188; font: 700 8px var(--hvb-mono); letter-spacing: .09em; }
-.human-vitals-body .signal-chart { display: block; width: 100%; height: 88px; margin: 8px 0 5px; overflow: visible; }
+.human-vitals-body .signal-chart { display: block; width: 100%; height: 68px; margin: 7px 0 2px; overflow: visible; }
 .human-vitals-body .signal-grid { fill: none; stroke: rgba(98, 105, 112, .16); stroke-width: .7; }
 .human-vitals-body .signal-glow { fill: none; stroke: var(--accent); stroke-width: 5; opacity: .16; filter: blur(3px); }
-.human-vitals-body .signal-line { fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: signal-draw 1.2s ease-out forwards, signal-shift 3.5s linear 1.2s infinite; }
+.human-vitals-body .signal-line { fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: none; stroke-dashoffset: 0; animation: none; }
+.human-vitals-body .signal-track { animation: signal-sweep 4.8s linear infinite; }
+.human-vitals-body .signal-track-respiration { animation-duration: 8s; }
+.human-vitals-body .signal-track .signal-glow,
+.human-vitals-body .signal-track .signal-line { vector-effect: non-scaling-stroke; }
 
 @keyframes panel-in { from { opacity: 0; transform: translateX(24px) scale(.98); } to { opacity: 1; transform: translateX(0) scale(1); } }
 @keyframes panel-out { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(24px) scale(.98); } }
@@ -194,6 +175,12 @@
 @keyframes signal-draw { to { stroke-dashoffset: 0; } }
 @keyframes signal-shift { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
 @keyframes signal-pulse { 0%, 100% { opacity: .55; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.2); } }
+@keyframes signal-sweep { from { transform: translateX(0); } to { transform: translateX(-320px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .human-vitals-body .signal-track,
+  .human-vitals-body .signal-live { animation: none; }
+}
 
 @media (max-width: 850px) {
   .human-vitals-body { min-height: 630px; }
@@ -206,9 +193,6 @@
   .human-vitals-body .body-explorer { min-height: 550px; }
   .human-vitals-body .body-canvas,
   .human-vitals-body .body-canvas canvas { min-height: 425px; }
-  .human-vitals-body .explorer-toolbar { padding: 0 12px; }
-  .human-vitals-body .toolbar-button { padding: 7px; font-size: 0; }
-  .human-vitals-body .toolbar-button svg { width: 15px; height: 15px; }
   .human-vitals-body .zone-legend { padding: 12px; font-size: 8px; flex-wrap: wrap; }
   .human-vitals-body .legend-line { display: none; }
   .human-vitals-body .legend-muted { width: 100%; padding-left: 14px; }

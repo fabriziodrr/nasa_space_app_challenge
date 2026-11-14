@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 export type VitalZoneId =
   | "overview"
   | "head"
@@ -55,5 +53,5 @@ export type HumanVitalsBodyProps = {
   showLabels?: boolean;
   compact?: boolean;
   className?: string;
-  bodyVariantControls?: ReactNode;
+  resetToken?: number;
 };

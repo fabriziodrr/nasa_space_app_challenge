@@ -44,6 +44,8 @@ function setup(selected: VisionObservation | null, requestedId?: string) {
 test("shared usable vision appears in frozen report, without private metadata", async () => {
   const h = setup(vision); await h.service.generate(actor, h.checkIn.id);
   const finding = h.saved()?.report.findings.find((item) => item.source === "vision");
+  assert.ok(h.saved()?.report.findings.some((item) => item.source === "self_report"));
+  assert.ok(h.saved()?.report.findings.some((item) => item.source === "sensor"));
   assert.deepEqual(finding?.evidence, [{ source: "vision", visionObservationId: "vision-1" }]);
   assert.match(finding!.text, /copertura/); assert.ok(!JSON.stringify(h.received()).includes(vision.sha256));
   assert.ok(!JSON.stringify(h.received()).includes("messageIds"));

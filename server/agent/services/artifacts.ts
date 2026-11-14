@@ -43,10 +43,10 @@ export class ArtifactService {
       });
       const end = checkIn.confirmedAt;
       const from = new Date(Date.parse(end) - 24 * 60 * 60 * 1000).toISOString();
-      const [frozen, day, state] = await Promise.all([
-        this.deps.frozenContext ? this.deps.frozenContext.getFrozenContext(identity.astronautId, checkIn.id)
-          : sensors.read(identity.astronautId, { from, to: end }).then((readings) => ({ sensors: readings, vision: null })),
-        schedule.getDay(identity.astronautId, end.slice(0, 10)),
+      const frozen = this.deps.frozenContext ? await this.deps.frozenContext.getFrozenContext(identity.astronautId, checkIn.id)
+        : { sensors: await sensors.read(identity.astronautId, { from, to: end }), vision: null, schedule: null };
+      const [day, state] = await Promise.all([
+        frozen.schedule ? Promise.resolve(frozen.schedule) : schedule.getDay(identity.astronautId, end.slice(0, 10)),
         repository.getSessionState(identity.astronautId, checkIn.sessionId),
       ]);
       const { sensors: readings, vision } = frozen;
@@ -86,9 +86,14 @@ export class ArtifactService {
       let proposal = null;
       if (operational.proposal) {
         if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Generazione delle proposte non ancora collegata al programma autorevole.");
+        if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("Il check-in non ha un programma congelato: apri un nuovo check-in.");
         const built = proposals.build(operational.proposal, context, day);
-        if (built.outcome !== "proposal") throw AgentErrors.invalidAiOutput("La proposta non rispetta i vincoli del programma.");
-        proposal = built.proposal;
+        if (built.outcome === "proposal") proposal = built.proposal;
+        else {
+          operational.proposal = null;
+          operational.noChangeReason = "Il consiglio generato non supera i vincoli del programma; mantenere la schedule e richiedere una revisione di Terra.";
+          operational.report.humanReview = { required: true, reason: "La proposta automatica non supera la validazione del programma." };
+        }
       }
       const now = new Date().toISOString();
       const report = GroundReportSchema.parse({

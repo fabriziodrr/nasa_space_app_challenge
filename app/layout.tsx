@@ -11,8 +11,8 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "SOTERIA",
-  description: "SOTERIA mission operations interface.",
+  title: "S.L.O.T.H.",
+  description: "S.L.O.T.H. mission operations interface.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -8,13 +8,15 @@ import { MockConversationAiProvider } from "./adapters/mock-conversation-ai";
 import { ArtifactService } from "./services/artifacts";
 import { CheckInService } from "./services/checkin";
 import { ProposalService } from "./services/proposals";
-import { ScheduleValidatorImpl } from "./services/validator";
+import { DemoScheduleValidator } from "./services/demo-validator";
 import { createConversationAiProvider } from "./adapters/conversation-ai-factory";
 import { DemoIdentityProvider } from "./adapters/demo-identity";
 import { createDemoContextProviders } from "./adapters/demo-context";
 import { NvidiaNimVoiceProvider } from "./adapters/nvidia-nim-voice";
 import { VisionService } from "./vision/service";
 import { VisionConfirmationService } from "./vision/confirmation";
+import { DemoProgramProvider } from "./adapters/demo-program";
+import { ApprovalService } from "./services/approval";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -23,23 +25,27 @@ function createDemoRuntime() {
   }
   const repository = new PrismaAgentRepository(prisma);
   const context = createDemoContextProviders(config.AGENT_DEMO_SCENARIO);
+  const schedule = new DemoProgramProvider(prisma);
+  context.schedule = schedule;
   const visionQuality = { minValidMs: config.AGENT_VISION_MIN_VALID_MS, minCoverage: config.AGENT_VISION_MIN_COVERAGE,
     maxAgeMinutes: config.AGENT_VISION_MAX_AGE_MINUTES };
   const visionObservations = new VisionService(prisma, visionQuality);
-  const visionConfirmation = new VisionConfirmationService(prisma, context.sensors, visionQuality);
+  const visionConfirmation = new VisionConfirmationService(prisma, context.sensors, visionQuality, context.schedule);
   const ai = createConversationAiProvider(config);
   const artifactAi = config.AGENT_AI_PROVIDER === "nvidia"
     ? new NvidiaConversationProvider({ apiKey: config.NVIDIA_API_KEY!, model: config.NVIDIA_MODEL, timeoutMs: config.AGENT_AI_TIMEOUT_MS })
-    : config.AGENT_AI_PROVIDER === "mock" ? new MockConversationAiProvider() : null;
+    : config.AGENT_AI_PROVIDER === "mock" ? new MockConversationAiProvider({ proposalsEnabled: true }) : null;
   return {
     identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN),
     repository,
     visionObservations,
     visionConfirmation,
+    approval: new ApprovalService(repository, schedule),
+    schedule,
     voice: config.AGENT_VOICE_PROVIDER === "nvidia_nim"
       ? new NvidiaNimVoiceProvider({ asrUrl: config.AGENT_NIM_ASR_URL!, ttsUrl: config.AGENT_NIM_TTS_URL! }) : null,
     checkIns: new CheckInService(repository, visionConfirmation),
-    artifacts: artifactAi ? new ArtifactService({ repository, ...context, frozenContext: visionConfirmation, operationalAi: artifactAi, diaryAi: artifactAi, proposals: new ProposalService(new ScheduleValidatorImpl()) }) : null,
+    artifacts: artifactAi ? new ArtifactService({ repository, ...context, frozenContext: visionConfirmation, allowProposals: true, operationalAi: artifactAi, diaryAi: artifactAi, proposals: new ProposalService(new DemoScheduleValidator()) }) : null,
     service: createConversationService({
       ai, repository, ...context, vision: visionObservations, timeoutMs: config.AGENT_AI_TIMEOUT_MS,
       visionQuality,
@@ -52,7 +58,7 @@ function createDemoRuntime() {
 export type AgentRuntime = ReturnType<typeof createDemoRuntime>;
 const globalRuntime = globalThis as typeof globalThis & { __issAgentRuntime?: AgentRuntime };
 
-// Process-scoped across dev hot reloads. N1 replaces this composition root for durability.
+// Process-scoped providers across dev hot reloads; state is persisted through Prisma.
 export function getAgentRuntime(): AgentRuntime {
   loadAgentConfig(process.env);
   return globalRuntime.__issAgentRuntime ??= createDemoRuntime();
