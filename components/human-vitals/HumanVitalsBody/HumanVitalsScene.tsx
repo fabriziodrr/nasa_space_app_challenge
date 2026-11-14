@@ -211,7 +211,6 @@ function SceneContents(props: HumanVitalsSceneProps) {
   const controls = useRef<OrbitControlsImpl>(null);
   return (
     <>
-      <color attach="background" args={["#dfe3e6"]} />
       <fog attach="fog" args={["#dfe3e6", 5.2, 9]} />
       <ambientLight intensity={1.5} color="#b8e6f6" />
       <directionalLight position={[-3, 5, 4]} intensity={3.3} color="#ffffff" castShadow />
@@ -236,7 +235,7 @@ function SceneContents(props: HumanVitalsSceneProps) {
 
 export function HumanVitalsScene(props: HumanVitalsSceneProps) {
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.2, 4.15], fov: 38 }} gl={{ antialias: true, alpha: false }} onCreated={({ gl }) => gl.setClearColor("#dfe3e6")}>
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.2, 4.15], fov: 38 }} gl={{ antialias: true, alpha: true }} onCreated={({ gl }) => gl.setClearColor("#000000", 0)}>
       <SceneContents {...props} />
     </Canvas>
   );

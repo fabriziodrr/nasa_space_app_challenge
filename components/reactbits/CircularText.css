@@ -1,0 +1,86 @@
+﻿.circular-text {
+  position: relative;
+  margin: 0 auto;
+  border-radius: 50%;
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--font-bebas-neue), "Bebas Neue", sans-serif;
+  line-height: 1;
+  overflow: visible;
+}
+
+.circular-text__tilt,
+.circular-text__plane,
+.circular-text__ring {
+  position: absolute;
+  inset: 0;
+}
+
+.circular-text__tilt {
+  transform-style: preserve-3d;
+  transform: rotateX(var(--circular-tilt));
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.circular-text.is-hovering .circular-text__tilt {
+  transform: rotateX(var(--circular-hover-tilt));
+}
+
+.circular-text__plane {
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.circular-text__letter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: inline-block;
+  white-space: pre;
+  font-family: inherit;
+  font-weight: inherit;
+  letter-spacing: var(--circular-letter-spacing);
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(3, 1, 19, 0.38);
+  -webkit-text-stroke: 0.25px currentColor;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.circular-text__line {
+  position: absolute;
+  inset: 1.3em;
+  border: 0 solid currentColor;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.circular-text__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes circular-text-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.circular-text__ring {
+  transform-origin: center;
+  animation: circular-text-spin linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circular-text__ring {
+    animation-play-state: paused !important;
+  }
+}
+
