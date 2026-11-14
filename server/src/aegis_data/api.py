@@ -1,8 +1,9 @@
 import os
+import hmac
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, Header, HTTPException
 from typing import Literal
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
@@ -22,6 +23,12 @@ class DemoConversation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     message: str = Field(min_length=1, max_length=4000)
     history: list[ConversationMessage] = Field(default_factory=list, max_length=20)
+    vision_session_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+class IntegratedDemoRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    vision_session_id: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 def create_app(db_path: str | Path | None = None) -> FastAPI:
@@ -29,21 +36,48 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     service = DataService(store)
     app = FastAPI(title="AEGIS local data API", version="0.1.0")
 
+    def demo_vision_reader(session_id: str, authorization: str | None):
+        token = os.environ.get("AGENT_DEMO_TOKEN")
+        supplied = authorization[7:] if authorization and authorization.startswith("Bearer ") else ""
+        if not token or not 16 <= len(token) <= 512 or not hmac.compare_digest(supplied.encode(), token.encode()):
+            raise HTTPException(401, "Credenziali demo richieste per la misura vision.")
+        from .vision_bridge import SelectedVisionReader
+        return SelectedVisionReader(session_id, token)
+
     @app.get("/health")
     def health():
         return {"status": "ok", "schema_version": "1"}
 
     @app.post("/v1/demo/companion")
-    def demo_companion(request: DemoConversation):
+    def demo_companion(request: DemoConversation, authorization: str | None = Header(default=None)):
         # Demo-only fixed identity. No user-controlled access to personal records.
+        reader = None
+        if request.vision_session_id is not None:
+            reader = demo_vision_reader(request.vision_session_id, authorization)
         try:
             from .companion import build_companion, converse
-            agent = build_companion(service, subject_id="sleep-demo-14d", synthetic=True)
+            options = {"vision_reader": reader} if reader is not None else {}
+            agent = build_companion(service, subject_id="sleep-demo-14d", synthetic=True, **options)
             response = converse(agent, request.message, [h.model_dump() for h in request.history])
             return {"response": response, "subject_id": "sleep-demo-14d", "synthetic": True}
         except Exception:
             # Preserve data APIs even if dependencies, model or local inference fail.
             raise HTTPException(503, "Companion non disponibile: verificare dipendenze e modello locale.")
+
+    @app.post("/v1/demo/integrated-context")
+    def demo_integrated_context(request: IntegratedDemoRequest, authorization: str | None = Header(default=None)):
+        from .integrated_context import IntegratedContext
+        reader = demo_vision_reader(request.vision_session_id, authorization)
+        tools = AgentDataTools(service, subject_id="sleep-demo-14d", synthetic=True)
+        return IntegratedContext(tools, reader).get()
+
+    @app.post("/v1/demo/data-analysis")
+    def demo_data_analysis(request: IntegratedDemoRequest, authorization: str | None = Header(default=None)):
+        from .data_agent import run_data_agent
+        from .integrated_context import IntegratedContext
+        reader = demo_vision_reader(request.vision_session_id, authorization)
+        tools = AgentDataTools(service, subject_id="sleep-demo-14d", synthetic=True)
+        return run_data_agent(IntegratedContext(tools, reader))
 
     @app.post("/v1/observations", status_code=201)
     def add_observation(observation: Observation):

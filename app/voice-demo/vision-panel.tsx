@@ -27,6 +27,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   const [error, setError] = useState("");
   const [selectionUncertain, setSelectionUncertain] = useState(false);
   const [showVision, setShowVision] = useState(false);
+  const [integrated, setIntegrated] = useState<{ sleepHours: number | null; visionStatus: string; visionSource: string | null; visionQuality: string | null } | null>(null);
   const iframe = useRef<HTMLIFrameElement>(null);
   const inFlight = useRef(new Set<string>());
   const uploadKey = useRef("");
@@ -77,6 +78,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
     });
   }
   async function select(id: string | null) {
+    setIntegrated(null);
     pendingSelection.current = { id }; onConfirmationPending(true);
     let started = false;
     await perform(async () => {
@@ -93,6 +95,19 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       }
     });
     if (!started) { pendingSelection.current = null; setSelectionUncertain(false); onConfirmationPending(false); }
+  }
+  async function loadIntegrated() {
+    await perform(async () => {
+      const response = await fetch("/api/demo-integrated-context", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ vision_session_id: sessionId }), cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Contesto integrato non disponibile. Controlla il backend dati e il token demo.");
+      const result = await response.json();
+      setIntegrated({ sleepHours: result.sleep?.sleep_context?.latest_measurement?.sleep_hours ?? null,
+        visionStatus: result.vision?.status ?? "unavailable", visionSource: result.vision?.observation?.source ?? null,
+        visionQuality: result.vision?.observation?.usability ?? null });
+    });
   }
   async function confirm() {
     if (!checkIn) return;
@@ -121,6 +136,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
 
   return <section className={styles.panel} aria-labelledby="vision-title">
     <h2 id="vision-title">Misura palpebrale e check-in</h2>
+    <p>Codice sessione per la dashboard: <code>{sessionId}</code></p>
     <p>Importa il JSON esportato dalla feature palpebrale. La misura è sperimentale e non determina da sola la stanchezza. La sua utilizzabilità viene rivalutata alla conferma.</p>
     <p>La misura selezionata viene usata dall’agent e può essere inviata al provider AI configurato. La condivisione con Terra si sceglie separatamente al momento della conferma.</p>
     {bridgeOrigin ? <>
@@ -147,6 +163,12 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
         </button>
       </article>)}
       {selectedId && <button type="button" onClick={() => select(null)} disabled={busy || locked || confirmed}>Rimuovi selezione</button>}
+      {selectedId && <button type="button" onClick={() => void loadIntegrated()} disabled={busy || locked}>Verifica contesto sonno e vision</button>}
+      {integrated && <div className={styles.measurement} role="status">
+        <strong>Contesto integrato · prova</strong>
+        <p>Sonno sintetico: {integrated.sleepHours === null ? "nessuna misura disponibile" : `${integrated.sleepHours} ore`}. Vision: {integrated.visionStatus}, origine {integrated.visionSource ?? "non disponibile"}, qualità {integrated.visionQuality ?? "non disponibile"}.</p>
+        <p>Le identità dei due dataset non sono ancora collegate. I dati non costituiscono una diagnosi.</p>
+      </div>}
     </div>}
     {selectionUncertain && <><p>La selezione potrebbe essere stata ricevuta. Riprova per verificarla prima di continuare.</p>
       <button type="button" disabled={busy} onClick={() => { if (pendingSelection.current) void select(pendingSelection.current.id); }}>Riprova selezione</button></>}

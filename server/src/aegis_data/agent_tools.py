@@ -17,6 +17,7 @@ class AgentDataTools:
         snapshot = self._service.snapshot(self._subject_id, self._synthetic)
         return {
             "snapshot_id": snapshot["snapshot_id"],
+            "subject_id": snapshot["subject_id"],
             "as_of": snapshot["as_of"],
             "synthetic": snapshot["synthetic"],
             "rule_version": snapshot["rule_version"],

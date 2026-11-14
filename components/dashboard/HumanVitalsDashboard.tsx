@@ -1,6 +1,7 @@
 "use client";
 
 import { SleepDataPanel } from "@/components/dashboard/SleepDataPanel";
+import { DataAgentPanel } from "@/components/dashboard/DataAgentPanel";
 import { defaultVitalZones } from "@/components/human-vitals/HumanVitalsBody/bodyZones";
 
 import {
@@ -33,6 +34,7 @@ export function HumanVitalsDashboard({ perspective, bodyVariant, resetToken = 0 
         />
       </div>
       <SleepDataPanel />
+      <DataAgentPanel />
     </section>
   );
 }
