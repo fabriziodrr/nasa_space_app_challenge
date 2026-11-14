@@ -6,18 +6,13 @@
   pointer-events: none;
   background-image:
     linear-gradient(to right, var(--shape-grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--shape-grid-line) 1px, transparent 1px);
+    linear-gradient(to bottom, var(--shape-grid-line) 1px, transparent 1px),
+    linear-gradient(45deg, transparent 44%, var(--shape-grid-accent) 46%, var(--shape-grid-accent) 54%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, var(--shape-grid-accent) 46%, var(--shape-grid-accent) 54%, transparent 56%);
   background-position: center;
-  background-size: var(--shape-grid-size) var(--shape-grid-size);
-}
-
-.shape-grid__shape {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(34vw, 360px);
-  aspect-ratio: 1;
-  border: 1px solid var(--shape-grid-accent);
-  transform: translate(-50%, -50%) rotate(45deg);
-  opacity: 0.45;
+  background-size:
+    var(--shape-grid-size) var(--shape-grid-size),
+    var(--shape-grid-size) var(--shape-grid-size),
+    var(--shape-grid-size) var(--shape-grid-size),
+    var(--shape-grid-size) var(--shape-grid-size);
 }

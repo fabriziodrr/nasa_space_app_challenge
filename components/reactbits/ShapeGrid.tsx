@@ -13,9 +13,9 @@ type ShapeGridProps = {
 
 export function ShapeGrid({
   size = 34,
-  lineColor = "rgba(98, 105, 112, .16)",
-  accentColor = "rgba(59, 26, 189, .2)",
-  opacity = 0.72,
+  lineColor = "rgba(98, 105, 112, .24)",
+  accentColor = "rgba(59, 26, 189, .3)",
+  opacity = 0.9,
   className = "",
   style,
 }: ShapeGridProps) {
@@ -25,7 +25,6 @@ export function ShapeGrid({
       style={{ "--shape-grid-size": `${size}px`, "--shape-grid-line": lineColor, "--shape-grid-accent": accentColor, opacity, ...style } as CSSProperties}
       aria-hidden="true"
     >
-      <div className="shape-grid__shape" />
     </div>
   );
 }

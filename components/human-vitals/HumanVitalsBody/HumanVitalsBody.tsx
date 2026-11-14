@@ -87,7 +87,7 @@ export function HumanVitalsBody({
     <section className={`${styles["human-vitals-body"]} ${compact ? styles["is-compact"] : ""} ${className}`}>
       <div className={styles["body-explorer"]}>
         <div className={styles["body-canvas"]}>
-           <ShapeGrid size={36} lineColor="rgba(98, 105, 112, .14)" accentColor="rgba(59, 26, 189, .16)" opacity={0.82} />
+           <ShapeGrid size={36} lineColor="rgba(98, 105, 112, .24)" accentColor="rgba(59, 26, 189, .3)" opacity={0.92} />
            <HumanVitalsScene
              key={`${bodyVariant}:${selectedModelPath}`}
              zones={zones}
