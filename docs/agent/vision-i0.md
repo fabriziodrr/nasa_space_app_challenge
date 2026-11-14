@@ -4,7 +4,7 @@ Stato: decisioni tecniche fissate per I1–I6; il percorso I1 usa la copia versi
 
 ## Distribuzione dei sorgenti
 
-La feature è un submodule Git fissato al commit `9803a5f41eff521db5d1305af82323da11332eb5`, pubblicato sul ramo `integration/agent-vision-v2` della repository palpebrale. Comprende il parser v2 e il collegamento diretto all'agent. Per un nuovo clone usare `git clone --recurse-submodules`; per una copia esistente usare `git submodule update --init --recursive` dopo aver aggiornato la repository principale e salvato eventuali modifiche locali nel submodule.
+La feature è inclusa direttamente nella cartella `feature-visione-palpebrale/` della repository principale, con parser v2, collegamento all'agent, modello e asset WASM. Il normale clone/pull recupera i sorgenti senza accesso a un'altra repository e senza comandi per sottomoduli. La revisione di origine è `9803a5f41eff521db5d1305af82323da11332eb5`; la versione distribuita è ora quella del commit della repo principale. Le dipendenze npm del prototipo si installano separatamente, come descritto nel [README](../../README.md#visione-palpebrale-inclusa).
 
 I1 usa una copia dichiarata e verificabile con hash dei moduli puri e un worker compilato, descritti nella [guida I1](i1-vision-import.md). I 20 sorgenti TypeScript della copia sono stati confrontati con il commit pubblicato e coincidono, normalizzando i fine riga. La copia resta disponibile nel backend; gli aggiornamenti futuri devono mantenere allineati sorgenti, hash e worker. Non sono importati webcam, React o runtime MediaPipe nel backend.
 
@@ -34,4 +34,4 @@ Per il MVP si conserva il riepilogo con digest e versione, non l'export original
 
 ## Criteri di chiusura I0
 
-Le fixture in `tests/agent/vision-contract.test.ts` documentano struttura, valori mancanti, origine sintetica e scelte di condivisione. Le decisioni su soglie e versione API sono fissate e la revisione v2 è pubblicata e fissata nel submodule. I parametri non sono soglie cliniche e le prove sintetiche non validano le misure su persone.
+Le fixture in `tests/agent/vision-contract.test.ts` documentano struttura, valori mancanti, origine sintetica e scelte di condivisione. Le decisioni su soglie e versione API sono fissate e i sorgenti v2 sono inclusi nella repo principale. I parametri non sono soglie cliniche e le prove sintetiche non validano le misure su persone.
