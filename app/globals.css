@@ -66,6 +66,13 @@ button:focus-visible {
   transform: translate(-50%, -50%);
   opacity: 0.82;
   pointer-events: auto;
+  background: transparent;
+  overflow: hidden;
+  border-radius: 50%;
+  clip-path: circle(50% at 50% 50%);
+  -webkit-clip-path: circle(50% at 50% 50%);
+  -webkit-mask-image: radial-gradient(circle at center, #000 0 54%, transparent 72%);
+  mask-image: radial-gradient(circle at center, #000 0 54%, transparent 72%);
 }
 
 .aegis-wordmark {

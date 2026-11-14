@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { SlothLogo } from "@/components/branding/SlothLogo";
-import Orb from "@/components/reactbits/Orb";
+import MagicRings from "@/components/reactbits/MagicRings";
 
 /**
  * The first interaction of the product is deliberately small: the S.L.O.T.H.
@@ -61,7 +61,29 @@ export function AegisLanding() {
   return (
     <main ref={landingRef} className="aegis-landing">
       <div className="aegis-orb" aria-hidden="true">
-        <Orb colors={["#36e0ff", "#5574ff", "#101499"]} backgroundColor="#0d0630" glow={1.35} bleed={0.75} trail={0.8} speed={0.7} opacity={0.8} intro hoverIntensity={0.8} followCursor />
+        <MagicRings
+          color="#36e0ff"
+          colorTwo="#5574ff"
+          ringCount={7}
+          motion="pulse"
+          speed={0.72}
+          lineThickness={2.2}
+          glow={1.25}
+          baseRadius={0.34}
+          radiusStep={0.1}
+          expansion={0.16}
+          taper={1.4}
+          dispersion={0.18}
+          opacity={0.82}
+          followMouse
+          mouseInfluence={0.18}
+          hoverScale={1.08}
+          hoverIntensity={0.8}
+          parallax={0.04}
+          clickBurst
+          intro
+          theme="dark"
+        />
       </div>
       <button
         ref={wordmarkRef}
