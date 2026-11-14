@@ -292,14 +292,16 @@ Completato quando il percorso completo e dimostrabile senza il codice di Fabrizi
 
 ### N3 — Documentazione di integrazione — Nello
 
-Dipendenze: C0; aggiornamento finale dopo N2 e T3.
+Dipendenza: C0; aggiornamento finale dopo N2 e T3.
 
-- [ ] Scrivere `docs/agent/integration.md` con endpoint, payload, risposte ed errori.
-- [ ] Includere esempi di chiamate per sessione, check-in, proposta, decisione e recupero stato.
-- [ ] Documentare configurazione, variabili d'ambiente e modalita simulata/reale senza segreti.
-- [ ] Spiegare come sostituire i provider di identita, sensori e programma.
-- [ ] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
+- [x] Scrivere `docs/agent/integration.md` con endpoint, payload, risposte ed errori.
+- [x] Includere esempi di chiamate per sessione, check-in, proposta, decisione e recupero stato.
+- [x] Documentare configurazione, variabili d'ambiente e modalita simulata/reale senza segreti.
+- [x] Spiegare come sostituire i provider di identita, sensori e programma.
+- [x] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
 - [ ] Concordare con Fabrizio il collegamento alla dashboard usando gli stessi endpoint della demo.
+
+Implementazione e prova: [Guida di integrazione](docs/agent/integration.md). Redatta sui contratti C0; le sezioni voce (T3) e le route del flusso N2 saranno rifinite quando le rispettive route saranno esposte. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
 
 Completato quando Fabrizio puo collegare una propria vista senza importare i componenti grafici della demo o modificare il nucleo dell'agent.
 
