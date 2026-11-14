@@ -6,7 +6,9 @@ const ConfigSchema = z.object({
   AGENT_DEMO_ENABLED: z.enum(["true", "false"]).default("false"),
   AGENT_DEMO_TOKEN: z.string().min(16).max(512).optional(),
   AGENT_DEMO_SCENARIO: ScenarioSchema.default("RESTED"),
-  AGENT_AI_PROVIDER: z.enum(["mock", "openai"]).default("mock"),
+  AGENT_AI_PROVIDER: z.enum(["mock", "nvidia", "openai"]).default("mock"),
+  NVIDIA_API_KEY: z.string().trim().min(1).optional(),
+  NVIDIA_MODEL: z.string().trim().min(1).max(200).optional(),
   OPENAI_API_KEY: z.string().trim().min(1).optional(),
   OPENAI_MODEL: z.string().trim().min(1).max(200).optional(),
   AGENT_AI_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(30_000),
@@ -19,6 +21,9 @@ const ConfigSchema = z.object({
   }
   if (config.AGENT_AI_PROVIDER === "openai" && (!config.OPENAI_API_KEY || !config.OPENAI_MODEL)) {
     ctx.addIssue({ code: "custom", message: "OpenAI requires key and model" });
+  }
+  if (config.AGENT_AI_PROVIDER === "nvidia" && !config.NVIDIA_API_KEY) {
+    ctx.addIssue({ code: "custom", message: "NVIDIA requires a server API key" });
   }
 });
 

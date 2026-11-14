@@ -213,7 +213,7 @@ Dipendenza: C0.
 - [x] Gestire informazioni mancanti, dati discordanti e il caso in cui non serva alcuna modifica.
 - [x] Esporre le API di sessione e messaggi usando le interfacce di persistenza concordate.
 
-Implementazione e prova: [Guida T1](docs/agent/t1-conversation.md). Gli adattatori implementano la capability `ConversationAiProvider`; report e diario restano a T2. Il bootstrap usa memoria temporanea e dati dimostrativi sostituibili con N1. In T1 il programma resta invariato e non si generano ancora proposte operative. L'adattatore OpenAI e configurabile e testato con trasporto simulato; il collaudo live richiede modello e chiave server.
+Implementazione e prova: [Guida T1](docs/agent/t1-conversation.md). Gli adattatori implementano la capability `ConversationAiProvider`; report e diario restano a T2. Il bootstrap usa memoria temporanea e dati dimostrativi sostituibili con N1. In T1 il programma resta invariato e non si generano ancora proposte operative. Il provider reale principale e NVIDIA Nemotron tramite l'accesso gratuito per prototipazione del Developer Program; OpenAI resta opzionale. Gli adattatori sono testati con trasporto simulato e con un collaudo live NVIDIA di due turni. `npm run test:agent:live` permette di ripetere la prova con la propria chiave e un server locale gia avviato.
 
 Completato quando uno scenario testuale produce una risposta utile e una bozza di check-in corretta, senza poter applicare modifiche al programma.
 

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit --incremental false",
     "test:agent": "tsx --test tests/agent/*.test.ts",
+    "test:agent:live": "node scripts/test-agent-live.mjs",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed"

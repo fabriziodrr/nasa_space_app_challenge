@@ -2,7 +2,7 @@
 
 ## Stato e perimetro
 
-Implementati: apertura e lettura della sessione, conversazione testuale, domande di approfondimento, bozza privata del check-in, adattatore AI simulato, adattatore OpenAI configurabile, autenticazione dimostrativa e API HTTP.
+Implementati: apertura e lettura della sessione, conversazione testuale, domande di approfondimento, bozza privata del check-in, adattatore AI simulato, adattatore NVIDIA Nemotron, adattatore OpenAI opzionale, autenticazione dimostrativa e API HTTP.
 
 La composizione locale usa un repository in memoria e sensori/programma dimostrativi per rendere T1 provabile prima di N1. Non sostituisce la persistenza Prisma prevista per Nello: i dati si perdono al riavvio e non sono condivisi tra processi o istanze server.
 
@@ -67,9 +67,37 @@ Un generico «ho dormito male» non diventa un numero. Formulazioni ambigue o no
 
 Con `CONFLICTING_DATA`, il sensore simula 8 ore mentre l'esempio ne dichiara 4: l'assistente espone la discrepanza e chiede chiarimenti. Non cambia il valore riferito per farlo coincidere con il sensore. Il confronto dimostrativo del mock non costituisce una soglia clinica.
 
-## Attivare l'adattatore AI reale
+## Attivare Nemotron con l'accesso gratuito per prototipazione
 
-Mantenere la composizione locale e configurare sul server:
+Il percorso consigliato per il prototipo e NVIDIA NIM: NVIDIA documenta l'accesso gratuito agli endpoint API per i membri del Developer Program per prototipazione, ricerca e sviluppo. Servono un account NVIDIA e una chiave API; non serve una chiave OpenAI. L'accesso e soggetto alle condizioni e ai limiti NVIDIA e non equivale a un servizio di produzione gratuito e illimitato. Verificare disponibilita e limiti del proprio account nel [catalogo NVIDIA](https://build.nvidia.com/explore/discover). Fonte: [FAQ ufficiali NIM](https://docs.api.nvidia.com/nim/docs/product).
+
+1. Accedere al catalogo NVIDIA e aderire al Developer Program se richiesto.
+2. Cercare `nvidia/nemotron-3.5-super-vl-120b-a12b` e generare una chiave API nel proprio account.
+3. Inserire la chiave soltanto nel file locale `.env`, mantenendo il bootstrap demo di T1:
+
+```dotenv
+AGENT_DEMO_ENABLED=true
+AGENT_DEMO_TOKEN=<token-locale-privato-di-almeno-16-caratteri>
+AGENT_AI_PROVIDER=nvidia
+NVIDIA_API_KEY=<chiave-api-nvidia>
+NVIDIA_MODEL=nvidia/nemotron-3.5-super-vl-120b-a12b
+```
+
+Il token demo e una credenziale locale scelta da voi per accedere alle nostre API; `NVIDIA_API_KEY` e la chiave rilasciata da NVIDIA, usata soltanto dal server verso il modello. Riavviare `npm run dev` dopo aver cambiato la configurazione. Le chiamate di prova nella sezione PowerShell restano identiche.
+
+L'adattatore chiama `https://integrate.api.nvidia.com/v1/chat/completions` senza streaming e con ragionamento intermedio disabilitato. Il modello predefinito e Nemotron 3.5 Super VL; `NVIDIA_MODEL` permette di selezionare un altro Nemotron accessibile all'account e compatibile con gli stessi parametri. Il [riferimento API](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3_5-super-vl-120b-a12b-infer) descrive endpoint e parametro `reasoning_effort: none` usato per disabilitare il ragionamento intermedio.
+
+Lo schema JSON viene incluso nelle istruzioni e verificato localmente. L'adattatore non richiede `response_format`, mantenendo il controllo locale anche per modelli configurati senza generazione vincolata. Il codice non presume che il fornitore garantisca lo schema. Accetta JSON oppure un unico blocco Markdown che contenga l'intero JSON; rifiuta testo circostante, risposte troncate, rifiuti, chiamate a strumenti e oggetti non validi. Il controllo di provenienza dell'orchestratore resta obbligatorio prima del salvataggio.
+
+Un limite NVIDIA restituisce 429 `RATE_LIMITED`; chiave errata o modello non accessibile producono un errore esplicito del provider. Una risposta HTTP 202 in attesa produce 503 ritentabile, senza salvare un mezzo turno. Non sono previsti retry automatici o fallback verso OpenAI o il mock. In questo modo il superamento dei limiti non attiva un altro servizio.
+
+`AGENT_AI_PROVIDER=mock` rimane il valore predefinito per poter avviare i test senza account o rete; con `nvidia` l'agent usa il modello reale. Non sono necessarie dipendenze SDK aggiuntive.
+
+Il trasporto NVIDIA e l'integrazione con i controlli del core sono testati con HTTP simulato e con un collaudo live di due turni attraverso Next.js. Il precedente Nano restituiva HTTP 410: il modello predefinito e stato aggiornato al Super VL disponibile. Il collaudo verifica un percorso dimostrativo con dati fittizi, non una validazione clinica o esaustiva della qualita delle risposte.
+
+## Alternativa opzionale OpenAI
+
+L'adattatore OpenAI resta disponibile per compatibilita, con fatturazione/crediti separati secondo il proprio account. Non e necessario per usare Nemotron e non viene mai selezionato automaticamente. Per attivarlo esplicitamente, configurare sul server:
 
 ```dotenv
 AGENT_AI_PROVIDER=openai
@@ -83,7 +111,7 @@ Riferimenti: [Responses API](https://developers.openai.com/api/reference/resourc
 
 La generazione JSON vincola il formato; non dimostra da sola che ogni informazione estratta sia corretta. L'orchestratore controlla provenienza e coerenza strutturale; la successiva conferma umana del check-in resta necessaria.
 
-Il trasporto dell'adattatore reale e testato con risposte HTTP simulate. Non sono necessarie chiavi per i test e non vengono eseguite chiamate a pagamento durante la suite. La verifica con il modello effettivamente scelto richiede una chiave e va svolta prima della demo reale.
+Il trasporto dell'adattatore OpenAI e testato con risposte HTTP simulate. Non sono necessarie chiavi per i test e non vengono eseguite chiamate a pagamento durante la suite. La verifica con il modello effettivamente scelto richiede una chiave e va svolta prima della demo reale.
 
 ## Configurazione e limiti
 
@@ -92,7 +120,9 @@ Il trasporto dell'adattatore reale e testato con risposte HTTP simulate. Non son
 | `AGENT_DEMO_ENABLED` | `false`; bootstrap locale esplicito, vietato in produzione |
 | `AGENT_DEMO_TOKEN` | Obbligatorio per la demo, 16–512 caratteri |
 | `AGENT_DEMO_SCENARIO` | `RESTED`; anche `POOR_SLEEP`, `CONFLICTING_DATA` |
-| `AGENT_AI_PROVIDER` | `mock`; alternativa `openai` |
+| `AGENT_AI_PROVIDER` | `mock`; `nvidia` per Nemotron reale, `openai` come alternativa opzionale |
+| `NVIDIA_API_KEY` | Obbligatoria soltanto per `nvidia`; non inviata al browser |
+| `NVIDIA_MODEL` | `nvidia/nemotron-3.5-super-vl-120b-a12b` se omessa |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Obbligatorie soltanto per `openai` |
 | `AGENT_AI_TIMEOUT_MS` | 30000; da 100 a 120000 ms |
 | `AGENT_CONTEXT_MESSAGE_LIMIT` | 20; da 1 a 100 messaggi correnti, incluso l'ultimo |
@@ -132,6 +162,8 @@ File principali:
 | `server/agent/runtime.ts` | Punto di composizione da collegare agli adattatori N1 |
 | `server/agent/http/conversation-handlers.ts` | Identita, JSON, envelope e codici HTTP |
 | `server/agent/prompts/conversation.ts` | Istruzioni del provider reale |
+| `server/agent/adapters/conversation-ai-factory.ts` | Selezione esplicita tra mock, NVIDIA e OpenAI |
+| `server/agent/adapters/nvidia-conversation-ai.ts` | Chiamata Nemotron e validazione del risultato |
 | `app/api/agent/v1/sessions/**/route.ts` | Route sottili Next.js |
 
 Per Nello: implementare `AgentRepository`; il sottoinsieme `ConversationRepository` e gia compatibile con le firme C0. Le operazioni di `commitTurn` devono deduplicare, controllare la revisione e salvare entrambi i messaggi e la bozza in una sola transazione. Non inserire chiamate al modello dentro una transazione. Usare `AgentError` da `core/errors.ts` per i conflitti del dominio.
@@ -157,6 +189,26 @@ Per Fabrizio: usare le tre route del contratto v1 gia implementate; la risposta 
 
 ## Verifica
 
+### Prova automatica con il modello reale
+
+Richiede Node.js 20.12 o successivo e `.env` configurato per NVIDIA. In un terminale avviare `npm run dev`; in un secondo terminale, dalla root della repo:
+
+```text
+npm run test:agent:live
+```
+
+Se il server usa un'altra porta, per esempio quella della prova locale eseguita durante lo sviluppo:
+
+```text
+npm run test:agent:live -- --base-url http://127.0.0.1:3101
+```
+
+Su PowerShell usare `npm.cmd` se necessario. Il comando legge i token da `.env` senza stamparli, usa due messaggi fittizi e mostra le risposte dell'agent. Verifica estrazione, continuita del check-in, retry senza duplicati, 401 senza autenticazione e 409 con ID riutilizzato per un testo diverso. Le due generazioni consumano la quota NVIDIA del proprio account; le verifiche successive non generano altre risposte AI. Non modifica il programma e non invia report a Terra.
+
+L'URL del test e limitato a localhost. Per azzerare le sessioni del repository temporaneo riavviare il server. Per una conversazione manuale usare le chiamate PowerShell riportate sopra, cambiando `clientMessageId` a ogni nuovo turno.
+
+### Controlli automatici senza chiamate al modello
+
 ```text
 npm run test:agent
 npm run typecheck
@@ -164,4 +216,4 @@ npm run lint
 npm run build
 ```
 
-I test coprono percorso testuale, dati mancanti e discordanti, correzioni, retry, concorrenza, isolamento degli astronauti, sessioni concluse, output AI invalido, timeout, trasporto OpenAI simulato ed errori HTTP. La prova attraverso Next.js verifica inoltre che il runtime condiviso funzioni tra route compilate separatamente.
+I test coprono percorso testuale, dati mancanti e discordanti, correzioni, retry, concorrenza, isolamento degli astronauti, sessioni concluse, output AI invalido, timeout, trasporti NVIDIA/OpenAI simulati, selezione del provider ed errori HTTP. La prova attraverso Next.js verifica inoltre che il runtime condiviso funzioni tra route compilate separatamente.

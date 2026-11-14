@@ -2,8 +2,7 @@ import { loadAgentConfig } from "./config";
 import { AgentError } from "./core/errors";
 import { createConversationService } from "./core/conversation-service";
 import { MemoryConversationRepository } from "./adapters/memory-conversation-repository";
-import { MockConversationAiProvider } from "./adapters/mock-conversation-ai";
-import { OpenAiConversationProvider } from "./adapters/openai-conversation-ai";
+import { createConversationAiProvider } from "./adapters/conversation-ai-factory";
 import { DemoIdentityProvider } from "./adapters/demo-identity";
 import { createDemoContextProviders } from "./adapters/demo-context";
 
@@ -14,9 +13,7 @@ function createDemoRuntime() {
   }
   const repository = new MemoryConversationRepository();
   const context = createDemoContextProviders(config.AGENT_DEMO_SCENARIO);
-  const ai = config.AGENT_AI_PROVIDER === "openai"
-    ? new OpenAiConversationProvider({ apiKey: config.OPENAI_API_KEY!, model: config.OPENAI_MODEL!, timeoutMs: config.AGENT_AI_TIMEOUT_MS })
-    : new MockConversationAiProvider();
+  const ai = createConversationAiProvider(config);
   return {
     identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!),
     service: createConversationService({
