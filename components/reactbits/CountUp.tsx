@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type CountUpProps = {
   value: string;
@@ -52,27 +52,29 @@ function formatValue(value: number, numericValue: NumericValue) {
 }
 
 export function CountUp({ value, duration = 420, className }: CountUpProps) {
-  const numericValue = useMemo(() => parseNumericValue(value), [value]);
   const [displayValue, setDisplayValue] = useState(value);
   const animationFrame = useRef<number | null>(null);
 
   useEffect(() => {
+    const numericValue = parseNumericValue(value);
+
     if (!numericValue) {
       setDisplayValue(value);
       return;
     }
 
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const mediaQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
-    if (mediaQuery.matches) {
+    if (mediaQuery?.matches) {
       setDisplayValue(value);
       return;
     }
 
     const startTime = performance.now();
+    const animationDuration = Math.max(0, duration);
 
     const animate = (currentTime: number) => {
-      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const progress = animationDuration === 0 ? 1 : Math.min((currentTime - startTime) / animationDuration, 1);
       const easedProgress = 1 - Math.pow(1 - progress, 3);
       setDisplayValue(formatValue(numericValue.amount * easedProgress, numericValue));
 
@@ -88,7 +90,7 @@ export function CountUp({ value, duration = 420, className }: CountUpProps) {
         window.cancelAnimationFrame(animationFrame.current);
       }
     };
-  }, [duration, numericValue, value]);
+  }, [duration, value]);
 
   return <span className={className}>{displayValue}</span>;
 }
