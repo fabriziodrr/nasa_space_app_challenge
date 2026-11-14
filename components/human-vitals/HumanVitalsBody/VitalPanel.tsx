@@ -1,19 +1,7 @@
-import { Activity, CircleHelp, Radio, RotateCcw, ShieldCheck, X } from "lucide-react";
-import type { VitalMetric, VitalSource, VitalStatus, VitalVisualization, VitalZone } from "./types";
+import { RotateCcw, X } from "lucide-react";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
+import type { VitalMetric, VitalVisualization, VitalZone } from "./types";
 import styles from "./HumanVitalsBody.module.css";
-
-const sourceLabels: Record<VitalSource, string> = {
-  "synthetic-demo": "Synthetic demo",
-  "self-reported": "Self-reported",
-  "measured-in-app": "Measured in app",
-};
-
-const statusLabels: Record<VitalStatus, string> = {
-  normal: "Stable",
-  attention: "Review",
-  critical: "Critical",
-  neutral: "Recorded",
-};
 
 export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZone; closing: boolean; onClose: () => void; onReset: () => void }) {
   const state = zone.metrics.some((metric) => metric.status === "critical")
@@ -23,9 +11,15 @@ export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZon
       : "normal";
 
   return (
-    <aside className={`${styles["vitals-panel"]} ${closing ? styles["panel-closing"] : styles["panel-opening"]}`} style={{ "--accent": zone.color } as React.CSSProperties} role="dialog" aria-label={`${zone.label} vital data`}>
+    <SpotlightCard className={`${styles["vitals-panel"]} ${closing ? styles["panel-closing"] : styles["panel-opening"]}`} spotlightColor="rgba(59, 26, 189, 0.13)" style={{ "--accent": zone.color } as React.CSSProperties} role="dialog" aria-label={`${zone.label} vital data`}>
       <div className={styles["panel-topline"]}>
-        <span className={styles["panel-kicker"]}><Activity size={14} /> LIVE BODY MAP</span>
+        <div className={styles["panel-title-row"]}>
+          <div className={styles["zone-status-dot"]} data-status={state} />
+          <div>
+            <h2>{zone.label}</h2>
+            <span className={styles["zone-path"]}>BODY ZONE / {zone.shortLabel.toUpperCase()}</span>
+          </div>
+        </div>
         <div className={styles["panel-actions"]}>
           <button className={styles["icon-button"]} onClick={onReset} aria-label="Reset body view" title="Reset view"><RotateCcw size={15} /></button>
           <button className={styles["icon-button"]} onClick={onClose} aria-label="Close vital data" title="Close"><X size={15} /></button>
@@ -33,14 +27,6 @@ export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZon
       </div>
 
       <div className={styles["panel-content"]} key={zone.id}>
-      <div className={styles["panel-title-row"]}>
-        <div className={styles["zone-status-dot"]} data-status={state} />
-        <div>
-          <h2>{zone.label}</h2>
-          <span className={styles["zone-path"]}>BODY ZONE / {zone.shortLabel.toUpperCase()}</span>
-        </div>
-      </div>
-
       <p className={styles["panel-description"]}>{zone.description}</p>
 
       {zone.visualization && <SignalChart visualization={zone.visualization} />}
@@ -49,21 +35,14 @@ export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZon
         {zone.metrics.map((metric) => <MetricRow key={`${metric.label}-${metric.value}`} metric={metric} />)}
       </div>
 
-      <div className={styles["panel-footer"]}>
-        <span className={styles["data-source"]}><Radio size={13} /> {sourceLabels[zone.metrics[0]?.source ?? "synthetic-demo"]}</span>
-        <span className={`${styles["status-copy"]} ${styles[`status-${state}`]}`}><ShieldCheck size={13} /> {statusLabels[state]}</span>
-      </div>
-
-      <div className={styles["panel-note"]}>
-        <CircleHelp size={14} />
-        <span>Demo readings for interface exploration. They are not medical measurements.</span>
-      </div>
-      </div>
-    </aside>
+       </div>
+    </SpotlightCard>
   );
 }
 
 function SignalChart({ visualization }: { visualization: VitalVisualization }) {
+  const isEcg = visualization.type === "ecg";
+  const ecgPath = createEcgPath();
   const path = visualization.waveform
     .map((value, index, values) => {
       const x = (index / (values.length - 1)) * 320;
@@ -80,12 +59,41 @@ function SignalChart({ visualization }: { visualization: VitalVisualization }) {
       </div>
       <svg className={styles["signal-chart"]} viewBox="0 0 320 96" role="img" aria-label={`${visualization.label}, synthetic waveform`} preserveAspectRatio="none">
         <path className={styles["signal-grid"]} d="M0 24H320 M0 48H320 M0 72H320 M40 0V96 M80 0V96 M120 0V96 M160 0V96 M200 0V96 M240 0V96 M280 0V96" />
-        <path className={styles["signal-glow"]} d={path} pathLength="1" />
-        <path className={styles["signal-line"]} d={path} pathLength="1" />
+        {isEcg ? (
+          <g className={styles["signal-track"]}>
+            <path className={styles["signal-glow"]} d={ecgPath} />
+            <path className={styles["signal-line"]} d={ecgPath} />
+          </g>
+        ) : (
+          <>
+            <path className={styles["signal-glow"]} d={path} pathLength="1" />
+            <path className={styles["signal-line"]} d={path} pathLength="1" />
+          </>
+        )}
       </svg>
-      <span className={styles["signal-caption"]}>SYNTHETIC DEMO SIGNAL · LIVE PREVIEW</span>
     </div>
   );
+}
+
+function createEcgPath() {
+  const width = 640;
+  const cycleWidth = 160;
+  const baseline = 48;
+  const points: string[] = [];
+
+  for (let x = 0; x <= width; x += 2) {
+    const phase = (x % cycleWidth) / cycleWidth;
+    const pWave = 4.2 * Math.exp(-((phase - 0.18) ** 2) / 0.0018);
+    const qWave = -7 * Math.exp(-((phase - 0.295) ** 2) / 0.00045);
+    const rWave = 34 * Math.exp(-((phase - 0.32) ** 2) / 0.00022);
+    const sWave = -15 * Math.exp(-((phase - 0.352) ** 2) / 0.00055);
+    const tWave = 9 * Math.exp(-((phase - 0.56) ** 2) / 0.008);
+    const baselineDrift = Math.sin(phase * Math.PI * 2) * 0.45;
+    const y = baseline - pWave - qWave - rWave - sWave - tWave + baselineDrift;
+    points.push(`${x === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`);
+  }
+
+  return points.join(" ");
 }
 
 function MetricRow({ metric }: { metric: VitalMetric }) {
