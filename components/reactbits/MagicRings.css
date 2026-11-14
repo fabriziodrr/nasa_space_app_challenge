@@ -12,6 +12,10 @@
   mask-image: radial-gradient(circle at center, #000 0 54%, transparent 72%);
 }
 
+.magic-rings canvas {
+  background: transparent !important;
+}
+
 .magic-rings__canvas {
   position: absolute;
   inset: 0;

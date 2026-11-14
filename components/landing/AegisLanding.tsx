@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { SlothLogo } from "@/components/branding/SlothLogo";
+import CircularText from "@/components/reactbits/CircularText";
 import MagicRings from "@/components/reactbits/MagicRings";
 
 /**
@@ -89,13 +90,28 @@ export function AegisLanding() {
         ref={wordmarkRef}
         className="aegis-wordmark"
         type="button"
-         aria-label="Enter S.L.O.T.H. mission dashboard"
-        aria-busy={isEntering}
-        onClick={enterDashboard}
+         aria-label="Enter S.L.O.T.H. mission dashboard — Space Mission Lucidity Observation & Tracking Hub"
+         aria-busy={isEntering}
+         onClick={enterDashboard}
       >
-         <span className="aegis-wordmark__logo-wrap" aria-hidden="true">
-           <SlothLogo className="aegis-wordmark__logo aegis-wordmark__intro-logo" src="/introduction-logo.jpeg" alt="S.L.O.T.H. mission logo" />
-           <span className="aegis-wordmark__acronym">S.L.O.T.H.</span>
+         <span className="aegis-wordmark__logo-wrap">
+           <CircularText
+              className="aegis-wordmark__circular-text"
+              text="SPACE MISSION LUCIDITY OBSERVATION & TRACKING HUB  •  "
+              repeat={2}
+              spinDuration={34}
+             onHover="slowDown"
+             direction="clockwise"
+             size={520}
+              fontSize={21}
+              fontWeight={700}
+              textRadius={205}
+             color="rgba(255, 255, 255, 0.92)"
+             ring
+             ringColor="rgba(54, 224, 255, 0.2)"
+           >
+             <SlothLogo className="aegis-wordmark__logo aegis-wordmark__intro-logo" src="/introduction-logo.jpeg" alt="S.L.O.T.H. mission logo" />
+           </CircularText>
          </span>
       </button>
     </main>

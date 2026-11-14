@@ -65,7 +65,7 @@ button:focus-visible {
   height: min(78vw, 760px);
   transform: translate(-50%, -50%);
   opacity: 0.82;
-  pointer-events: auto;
+  pointer-events: none;
   background: transparent;
   overflow: hidden;
   border-radius: 50%;
@@ -96,6 +96,18 @@ button:focus-visible {
   gap: 18px;
 }
 
+.aegis-wordmark__circular-text {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  width: min(78vw, 520px) !important;
+  height: min(78vw, 520px) !important;
+  font-family: var(--font-bebas-neue), "Bebas Neue", sans-serif;
+  color: rgba(255, 255, 255, 0.92);
+  filter: drop-shadow(0 4px 12px rgba(3, 1, 19, 0.3));
+  pointer-events: auto;
+}
+
 .aegis-wordmark__logo {
   position: relative;
   overflow: hidden;
@@ -120,15 +132,6 @@ button:focus-visible {
   transform: none;
   filter: none;
   mix-blend-mode: normal;
-}
-
-.aegis-wordmark__acronym {
-  color: #fff;
-  font-family: var(--font-bebas-neue), sans-serif;
-  font-size: clamp(28px, 5vw, 58px);
-  font-weight: 400;
-  letter-spacing: 0.18em;
-  text-shadow: 0 6px 16px rgba(3, 1, 19, 0.38);
 }
 
 .aegis-wordmark:hover {
@@ -861,6 +864,10 @@ button:focus-visible {
     padding-inline: 12px;
   }
 
+  .aegis-wordmark__circular-text {
+    width: min(94vw, 440px) !important;
+    height: min(94vw, 440px) !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
