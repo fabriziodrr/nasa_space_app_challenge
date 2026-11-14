@@ -206,12 +206,14 @@ Completato quando entrambi possono implementare usando gli stessi esempi e le st
 
 Dipendenza: C0.
 
-- [ ] Implementare `AiProvider`, un adattatore simulato e uno reale configurabile.
-- [ ] Implementare l'orchestratore con contesto limitato e autorizzato.
-- [ ] Scrivere le istruzioni per conversazione, chiarimenti ed estrazione del check-in.
-- [ ] Validare l'output strutturato del modello; gestire output invalido e timeout senza creare proposte malformate.
-- [ ] Gestire informazioni mancanti, dati discordanti e il caso in cui non serva alcuna modifica.
-- [ ] Esporre le API di sessione e messaggi usando le interfacce di persistenza concordate.
+- [x] Implementare `AiProvider`, un adattatore simulato e uno reale configurabile.
+- [x] Implementare l'orchestratore con contesto limitato e autorizzato.
+- [x] Scrivere le istruzioni per conversazione, chiarimenti ed estrazione del check-in.
+- [x] Validare l'output strutturato del modello; gestire output invalido e timeout senza creare proposte malformate.
+- [x] Gestire informazioni mancanti, dati discordanti e il caso in cui non serva alcuna modifica.
+- [x] Esporre le API di sessione e messaggi usando le interfacce di persistenza concordate.
+
+Implementazione e prova: [Guida T1](docs/agent/t1-conversation.md). Gli adattatori implementano la capability `ConversationAiProvider`; report e diario restano a T2. Il bootstrap usa memoria temporanea e dati dimostrativi sostituibili con N1. In T1 il programma resta invariato e non si generano ancora proposte operative. L'adattatore OpenAI e configurabile e testato con trasporto simulato; il collaudo live richiede modello e chiave server.
 
 Completato quando uno scenario testuale produce una risposta utile e una bozza di check-in corretta, senza poter applicare modifiche al programma.
 

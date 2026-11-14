@@ -3,7 +3,7 @@
 Stato: **contratto locale implementato e verificabile; integrazione esterna da confermare con Fabrizio**.
 Versione del contratto: `1.0.0`. Prefisso HTTP previsto: `/api/agent/v1`.
 
-Questo documento definisce gli accordi di implementazione. Non indica che le route, gli adattatori o la funzionalita AI siano gia implementati. Gli schemi eseguibili sono in `server/agent/contracts/`; le interfacce server sono in `server/agent/ports.ts`.
+Questo documento definisce gli accordi di implementazione. Gli schemi eseguibili sono in `server/agent/contracts/`; le interfacce server sono in `server/agent/ports.ts`. T1 implementa ora apertura/lettura delle sessioni e invio messaggi: vedere la [guida T1](t1-conversation.md). Le altre route del catalogo restano da implementare nei rispettivi task.
 
 ## Uso dei contratti
 
