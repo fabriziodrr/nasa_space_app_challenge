@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { TextType } from "@/components/reactbits/TextType";
+import { SlothLogo } from "@/components/branding/SlothLogo";
 
 export type PillNavItem = {
   label: string;
@@ -17,10 +18,12 @@ type PillNavProps = {
   ariaLabel?: string;
 };
 
-export function PillNav({ brand = "SOTERIA", items, trailing, className = "", ariaLabel = "Mission controls" }: PillNavProps) {
+export function PillNav({ brand = "S.L.O.T.H.", items, trailing, className = "", ariaLabel = "Mission controls" }: PillNavProps) {
   return (
     <nav className={`pill-nav ${className}`.trim()} aria-label={ariaLabel}>
-      <div className="pill-nav__brand">{typeof brand === "string" ? <TextType text={brand} /> : brand}</div>
+      <div className="pill-nav__brand">
+        {typeof brand === "string" && brand === "S.L.O.T.H." ? <SlothLogo className="pill-nav__logo" alt="S.L.O.T.H." /> : typeof brand === "string" ? <TextType text={brand} /> : brand}
+      </div>
       <div className="pill-nav__items">
         {items.map((item) => (
           <button

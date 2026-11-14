@@ -79,6 +79,40 @@ button:focus-visible {
   transition: transform 0.2s ease;
 }
 
+.aegis-wordmark__logo-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+.aegis-wordmark__logo {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  width: min(44vw, 360px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(13, 6, 48, 0.72);
+  filter: drop-shadow(0 12px 22px rgba(3, 1, 19, 0.36));
+}
+
+.aegis-wordmark__logo .sloth-logo__image {
+  object-fit: cover;
+  transform: scale(1.86);
+  transform-origin: center;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
+.aegis-wordmark__acronym {
+  color: #fff;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(28px, 5vw, 58px);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-shadow: 0 6px 16px rgba(3, 1, 19, 0.38);
+}
+
 .aegis-wordmark:hover {
   transform: translateY(-2px);
 }
@@ -233,12 +267,28 @@ button:focus-visible {
 }
 
 .pill-nav__brand {
+  display: flex;
   flex: 0 0 auto;
-  color: var(--dashboard-deep);
-  font-family: var(--aegis-font);
-  font-size: 21px;
-  letter-spacing: 0.02em;
-  line-height: 1;
+  align-items: center;
+  min-width: 31px;
+  min-height: 32px;
+}
+
+.pill-nav__logo {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  background: rgba(232, 235, 239, 0.8);
+}
+
+.pill-nav__logo .sloth-logo__image {
+  object-fit: cover;
+  transform: scale(1.86);
+  transform-origin: center;
+  mix-blend-mode: multiply;
 }
 
 .pill-nav__items,
@@ -249,7 +299,7 @@ button:focus-visible {
 }
 
 .pill-nav__items {
-  padding-left: 9px;
+  padding-left: 7px;
   border-left: 1px solid rgba(98, 105, 112, 0.18);
 }
 

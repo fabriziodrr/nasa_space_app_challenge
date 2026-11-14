@@ -58,10 +58,13 @@
   isolation: isolate;
   background: radial-gradient(ellipse at center, rgba(98, 105, 112, .12), transparent 58%);
 }
-.human-vitals-body .body-canvas > div:not(.shape-grid):not(.vitals-panel):not(.canvas-hint) { position: relative; z-index: 1; }
-.human-vitals-body .body-canvas > div:not(.shape-grid) canvas { display: block; width: 100% !important; height: 100% !important; min-height: 0; }
-.human-vitals-body .body-canvas > div:not(.shape-grid):not(.vitals-panel):not(.canvas-hint) { z-index: 2; }
-.human-vitals-body .body-canvas .shape-grid { z-index: 1; }
+.human-vitals-body .body-canvas > div:not(.canvas-dot-grid):not(.vitals-panel):not(.canvas-hint) { position: relative; z-index: 1; }
+.human-vitals-body .body-canvas > div:not(.canvas-dot-grid) canvas { display: block; width: 100% !important; height: 100% !important; min-height: 0; }
+.human-vitals-body .body-canvas .canvas-dot-grid,
+.human-vitals-body .body-canvas .dot-grid__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.human-vitals-body .body-canvas .canvas-dot-grid { z-index: 0; }
+.human-vitals-body .body-canvas .vitals-panel,
+.human-vitals-body .body-canvas .canvas-hint { z-index: 5; }
 .human-vitals-body .canvas-hint {
   position: absolute;
   bottom: 16px;

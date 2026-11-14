@@ -10,6 +10,7 @@ type DotGridProps = {
   baseColor?: string;
   activeColor?: string;
   opacity?: number;
+  uniform?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -31,6 +32,7 @@ export function DotGrid({
   baseColor = "#d5d9e0",
   activeColor = "#3b1abd",
   opacity = 0.28,
+  uniform = false,
   className = "",
   style,
 }: DotGridProps) {
@@ -55,16 +57,16 @@ export function DotGrid({
       context.clearRect(0, 0, width, height);
 
       const base = parseColor(baseColor);
-      const active = parseColor(activeColor);
+       const active = parseColor(activeColor);
       const radius = Math.max(0.5, dotSize / 2);
       const spacing = Math.max(dotSize + 8, gap);
 
       for (let y = spacing / 2; y < height; y += spacing) {
         for (let x = spacing / 2; x < width; x += spacing) {
-          const distance = Math.hypot(x - width * 0.78, y - height * 0.12);
-          const accent = Math.max(0, 1 - distance / Math.max(width, height) * 2.2);
-          const color = accent > 0.08 ? active : base;
-          const alpha = opacity * (0.55 + accent * 0.45);
+           const distance = Math.hypot(x - width * 0.78, y - height * 0.12);
+           const accent = uniform ? 0 : Math.max(0, 1 - distance / Math.max(width, height) * 2.2);
+           const color = accent > 0.08 ? active : base;
+           const alpha = uniform ? opacity : opacity * (0.55 + accent * 0.45);
 
           context.beginPath();
           context.fillStyle = `rgba(${color}, ${alpha})`;
@@ -79,7 +81,7 @@ export function DotGrid({
     draw();
 
     return () => resizeObserver.disconnect();
-  }, [activeColor, baseColor, dotSize, gap, opacity]);
+  }, [activeColor, baseColor, dotSize, gap, opacity, uniform]);
 
   return (
     <div className={`dot-grid ${className}`.trim()} style={style} aria-hidden="true">

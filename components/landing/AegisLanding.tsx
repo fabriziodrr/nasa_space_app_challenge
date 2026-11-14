@@ -3,12 +3,12 @@
 import { useRef, useState } from "react";
 import { gsap } from "gsap";
 
-import StrokeText from "@/components/reactbits/StrokeText";
 import WebThreads from "@/components/reactbits/WebThreads";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { SlothLogo } from "@/components/branding/SlothLogo";
 
 /**
- * The first interaction of the product is deliberately small: the SOTERIA
+ * The first interaction of the product is deliberately small: the S.L.O.T.H.
  * wordmark is the entry point for the two dashboards that will follow.
  */
 export function AegisLanding() {
@@ -39,9 +39,9 @@ export function AegisLanding() {
         ease: "power2.out",
       })
       .to(wordmarkRef.current, {
-        scale: 1.3,
+        scale: 1.5,
         opacity: 0,
-        filter: "blur(12px)",
+        filter: "blur(8px)",
         duration: 0.65,
         ease: "power3.in",
       })
@@ -89,46 +89,14 @@ export function AegisLanding() {
         ref={wordmarkRef}
         className="aegis-wordmark"
         type="button"
-        aria-label="Enter SOTERIA mission dashboard"
+         aria-label="Enter S.L.O.T.H. mission dashboard"
         aria-busy={isEntering}
         onClick={enterDashboard}
       >
-        <span className="aegis-wordmark__stroke-stack" aria-hidden="true">
-          <span className="aegis-wordmark__stroke-layer aegis-wordmark__stroke-layer--border">
-            <StrokeText
-              text="SOTERIA"
-              strokeColor="#0d0630"
-              fillColor="#0d0630"
-              strokeWidth={6}
-              fontSize={120}
-              fontWeight={400}
-              fontFamily="var(--font-bebas-neue)"
-              letterSpacing={-2}
-              drawDuration={2.8}
-              fillDelay={0.18}
-              fillMode="wipe"
-              wipeFrom="left"
-              trigger="mount"
-            />
-          </span>
-          <span className="aegis-wordmark__stroke-layer aegis-wordmark__stroke-layer--blue">
-            <StrokeText
-              text="SOTERIA"
-              strokeColor="#ffffff"
-              fillColor="#ffffff"
-              strokeWidth={1.4}
-              fontSize={120}
-              fontWeight={400}
-              fontFamily="var(--font-bebas-neue)"
-              letterSpacing={-2}
-              drawDuration={2.8}
-              fillDelay={0.18}
-              fillMode="wipe"
-              wipeFrom="left"
-              trigger="mount"
-            />
-          </span>
-        </span>
+         <span className="aegis-wordmark__logo-wrap" aria-hidden="true">
+           <SlothLogo className="aegis-wordmark__logo" />
+           <span className="aegis-wordmark__acronym">S.L.O.T.H.</span>
+         </span>
       </button>
     </main>
   );

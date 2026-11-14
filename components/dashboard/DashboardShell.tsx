@@ -11,17 +11,18 @@ import type { BodyVariant } from "@/components/human-vitals/HumanVitalsBody";
 
 type DashboardView = "houston" | "iss";
 
-/** Shared frame for the two SOTERIA mission operations perspectives. */
+/** Shared frame for the two S.L.O.T.H. mission operations perspectives. */
 export function DashboardShell() {
   const [activeView, setActiveView] = useState<DashboardView>("houston");
   const [resetToken, setResetToken] = useState(0);
   const [bodyVariant, setBodyVariant] = useState<BodyVariant>("male");
 
   return (
-    <div className="dashboard-shell" aria-label="SOTERIA mission dashboard">
+    <div className="dashboard-shell" aria-label="S.L.O.T.H. mission dashboard">
       <main className="dashboard-shell__main" aria-label={`${activeView} dashboard workspace`}>
         <PillNav
           className="dashboard-shell__nav"
+          brand="S.L.O.T.H."
           items={[
             { label: "Houston", active: activeView === "houston", onClick: () => setActiveView("houston"), icon: <DashboardIcon name="grid" size={14} /> },
             { label: "ISS", active: activeView === "iss", onClick: () => setActiveView("iss"), icon: <DashboardIcon name="orbit" size={14} /> },
