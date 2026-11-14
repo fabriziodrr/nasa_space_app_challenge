@@ -5,7 +5,7 @@ import {
   type Identity,
 } from "../contracts";
 import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleReader, SensorProvider } from "../ports";
-import { AgentErrors } from "../errors";
+import { AgentErrors } from "../core/errors";
 import { ProposalService } from "./proposals";
 
 /** Generates both artifacts from a confirmed check-in using separate privacy boundaries. */

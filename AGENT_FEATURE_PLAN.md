@@ -221,12 +221,14 @@ Completato quando uno scenario testuale produce una risposta utile e una bozza d
 
 Dipendenza: C0.
 
-- [ ] Definire i modelli Prisma e il percorso di inizializzazione del database.
-- [ ] Implementare `AgentRepository` e le verifiche di accesso ai record.
-- [ ] Creare `prisma/seed.ts` con astronauta, identita demo e programma coerente.
-- [ ] Implementare `SensorProvider` e `ScheduleProvider` simulati.
-- [ ] Preparare tre scenari deterministici: riposo regolare, riposo insufficiente, dati discordanti.
-- [ ] Documentare setup, reset dei dati dimostrativi e avvio.
+- [x] Definire i modelli Prisma e il percorso di inizializzazione del database.
+- [x] Implementare `AgentRepository` e le verifiche di accesso ai record.
+- [x] Creare `prisma/seed.ts` con astronauta, identita demo e programma coerente.
+- [x] Implementare `SensorProvider` e `ScheduleProvider` simulati.
+- [x] Preparare tre scenari deterministici: riposo regolare, riposo insufficiente, dati discordanti.
+- [x] Documentare setup, reset dei dati dimostrativi e avvio.
+
+Implementazione e prova: [Guida N1](docs/agent/setup.md). Modelli in `prisma/schema.prisma`, `AgentRepository` in `server/agent/adapters/prisma/repository.ts`, provider simulati in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`) e scenari in `server/agent/simulator/scenarios.ts`. Test in `tests/agent/n1.test.ts`. La persistenza Prisma non e ancora collegata al runtime HTTP (usa `MemoryConversationRepository`); il collegamento avviene nell'integrazione con T4/N3.
 
 Completato quando i dati sopravvivono al riavvio e ogni scenario puo essere ripetuto con gli stessi input.
 
@@ -249,15 +251,17 @@ Completato quando l'astronauta puo correggere il diario e Terra riceve soltanto 
 
 Dipendenze: C0 e N1. Usa inizialmente proposte simulate, senza attendere T1.
 
-- [ ] Implementare correzione e conferma del check-in, impedendo effetti duplicati su conferme ripetute.
-- [ ] Implementare il servizio che riceve la proposta strutturata generata dall'agent.
-- [ ] Validare attivita esistenti, blocchi, dipendenze, durate, sovrapposizioni e limiti della giornata.
-- [ ] Salvare una proposta immutabile con evidenze e versione del programma.
-- [ ] Implementare elenco delle proposte e decisione approvata/rifiutata.
-- [ ] Verificare il ruolo Terra sul server e registrare operatore, orario e commento.
-- [ ] Applicare con controllo atomico della versione e protezione dai duplicati nell'adattatore simulato.
-- [ ] Gestire proposta obsoleta, fallimento di applicazione e recupero dell'esito dopo timeout.
-- [ ] Restituire stato e programma effettivi, distinguendo approvazione e applicazione.
+- [x] Implementare correzione e conferma del check-in, impedendo effetti duplicati su conferme ripetute.
+- [x] Implementare il servizio che riceve la proposta strutturata generata dall'agent.
+- [x] Validare attivita esistenti, blocchi, dipendenze, durate, sovrapposizioni e limiti della giornata.
+- [x] Salvare una proposta immutabile con evidenze e versione del programma.
+- [x] Implementare elenco delle proposte e decisione approvata/rifiutata.
+- [x] Verificare il ruolo Terra sul server e registrare operatore, orario e commento.
+- [x] Applicare con controllo atomico della versione e protezione dai duplicati nell'adattatore simulato.
+- [x] Gestire proposta obsoleta, fallimento di applicazione e recupero dell'esito dopo timeout.
+- [x] Restituire stato e programma effettivi, distinguendo approvazione e applicazione.
+
+Implementazione e prova: validatore in `server/agent/services/validator.ts`, servizi in `server/agent/services/` (`checkin.ts`, `proposals.ts`, `approval.ts`) e applicazione con controllo atomico di versione nell'adattatore simulato `server/agent/adapters/schedule.ts`. Test in `tests/agent/n2.test.ts`. Le route HTTP di proposta/decisione/report restano all'integrazione con T4/N3.
 
 Completato quando una proposta valida viene applicata una sola volta e una proposta obsoleta o non autorizzata non modifica il programma.
 
@@ -290,14 +294,16 @@ Completato quando il percorso completo e dimostrabile senza il codice di Fabrizi
 
 ### N3 — Documentazione di integrazione — Nello
 
-Dipendenze: C0; aggiornamento finale dopo N2 e T3.
+Dipendenza: C0; aggiornamento finale dopo N2 e T3.
 
-- [ ] Scrivere `docs/agent/integration.md` con endpoint, payload, risposte ed errori.
-- [ ] Includere esempi di chiamate per sessione, check-in, proposta, decisione e recupero stato.
-- [ ] Documentare configurazione, variabili d'ambiente e modalita simulata/reale senza segreti.
-- [ ] Spiegare come sostituire i provider di identita, sensori e programma.
-- [ ] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
+- [x] Scrivere `docs/agent/integration.md` con endpoint, payload, risposte ed errori.
+- [x] Includere esempi di chiamate per sessione, check-in, proposta, decisione e recupero stato.
+- [x] Documentare configurazione, variabili d'ambiente e modalita simulata/reale senza segreti.
+- [x] Spiegare come sostituire i provider di identita, sensori e programma.
+- [x] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
 - [ ] Concordare con Fabrizio il collegamento alla dashboard usando gli stessi endpoint della demo.
+
+Implementazione e prova: [Guida di integrazione](docs/agent/integration.md). Redatta sui contratti C0; le sezioni voce (T3) e le route del flusso N2 saranno rifinite quando le rispettive route saranno esposte. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
 
 Completato quando Fabrizio puo collegare una propria vista senza importare i componenti grafici della demo o modificare il nucleo dell'agent.
 

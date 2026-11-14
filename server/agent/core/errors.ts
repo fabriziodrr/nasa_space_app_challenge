@@ -8,11 +8,46 @@ export class AgentError extends Error {
     public readonly code: ErrorCode,
     message: string,
     public readonly retryable = false,
+    public readonly currentVersion?: number,
   ) {
     super(message);
     this.name = "AgentError";
   }
 }
+
+export function notFound(message = "Risorsa non trovata o non accessibile."): AgentError {
+  return new AgentError("NOT_FOUND", message);
+}
+
+export function forbidden(message = "Operazione non consentita per il ruolo corrente."): AgentError {
+  return new AgentError("FORBIDDEN", message);
+}
+
+export function invalidState(message: string): AgentError {
+  return new AgentError("INVALID_STATE", message);
+}
+
+export function versionConflict(message: string, currentVersion: number): AgentError {
+  return new AgentError("VERSION_CONFLICT", message, false, currentVersion);
+}
+
+export function idempotencyConflict(message = "Richiesta ripetuta con payload o operatore differente."): AgentError {
+  return new AgentError("IDEMPOTENCY_CONFLICT", message);
+}
+
+export function internal(message = "Errore interno."): AgentError {
+  return new AgentError("INTERNAL_ERROR", message, true);
+}
+
+export const AgentErrors = {
+  notFound,
+  forbidden,
+  invalidState,
+  versionConflict,
+  idempotencyConflict,
+  internal,
+  invalidAiOutput,
+} as const;
 
 // Next bundles routes independently. Shared development runtime errors may come
 // from another copy of this module, so instanceof alone is not a stable boundary.
@@ -26,8 +61,8 @@ export function isAgentError(value: unknown): value is AgentError {
     && typeof candidate.retryable === "boolean";
 }
 
-export function invalidAiOutput(): AgentError {
-  return new AgentError("INVALID_AI_OUTPUT", "La risposta AI non e valida. Il check-in non e stato modificato.");
+export function invalidAiOutput(message = "La risposta AI non e valida. Il check-in non e stato modificato."): AgentError {
+  return new AgentError("INVALID_AI_OUTPUT", message);
 }
 
 export function sameMessage(

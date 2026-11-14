@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { PrismaClient } from "@prisma/client";
 import { ScheduleActivitySchema, type ScheduleApplyCommand, type ScheduleApplyResult, type ScheduleSnapshot } from "../contracts";
 import type { ScheduleProvider } from "../ports";
-import { AgentErrors } from "../errors";
+import { AgentErrors } from "../core/errors";
 import { applyScheduleChanges } from "../lib/schedule";
 import { scheduleFromRow, toIso, toJson, type ScheduleRow } from "./prisma/mappers";
 

@@ -6,7 +6,7 @@ import type {
   ScheduleProposal,
 } from "../contracts";
 import type { AgentRepository, ScheduleProvider } from "../ports";
-import { AgentErrors } from "../errors";
+import { AgentErrors } from "../core/errors";
 
 export class ApprovalService {
   constructor(

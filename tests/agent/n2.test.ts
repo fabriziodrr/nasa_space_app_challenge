@@ -7,7 +7,7 @@ import {
 } from "../../server/agent/contracts";
 import { PrismaAgentRepository } from "../../server/agent/adapters/prisma/repository";
 import { SimulatedScheduleProvider } from "../../server/agent/adapters/schedule";
-import { AgentServiceError } from "../../server/agent/errors";
+import { isAgentError } from "../../server/agent/core/errors";
 import { ApprovalService } from "../../server/agent/services/approval";
 import { CheckInService } from "../../server/agent/services/checkin";
 import { ProposalService } from "../../server/agent/services/proposals";
@@ -244,11 +244,11 @@ test("check-in service enforces astronaut-only access and sharing membership", a
   const checkInId = `checkin-${sessionId}`;
   await assert.rejects(
     () => checkInService.confirm(ground, checkInId, { expectedRevision: 1, sharedObservationIds: [] }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "FORBIDDEN",
+    (error: unknown) => isAgentError(error) && error.code === "FORBIDDEN",
   );
   await assert.rejects(
     () => checkInService.confirm(astronaut, checkInId, { expectedRevision: 1, sharedObservationIds: ["obs-private"] }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "INVALID_STATE",
+    (error: unknown) => isAgentError(error) && error.code === "INVALID_STATE",
   );
 });
 
@@ -292,21 +292,21 @@ test("approval service rejects and enforces stale and scope checks", async () =>
   // Non-ground operator is forbidden.
   await assert.rejects(
     () => approvalService.decide({ identity: astronaut, proposalId: proposal.id, idempotencyKey: "k", request: { decision: "APPROVE", comment: null } }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "FORBIDDEN",
+    (error: unknown) => isAgentError(error) && error.code === "FORBIDDEN",
   );
 
   // Ground operator out of scope cannot even see the proposal.
   const outOfScope: Identity = { userId: "ground-2", role: "GROUND_CONTROL", astronautIds: ["astro-2"] };
   await assert.rejects(
     () => approvalService.decide({ identity: outOfScope, proposalId: proposal.id, idempotencyKey: "k", request: { decision: "APPROVE", comment: null } }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "NOT_FOUND",
+    (error: unknown) => isAgentError(error) && error.code === "NOT_FOUND",
   );
 
   // A concurrent schedule change makes the proposal stale before decision.
   await db.prisma.scheduleSnapshot.update({ where: { id: "schedule-1" }, data: { version: 5 } });
   await assert.rejects(
     () => approvalService.decide({ identity: ground, proposalId: proposal.id, idempotencyKey: "k", request: { decision: "APPROVE", comment: null } }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "VERSION_CONFLICT",
+    (error: unknown) => isAgentError(error) && error.code === "VERSION_CONFLICT",
   );
   assert.equal((await repository.getProposal(DEMO_ASTRONAUT_ID, proposal.id))?.status, "STALE");
 });
