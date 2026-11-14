@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
 import { VoiceConversation, type SpeakableReply } from "../../components/agent-voice/VoiceConversation";
-import { VoicePlayback } from "../../components/agent-voice/VoicePlayback";
+import { SlothMascot } from "../../components/agent-avatar/SlothMascot";
 import { speakServerReply } from "../../client/voice/server-speech";
+import type { SpeakHandle } from "../../client/voice/speech";
 import { CreateSessionResponseSchema, MessageResponseSchema, type CheckIn } from "../../server/agent/contracts";
 import { VisionPanel } from "./vision-panel";
 import styles from "./voice-demo.module.css";
@@ -22,13 +23,24 @@ export function VoiceDemo() {
   const [panelBusy, setPanelBusy] = useState(false);
   const [chatBusy, setChatBusy] = useState(false);
   const [confirmationPending, setConfirmationPending] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [speechError, setSpeechError] = useState("");
   const pending = useRef<Pending | null>(null);
   const mounted = useRef(true);
   const controller = useRef<AbortController | null>(null);
   const startingRef = useRef(false);
   const operation = useRef(false);
+  const playback = useRef<SpeakHandle | null>(null);
+  const playbackEnd = useRef<(() => void) | null>(null);
+  const playbackGeneration = useRef(0);
 
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; controller.current?.abort(); }; }, []);
+  useEffect(() => {
+    mounted.current = true;
+    const generation = playbackGeneration;
+    return () => {
+      mounted.current = false; controller.current?.abort(); generation.current++; playback.current?.cancel();
+    };
+  }, []);
 
   async function request(path: string, body: object) {
     controller.current = new AbortController();
@@ -87,14 +99,38 @@ export function VoiceDemo() {
     finally { operation.current = false; if (mounted.current) setPanelBusy(false); }
   }
 
-  const manualSend = (text: string, mode: "TEXT" | "VOICE") => send(text, mode).then(() => undefined);
+  const manualSend = (text: string, mode: "TEXT" | "VOICE") => send(text, mode).then((reply) => {
+    speakReply(reply, () => {}, (message) => setSpeechError(message));
+  });
+
+  function stopPlayback() {
+    playbackGeneration.current++;
+    playback.current?.cancel();
+    playback.current = null;
+    const finish = playbackEnd.current;
+    playbackEnd.current = null;
+    if (mounted.current) setSpeaking(false);
+    finish?.();
+  }
 
   function speakReply(reply: SpeakableReply, onEnd: () => void, onError: (message: string) => void) {
-    return speakServerReply(
+    stopPlayback();
+    const generation = playbackGeneration.current;
+    setSpeechError(""); setSpeaking(true);
+    playbackEnd.current = onEnd;
+    const handle = speakServerReply(
       { sessionId, messageId: reply.messageId, text: reply.text, token: token.trim() },
-      onEnd,
-      onError,
+      () => {
+        if (generation !== playbackGeneration.current) return;
+        playback.current = null; playbackEnd.current = null; if (mounted.current) setSpeaking(false); onEnd();
+      },
+      (message) => {
+        if (generation !== playbackGeneration.current) return;
+        playback.current = null; playbackEnd.current = null; if (mounted.current) setSpeaking(false); onError(message);
+      },
     );
+    playback.current = handle;
+    return { cancel() { if (generation === playbackGeneration.current) stopPlayback(); else handle.cancel(); } };
   }
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
@@ -109,18 +145,26 @@ export function VoiceDemo() {
         <button type="submit" disabled={starting || !token.trim()}>{starting ? "Avvio…" : "Avvia sessione"}</button>
         {error && <p role="alert">{error}</p>}
       </form> : <>
+        <div className={styles.stage}>
+          <SlothMascot speaking={speaking} />
+          {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
+        </div>
         <section className={styles.panel} aria-labelledby="conversation-title">
           <h2 id="conversation-title">Conversazione</h2>
           {!messages.length && <p>La sessione è pronta. Avvia la conversazione continua oppure scrivi il primo messaggio.</p>}
           <ol className={styles.messages} aria-live="polite">
             {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "Tu" : "Assistente"}</strong><p>{item.text}</p></li>)}
           </ol>
-          {lastReply && <VoicePlayback text={lastReply.text} />}
+          {lastReply && <div>
+            <button type="button" disabled={speaking} onClick={() => speakReply({ text: lastReply.text, messageId: lastReply.id }, () => {}, setSpeechError)}>Ascolta risposta</button>
+            <button type="button" disabled={!speaking} onClick={stopPlayback}>Interrompi lettura</button>
+          </div>}
+          {speechError && <p role="alert">{speechError}</p>}
         </section>
         <VisionPanel token={token} sessionId={sessionId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
           run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
         <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
-        <div className={styles.panel}><VoiceComposer disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>
+        <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>
         <p className={styles.footnote}>In modalità continua la risposta viene letta ad alta voce e l’assistente torna in ascolto da solo. Puoi interrompere e usare la modalità manuale per correggere il testo. La condivisione avviene solo alla conferma del check-in.</p>
         <p className={styles.footnote}>Voce: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (con browser di riserva).</p>
       </>}
