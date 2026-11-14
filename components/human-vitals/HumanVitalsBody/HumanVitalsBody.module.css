@@ -38,26 +38,6 @@
   overflow: hidden;
   border-radius: 14px;
 }
-.human-vitals-body .explorer-toolbar {
-  min-height: 49px;
-  border-bottom: 1px solid rgba(59, 26, 189, .12);
-  padding: 0 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.human-vitals-body .toolbar-title {
-  color: #626970;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 500 10px/1.3 var(--hvb-mono);
-  letter-spacing: .12em;
-}
-.human-vitals-body .toolbar-title svg { color: #3b1abd; }
-.human-vitals-body .toolbar-actions { display: flex; align-items: center; gap: 8px; }
-.human-vitals-body .toolbar-button,
 .human-vitals-body .icon-button {
   border: 1px solid rgba(59, 26, 189, .16);
   border-radius: 5px;
@@ -66,14 +46,6 @@
   cursor: pointer;
   transition: background .2s, border-color .2s, color .2s;
 }
-.human-vitals-body .toolbar-button {
-  padding: 7px 9px;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.human-vitals-body .toolbar-button:hover,
 .human-vitals-body .icon-button:hover {
   color: #3b1abd;
   border-color: rgba(59, 26, 189, .5);
@@ -214,9 +186,6 @@
   .human-vitals-body .body-explorer { min-height: 550px; }
   .human-vitals-body .body-canvas,
   .human-vitals-body .body-canvas canvas { min-height: 425px; }
-  .human-vitals-body .explorer-toolbar { padding: 0 12px; }
-  .human-vitals-body .toolbar-button { padding: 7px; font-size: 0; }
-  .human-vitals-body .toolbar-button svg { width: 15px; height: 15px; }
   .human-vitals-body .zone-legend { padding: 12px; font-size: 8px; flex-wrap: wrap; }
   .human-vitals-body .legend-line { display: none; }
   .human-vitals-body .legend-muted { width: 100%; padding-left: 14px; }

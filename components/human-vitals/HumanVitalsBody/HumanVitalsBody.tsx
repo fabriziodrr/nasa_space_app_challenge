@@ -1,4 +1,3 @@
-import { Crosshair, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { defaultVitalZones } from "./bodyZones";
 import { HumanVitalsScene } from "./HumanVitalsScene";
@@ -16,7 +15,7 @@ export function HumanVitalsBody({
   autoRotate = false,
   compact = false,
   className = "",
-  bodyVariantControls,
+  resetToken = 0,
 }: HumanVitalsBodyProps) {
   const selectedModelPath = modelPath ?? (bodyVariant === "female" ? femaleModelPath : defaultModelPath);
   const initial = zones.some((zone) => zone.id === initialZone) ? initialZone : "overview";
@@ -73,18 +72,18 @@ export function HumanVitalsBody({
     closePanel();
   };
 
+  useEffect(() => {
+    if (resetToken === 0) return;
+    reset();
+  // The token is the explicit reset event from the global pill navigation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetToken]);
+
   if (!selected) return null;
 
   return (
     <section className={`${styles["human-vitals-body"]} ${compact ? styles["is-compact"] : ""} ${className}`}>
       <div className={styles["body-explorer"]}>
-        <div className={styles["explorer-toolbar"]}>
-          <div className={styles["toolbar-title"]}><Crosshair size={15} /> INTERACTIVE BODY MAP</div>
-          <div className={styles["toolbar-actions"]}>
-            {bodyVariantControls}
-            <button className={styles["toolbar-button"]} onClick={reset}><RotateCcw size={14} /> Reset</button>
-          </div>
-        </div>
         <div className={styles["body-canvas"]}>
            <HumanVitalsScene
              key={`${bodyVariant}:${selectedModelPath}`}
