@@ -364,7 +364,8 @@ button:focus-visible {
   min-width: 0;
   min-height: 100svh;
   padding: 20px clamp(20px, 3vw, 46px) 20px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .dashboard-shell__switch {
@@ -428,8 +429,9 @@ button:focus-visible {
 }
 
 .human-vitals-dashboard__body {
-  min-height: 0;
-  flex: 1;
+  min-height: 520px;
+  height: max(520px, calc(100svh - 150px));
+  flex: 0 0 auto;
 }
 
 .human-vitals-dashboard__body > .human-vitals-body {
@@ -447,6 +449,10 @@ button:focus-visible {
 
   .human-vitals-dashboard {
     height: auto;
+  }
+
+  .human-vitals-dashboard__body {
+    height: 630px;
   }
 
   .human-vitals-dashboard__body > .human-vitals-body {

@@ -3,12 +3,25 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Body, FastAPI, HTTPException
-from pydantic import AwareDatetime
+from typing import Literal
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from .agent_tools import AgentDataTools
 from .models import Observation, SpeechFeedback
 from .service import DataService
 from .store import DuplicateObservation, Store
+
+
+class ConversationMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class DemoConversation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    message: str = Field(min_length=1, max_length=4000)
+    history: list[ConversationMessage] = Field(default_factory=list, max_length=20)
 
 
 def create_app(db_path: str | Path | None = None) -> FastAPI:
@@ -19,6 +32,18 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "ok", "schema_version": "1"}
+
+    @app.post("/v1/demo/companion")
+    def demo_companion(request: DemoConversation):
+        # Demo-only fixed identity. No user-controlled access to personal records.
+        try:
+            from .companion import build_companion, converse
+            agent = build_companion(service, subject_id="sleep-demo-14d", synthetic=True)
+            response = converse(agent, request.message, [h.model_dump() for h in request.history])
+            return {"response": response, "subject_id": "sleep-demo-14d", "synthetic": True}
+        except Exception:
+            # Preserve data APIs even if dependencies, model or local inference fail.
+            raise HTTPException(503, "Companion non disponibile: verificare dipendenze e modello locale.")
 
     @app.post("/v1/observations", status_code=201)
     def add_observation(observation: Observation):

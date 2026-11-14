@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { SleepDataPanel } from "@/components/dashboard/SleepDataPanel";
+import { defaultVitalZones } from "@/components/human-vitals/HumanVitalsBody/bodyZones";
 
 import {
   HumanVitalsBody,
@@ -11,6 +13,12 @@ type HumanVitalsDashboardProps = {
   perspective: "houston" | "iss";
 };
 
+// These body-map values are hardcoded mock data, independent of the sleep API.
+const demoZones = defaultVitalZones.map((zone) => ({
+  ...zone,
+  metrics: zone.metrics.map((metric) => ({ ...metric, source: "synthetic-demo" as const })),
+}));
+
 export function HumanVitalsDashboard({ perspective }: HumanVitalsDashboardProps) {
   const [bodyVariant, setBodyVariant] = useState<BodyVariant>("male");
   const isHouston = perspective === "houston";
@@ -19,6 +27,7 @@ export function HumanVitalsDashboard({ perspective }: HumanVitalsDashboardProps)
     <section className="human-vitals-dashboard" aria-label={isHouston ? "Houston crew health" : "ISS astronaut health"}>
       <div className="human-vitals-dashboard__body">
         <HumanVitalsBody
+          zones={demoZones}
           bodyVariant={bodyVariant}
           bodyVariantControls={
             <div className="human-vitals-dashboard__variant" role="group" aria-label="Body model">
@@ -43,6 +52,7 @@ export function HumanVitalsDashboard({ perspective }: HumanVitalsDashboardProps)
           }
         />
       </div>
+      <SleepDataPanel />
     </section>
   );
 }

@@ -1,6 +1,6 @@
 # Integrazione LangChain con i dati AEGIS
 
-La factory `create_data_tools` espone due strumenti di sola lettura, mantenendo i calcoli nel backend. Non implementa il compagno, un modello linguistico o il modulo voce: questi saranno integrati dal team.
+La factory `create_data_tools` espone due strumenti di sola lettura. `companion.py` aggiunge l'orchestrazione testuale LangChain; il modulo voce rimane esterno.
 
 Da `server/`, installare l'extra opzionale se necessario:
 
@@ -29,7 +29,9 @@ analysis = by_name["analyze_sleep"].invoke({
 
 La lista `tools` può essere passata all'agente LangChain del compagno. `get_context` non accetta argomenti; `analyze_sleep` richiede un intervallo con fuso, inizio incluso e fine esclusa. Finestre invalide producono un errore di validazione, da gestire nel flusso dell'agente.
 
-La dashboard può usare gli endpoint esistenti `/v1/subjects/{subject_id}/agent-context` e `/v1/subjects/{subject_id}/sleep-analysis`; la factory Python serve all'agente in esecuzione nello stesso processo del servizio dati. Gli endpoint non costituiscono ancora un servizio conversazionale.
+La dashboard può usare gli endpoint esistenti `/v1/subjects/{subject_id}/agent-context` e `/v1/subjects/{subject_id}/sleep-analysis`. Un endpoint testuale di prova è disponibile come `POST /v1/demo/companion` con corpo `{"message":"Come ho dormito?","history":[]}`. Restituisce `response`, `subject_id` e `synthetic`; l'identità è fissata a `sleep-demo-14d` e ai soli dati sintetici. `history` è opzionale, con massimo 20 messaggi `{ "role": "user" | "assistant", "content": "..." }`; la mantiene il chiamante, non viene salvata dal backend.
+
+Per eseguire l'agente serve Ollama locale avviato, un modello già installato e compatibile con tool calling, e una scelta esplicita prima di avviare il backend: `$env:AEGIS_OLLAMA_MODEL = "nome-modello-installato"`. L'inferenza è vincolata a `127.0.0.1:11434`; non viene scaricato alcun modello automaticamente. Se non disponibile, l'endpoint risponde 503 e le API dati continuano a funzionare. Non è stata ancora verificata la qualità di un modello reale.
 
 I tool sono vincolati a soggetto e modalità sintetica alla creazione: questi parametri non sono esposti al modello. L'applicazione deve comunque autenticare l'utente e scegliere l'identità autorizzata prima di creare i tool. L'API attuale è destinata a un ambiente locale fidato e non implementa autenticazione.
 

@@ -25,7 +25,7 @@ export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZon
   return (
     <aside className={`${styles["vitals-panel"]} ${closing ? styles["panel-closing"] : styles["panel-opening"]}`} style={{ "--accent": zone.color } as React.CSSProperties} role="dialog" aria-label={`${zone.label} vital data`}>
       <div className={styles["panel-topline"]}>
-        <span className={styles["panel-kicker"]}><Activity size={14} /> LIVE BODY MAP</span>
+        <span className={styles["panel-kicker"]}><Activity size={14} /> SYNTHETIC BODY MAP</span>
         <div className={styles["panel-actions"]}>
           <button className={styles["icon-button"]} onClick={onReset} aria-label="Reset body view" title="Reset view"><RotateCcw size={15} /></button>
           <button className={styles["icon-button"]} onClick={onClose} aria-label="Close vital data" title="Close"><X size={15} /></button>
