@@ -48,6 +48,10 @@ export function VoiceComposer({ disabled = false, onSend }: VoiceComposerProps) 
     return () => { mounted.current = false; speech.dispose(); input.current = null; };
   }, []);
 
+  useEffect(() => {
+    if (disabled) input.current?.stop();
+  }, [disabled]);
+
   async function send() {
     const trimmed = text.trim();
     if (running.current || disabled || listening || !trimmed || trimmed.length > 8000) return;

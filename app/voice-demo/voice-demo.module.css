@@ -7,6 +7,12 @@
 .panel label { display: block; font-weight: 700; margin-bottom: 8px; }
 .panel textarea, .panel input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #a6b4be; border-radius: 8px; font: inherit; }
 .panel textarea { resize: vertical; }
+.panel input[type="checkbox"] { width: auto; margin: 0; }
+.panel .choice { display: flex; gap: 10px; align-items: baseline; font-weight: 400; margin: 12px 0; }
+.panel fieldset { border: 1px solid #d6dfe5; border-radius: 8px; margin: 12px 0; }
+.visionList { margin: 20px 0; }
+.measurement { margin: 12px 0; padding: 16px; border: 1px solid #d6dfe5; border-radius: 10px; background: #f6f9fa; overflow-wrap: anywhere; }
+.measurement p { margin: 6px 0; }
 .panel button { margin: 12px 8px 0 0; padding: 10px 15px; border: 0; border-radius: 8px; background: #234e66; color: white; font: inherit; cursor: pointer; }
 .panel button:disabled { opacity: .5; cursor: not-allowed; }
 .panel :is(button, input, textarea):focus-visible { outline: 3px solid #ca7834; outline-offset: 3px; }

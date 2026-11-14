@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
 import { VoiceConversation } from "../../components/agent-voice/VoiceConversation";
 import { VoicePlayback } from "../../components/agent-voice/VoicePlayback";
-import { CreateSessionResponseSchema, MessageResponseSchema } from "../../server/agent/contracts";
+import { CreateSessionResponseSchema, MessageResponseSchema, type CheckIn } from "../../server/agent/contracts";
+import { VisionPanel } from "./vision-panel";
 import styles from "./voice-demo.module.css";
 
 type Message = { id: string; role: "ASTRONAUT" | "ASSISTANT"; text: string };
@@ -16,10 +17,15 @@ export function VoiceDemo() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
+  const [checkIn, setCheckIn] = useState<CheckIn | null>(null);
+  const [panelBusy, setPanelBusy] = useState(false);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
   const pending = useRef<Pending | null>(null);
   const mounted = useRef(true);
   const controller = useRef<AbortController | null>(null);
   const startingRef = useRef(false);
+  const operation = useRef(false);
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; controller.current?.abort(); }; }, []);
 
@@ -53,6 +59,9 @@ export function VoiceDemo() {
 
   async function send(text: string, mode: "TEXT" | "VOICE"): Promise<string> {
     if (!sessionId) throw new Error("Avvia prima la sessione.");
+    if (operation.current || confirmationPending || checkIn?.status === "CONFIRMED") throw new Error("Attendi il completamento dell'operazione in corso.");
+    operation.current = true; setChatBusy(true);
+    try {
     const previous = pending.current;
     if (!previous || previous.text !== text || previous.mode !== mode) pending.current = { id: crypto.randomUUID(), text, mode };
     const current = pending.current!;
@@ -65,8 +74,16 @@ export function VoiceDemo() {
     }
     const result = MessageResponseSchema.parse(payload).data;
     pending.current = null;
-    if (mounted.current) setMessages((items) => [...items, result.astronautMessage, result.assistantMessage]);
+    if (mounted.current) { setMessages((items) => [...items, result.astronautMessage, result.assistantMessage]); setCheckIn(result.checkIn); }
     return result.assistantMessage.text;
+    } finally { operation.current = false; if (mounted.current) setChatBusy(false); }
+  }
+
+  async function runPanel<T>(task: () => Promise<T>): Promise<T> {
+    if (operation.current) throw new Error("Attendi il completamento dell'operazione in corso.");
+    operation.current = true; setPanelBusy(true);
+    try { return await task(); }
+    finally { operation.current = false; if (mounted.current) setPanelBusy(false); }
   }
 
   const manualSend = (text: string, mode: "TEXT" | "VOICE") => send(text, mode).then(() => undefined);
@@ -91,9 +108,11 @@ export function VoiceDemo() {
           </ol>
           {lastReply && <VoicePlayback text={lastReply.text} />}
         </section>
-        <div className={styles.panel}><VoiceConversation onSend={(text) => send(text, "VOICE")} /></div>
-        <div className={styles.panel}><VoiceComposer onSend={manualSend} /></div>
-        <p className={styles.footnote}>In modalità continua la risposta viene letta ad alta voce e l’assistente torna in ascolto da solo. Puoi sempre interrompere e usare la modalità manuale per correggere il testo. Il check-in rimane una bozza e non viene condiviso automaticamente.</p>
+        <VisionPanel token={token} sessionId={sessionId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
+        <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} /></div>
+        <div className={styles.panel}><VoiceComposer disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>
+        <p className={styles.footnote}>In modalità continua la risposta viene letta ad alta voce e l’assistente torna in ascolto da solo. Puoi interrompere e usare la modalità manuale per correggere il testo. La condivisione avviene solo alla conferma del check-in.</p>
       </>}
     </div>
   </main>;

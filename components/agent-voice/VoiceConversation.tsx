@@ -148,6 +148,10 @@ export function VoiceConversation({ disabled = false, onSend, quietMs = 2500 }: 
     };
   }, [clearQuiet, listen, reply, stopEverything]);
 
+  useEffect(() => {
+    if (disabled && active.current) stopEverything();
+  }, [disabled, stopEverything]);
+
   function toggle() {
     if (active.current) { stopEverything(); return; }
     if (!input.current?.supported) {

@@ -162,11 +162,13 @@ Completato quando il report usa esclusivamente evidenze autorizzate e stabili, e
 
 Dipendenze: I1 e I2. Estensione tecnica della demo, coordinata con T4 del piano generale.
 
-- [ ] Aggiungere alla pagina di prova caricamento dell'export e riepilogo del risultato.
-- [ ] Mostrare misura selezionata, copertura, durata valida, origine e motivi di indisponibilità.
-- [ ] Consentire la scelta della misura e della sua condivisione prima della conferma del check-in.
-- [ ] Gestire attesa, errori, invio ripetuto e assenza del file; mantenere disponibili testo e voce.
-- [ ] Preparare casi riproducibili per misura utilizzabile, insufficiente e sintetica.
+Implementazione: [guida I4](docs/agent/i4-vision-demo.md). Il collaudo visivo e con webcam reale rimane in I6.
+
+- [x] Aggiungere alla pagina di prova caricamento dell'export e riepilogo del risultato.
+- [x] Mostrare misura selezionata, copertura, durata valida, origine e motivi di indisponibilità.
+- [x] Consentire la scelta della misura e della sua condivisione prima della conferma del check-in.
+- [x] Gestire attesa, errori, invio ripetuto e assenza del file; mantenere disponibili testo e voce.
+- [ ] Preparare e verificare con webcam reale i casi utilizzabile e insufficiente; il replay sintetico è disponibile nel prototipo.
 
 Completato quando è possibile dimostrare l'incrocio dei dati con un file esportato senza dipendere dalla dashboard di Fabrizio.
 
