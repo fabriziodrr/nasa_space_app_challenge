@@ -1,0 +1,20 @@
+{
+  "data": {
+    "session": { "id": "session-rested", "astronautId": "astro-1", "openedAt": "2026-11-14T06:00:00Z", "closedAt": null },
+    "messages": [], "nextMessageCursor": null,
+    "checkIn": {
+      "id": "checkin-rested", "astronautId": "astro-1", "sessionId": "session-rested", "revision": 2,
+      "status": "CONFIRMED",
+      "observations": [
+        { "id": "obs-rested-hours", "field": "SLEEP_HOURS", "value": 8, "source": "self_report", "messageIds": ["message-rested-1"], "recordedAt": "2026-11-14T06:01:00Z" },
+        { "id": "obs-rested-fatigue", "field": "FATIGUE", "value": 1, "source": "self_report", "messageIds": ["message-rested-1"], "recordedAt": "2026-11-14T06:01:00Z" }
+      ],
+      "sharedObservationIds": ["obs-rested-hours", "obs-rested-fatigue"],
+      "createdAt": "2026-11-14T06:01:00Z", "confirmedAt": "2026-11-14T06:03:00Z"
+    },
+    "generationStatus": "READY", "reportId": "report-rested", "diaryEntryId": "diary-rested",
+    "proposal": null,
+    "noChangeReason": "Nello scenario dimostrativo il check-in non fornisce motivi per proporre variazioni. Il programma resta invariato."
+  },
+  "meta": { "contractVersion": "1.0.0", "requestId": "request-rested" }
+}

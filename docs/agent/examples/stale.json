@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "VERSION_CONFLICT",
+    "message": "La proposta usa la versione 1 del programma; la versione corrente e 2. Rigenerare la proposta prima di una nuova decisione.",
+    "requestId": "request-stale", "retryable": false, "issues": [], "currentVersion": 2
+  }
+}
