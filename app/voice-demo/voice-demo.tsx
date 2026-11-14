@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
+import { VoiceConversation } from "../../components/agent-voice/VoiceConversation";
 import { VoicePlayback } from "../../components/agent-voice/VoicePlayback";
 import { CreateSessionResponseSchema, MessageResponseSchema } from "../../server/agent/contracts";
 import styles from "./voice-demo.module.css";
@@ -50,7 +51,7 @@ export function VoiceDemo() {
     finally { startingRef.current = false; if (mounted.current) setStarting(false); }
   }
 
-  async function send(text: string, mode: "TEXT" | "VOICE") {
+  async function send(text: string, mode: "TEXT" | "VOICE"): Promise<string> {
     if (!sessionId) throw new Error("Avvia prima la sessione.");
     const previous = pending.current;
     if (!previous || previous.text !== text || previous.mode !== mode) pending.current = { id: crypto.randomUUID(), text, mode };
@@ -65,7 +66,10 @@ export function VoiceDemo() {
     const result = MessageResponseSchema.parse(payload).data;
     pending.current = null;
     if (mounted.current) setMessages((items) => [...items, result.astronautMessage, result.assistantMessage]);
+    return result.assistantMessage.text;
   }
+
+  const manualSend = (text: string, mode: "TEXT" | "VOICE") => send(text, mode).then(() => undefined);
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
   return <main className={styles.page} lang="it">
@@ -81,14 +85,15 @@ export function VoiceDemo() {
       </form> : <>
         <section className={styles.panel} aria-labelledby="conversation-title">
           <h2 id="conversation-title">Conversazione</h2>
-          {!messages.length && <p>La sessione è pronta. Puoi iniziare quando vuoi.</p>}
+          {!messages.length && <p>La sessione è pronta. Avvia la conversazione continua oppure scrivi il primo messaggio.</p>}
           <ol className={styles.messages} aria-live="polite">
             {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "Tu" : "Assistente"}</strong><p>{item.text}</p></li>)}
           </ol>
           {lastReply && <VoicePlayback text={lastReply.text} />}
         </section>
-        <div className={styles.panel}><VoiceComposer onSend={send} /></div>
-        <p className={styles.footnote}>La trascrizione va controllata prima dell’invio. Il check-in rimane una bozza e non viene condiviso automaticamente.</p>
+        <div className={styles.panel}><VoiceConversation onSend={(text) => send(text, "VOICE")} /></div>
+        <div className={styles.panel}><VoiceComposer onSend={manualSend} /></div>
+        <p className={styles.footnote}>In modalità continua la risposta viene letta ad alta voce e l’assistente torna in ascolto da solo. Puoi sempre interrompere e usare la modalità manuale per correggere il testo. Il check-in rimane una bozza e non viene condiviso automaticamente.</p>
       </>}
     </div>
   </main>;

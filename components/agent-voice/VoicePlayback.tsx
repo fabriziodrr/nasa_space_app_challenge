@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pickItalianVoice } from "../../client/voice/speech";
 
 export function VoicePlayback({ text }: { text: string }) {
   const [error, setError] = useState("");
@@ -16,7 +17,7 @@ export function VoicePlayback({ text }: { text: string }) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "it-IT";
-      const voice = window.speechSynthesis.getVoices().find((item) => item.lang.toLowerCase().startsWith("it"));
+      const voice = pickItalianVoice();
       if (voice) utterance.voice = voice;
       utterance.onerror = () => setError("Impossibile riprodurre la risposta. Puoi leggerla sopra.");
       window.speechSynthesis.speak(utterance);
