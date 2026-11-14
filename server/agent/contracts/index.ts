@@ -6,3 +6,4 @@ export * from "./scheduling";
 export * from "./api";
 export * from "./ai";
 export * from "./endpoints";
+export * from "./vision";

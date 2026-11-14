@@ -76,7 +76,7 @@ API iniziali proposte:
 | Recupero | `GET /api/agent/v1/sessions/{sessionId}/vision-observations` | Restituisce riepiloghi accessibili all'astronauta proprietario |
 | Selezione | Estensione della revisione/conferma del check-in | Seleziona la misura e autorizza il suo eventuale uso operativo con controllo di revisione |
 
-Il formato di caricamento, i limiti e l'esatta estensione dei payload esistenti saranno definiti in I0. Si mantengono envelope, errori, autenticazione e regole di idempotenza dell'agent.
+Il caricamento usa JSON v2; la conferma estesa sarà `POST /api/agent/v2/check-ins/{id}/confirm`. Formato, limiti e compatibilità sono fissati in [vision-i0.md](docs/agent/vision-i0.md).
 
 ## Regole di analisi, condivisione e persistenza
 
@@ -96,12 +96,14 @@ Il formato di caricamento, i limiti e l'esatta estensione dei payload esistenti 
 
 Dipendenza: analisi dei due moduli già eseguita. Prerequisito degli altri task.
 
+Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/vision-i0.md](docs/agent/vision-i0.md). La revisione v2 del prototipo include modifiche locali non pubblicate: I0 resta aperto fino a una revisione riproducibile e alla verifica da checkout pulito.
+
 - [ ] Definire `VisionObservation`, stato di utilizzabilità, riferimenti `vision` ed errori.
 - [ ] Fissare formato del caricamento e limiti di byte, campioni e tempo di elaborazione del parser sincrono.
-- [ ] Concordare durata minima, copertura e freschezza come parametri sperimentali configurabili; definire i messaggi per dati insufficienti.
+- [x] Fissare durata minima, copertura e freschezza come parametri sperimentali configurabili.
 - [ ] Definire conversione dei tempi, trattamento dei replay sintetici e selezione fra più misure.
 - [ ] Definire selezione/condivisione nella revisione e conferma del check-in, congelamento del contesto e conservazione dei dati.
-- [ ] Pianificare la versione dei contratti API e la lettura degli artefatti storici senza evidenze palpebrali.
+- [x] Pianificare la versione dei contratti API e la lettura degli artefatti storici senza evidenze palpebrali.
 - [ ] Concordare una distribuzione riproducibile del codice palpebrale: cartella ordinaria o submodule configurato, preservando prima le modifiche locali.
 - [ ] Separare i moduli TypeScript puri necessari al server da webcam, React, Vite e asset MediaPipe; fissare la revisione integrata.
 - [ ] Preparare esempi validi, insufficienti e sintetici condivisi da entrambi gli sviluppatori.
