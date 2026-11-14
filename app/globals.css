@@ -367,6 +367,16 @@ button:focus-visible {
   overflow: hidden;
 }
 
+.dashboard-shell__main > :not(.dashboard-shell__dot-grid) {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-shell__dot-grid {
+  z-index: 0;
+  opacity: 0.82;
+}
+
 .dashboard-shell__switch {
   display: flex;
   justify-content: flex-end;
@@ -509,6 +519,15 @@ button:focus-visible {
   color: #fff;
   background: var(--aegis-blue);
   box-shadow: 3px 3px 8px rgba(59, 26, 189, 0.2), -2px -2px 7px rgba(255, 255, 255, 0.75);
+}
+
+.dashboard-view-switch__glow {
+  border-radius: 11px;
+  padding: 1.5px;
+}
+
+.dashboard-view-switch__glow .dashboard-view-switch__button {
+  min-width: 78px;
 }
 
 .dashboard-view-switch__button:hover:not(.is-active) {

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { HumanVitalsDashboard } from "@/components/dashboard/HumanVitalsDashboard";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardViewSwitch, type DashboardView } from "@/components/dashboard/DashboardViewSwitch";
+import { DotGrid } from "@/components/reactbits/DotGrid";
 
 /** Shared frame for the two SOTERIA mission operations perspectives. */
 export function DashboardShell() {
@@ -21,6 +22,14 @@ export function DashboardShell() {
         onCollapse={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
       />
       <main className="dashboard-shell__main" aria-label={`${activeView} dashboard workspace`}>
+        <DotGrid
+          className="dashboard-shell__dot-grid"
+          dotSize={3}
+          gap={24}
+          baseColor="#aeb5c0"
+          activeColor="#3b1abd"
+          opacity={0.46}
+        />
         <div className="dashboard-shell__switch">
           <DashboardViewSwitch activeView={activeView} onViewChange={setActiveView} />
         </div>
