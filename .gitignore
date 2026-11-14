@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+
+# Local environment and SQLite database
+.env
+prisma/*.db
+prisma/*.db-journal
+
+# Tooling output
+*.tsbuildinfo
+npm-debug.log*
