@@ -58,10 +58,11 @@ export const ScheduleSnapshotSchema = z.strictObject({
 export const EvidenceRefSchema = z.discriminatedUnion("source", [
   z.strictObject({ source: z.literal("sensor"), sensorReadingId: IdSchema }),
   z.strictObject({ source: z.literal("self_report"), observationId: IdSchema }),
+  z.strictObject({ source: z.literal("vision"), visionObservationId: IdSchema }),
 ]);
 export const FindingSchema = z.strictObject({
   text: TextSchema,
-  source: z.enum(["sensor", "self_report", "inference"]),
+  source: z.enum(["sensor", "self_report", "vision", "inference"]),
   evidence: z.array(EvidenceRefSchema).min(1).max(50),
 }).refine((finding) => finding.source === "inference"
   || finding.evidence.every((ref) => ref.source === finding.source), {

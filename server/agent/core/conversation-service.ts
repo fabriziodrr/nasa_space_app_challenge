@@ -12,6 +12,7 @@ import type {
 } from "../ports";
 import { AgentError, invalidAiOutput, isAgentError, sameMessage } from "./errors";
 import { withDeadline } from "./deadline";
+import { evaluateVisionQuality } from "../vision/quality";
 
 export interface ConversationServiceDependencies extends ConversationDependencies {
   now?: () => Date;
@@ -157,16 +158,8 @@ export function createConversationService(deps: ConversationServiceDependencies)
         throw new AgentError("INTERNAL_ERROR", "Orario della misura non valido.");
       }
     }
-    const reasons = new Set(vision?.reasons ?? []);
-    if (vision) {
-      if (!vision.validMs) reasons.add("NO_VALID_TIME");
-      if (vision.validMs < quality.minValidMs) reasons.add("TOO_SHORT");
-      if (vision.coverage === null || vision.coverage < quality.minCoverage) reasons.add("LOW_COVERAGE");
-      if (vision.endedAt && Date.parse(timestamp) - Date.parse(vision.endedAt) > quality.maxAgeMinutes * 60_000) reasons.add("STALE");
-      if (vision.interruption && vision.interruption !== "user_stop") reasons.add("INTERRUPTED");
-    }
-    const visionSummary = vision ? [{ id: vision.id, source: vision.source, usability: reasons.size ? "INSUFFICIENT" as const : "USABLE" as const,
-      reasons: [...reasons],
+    const visionSummary = vision ? [{ id: vision.id, source: vision.source,
+      ...evaluateVisionQuality(vision, new Date(timestamp), quality),
       elapsedMs: vision.elapsedMs, validMs: vision.validMs, coverage: vision.coverage,
       closureFraction: vision.closureFraction, completeCount: vision.completeCount, incompleteCount: vision.incompleteCount,
       prolongedCount: vision.prolongedCount, longestCompleteMs: vision.longestCompleteMs, interruption: vision.interruption,

@@ -114,14 +114,16 @@ Completato quando Tu e Nello possono implementare sui medesimi contratti e un ch
 
 Dipendenza: I0.
 
-- [ ] Aggiungere modelli Prisma e metodi repository per riepiloghi, selezione e deduplicazione.
-- [ ] Implementare caricamento limitato e validazione con il parser del prototipo, verificando versione e coerenza del motore.
-- [ ] Implementare la conversione dall'export al contratto agent, preservando metriche, tempi e limitazioni.
-- [ ] Implementare importazione e recupero dei riepiloghi con identità server e controlli sulla sessione.
-- [ ] Gestire duplicati, conflitti di idempotenza, sessioni concluse, file malformati e limiti di elaborazione.
-- [ ] Estendere revisione e conferma del check-in per selezione e condivisione con controllo atomico della revisione.
-- [ ] Persistire il contesto operativo congelato insieme alla conferma; consentire anche conferme senza misura.
-- [ ] Verificare migrazione e compatibilità dei check-in già esistenti.
+Implementazione: [guida I1](docs/agent/i1-vision-import.md). Il parser usa una copia versionata dei moduli puri; la pubblicazione della revisione del progetto palpebrale e la sostituzione della copia restano da completare in I0.
+
+- [x] Aggiungere modelli Prisma e metodi per riepiloghi, selezione e deduplicazione.
+- [x] Implementare caricamento limitato e validazione con il parser del prototipo, verificando versione e coerenza del motore.
+- [x] Implementare la conversione dall'export al contratto agent, preservando metriche, tempi e limitazioni.
+- [x] Implementare importazione e recupero dei riepiloghi con identità server e controlli sulla sessione.
+- [x] Gestire duplicati, conflitti di idempotenza, sessioni concluse, file malformati e limiti di elaborazione.
+- [x] Estendere revisione e conferma del check-in per selezione e condivisione con controllo atomico della revisione.
+- [x] Persistire il contesto operativo congelato insieme alla conferma; consentire anche conferme senza misura.
+- [x] Verificare la compatibilità dei check-in già esistenti, trattando quelli senza snapshot come storici non rigenerabili.
 
 Completato quando una misura importata è persistita, recuperabile e selezionabile soltanto dal proprietario, e la conferma ne fissa l'uso operativo in modo riproducibile.
 
@@ -144,13 +146,15 @@ Completato quando la misura influenza le domande dell'agent senza alterare la pr
 
 Dipendenze: I0 e I1; coordinamento con I2 per i provider AI condivisi.
 
-- [ ] Estendere `OperationalContext`, `FindingSchema` e i riferimenti alle evidenze con la fonte `vision`.
-- [ ] Usare il contesto congelato alla conferma durante generazione e tentativi successivi.
-- [ ] Aggiornare il provider operativo per produrre risultati, divergenze e incertezze con riferimenti verificabili.
-- [ ] Validare nel backend l'esistenza e l'autorizzazione di ogni evidenza palpebrale citata nel report e nella proposta.
-- [ ] Documentare qualità, intervallo osservato e origine sintetica dove rilevanti per l'interpretazione del report.
-- [ ] Verificare l'assenza di contenuti privati non condivisi nel contesto operativo.
-- [ ] Collegare la verifica delle proposte al programma autorevole; mantenere esplicita la dipendenza se tale collegamento non è ancora disponibile.
+Implementazione: [guida I3](docs/agent/i3-vision-report.md). La generazione delle proposte rimane disattivata nel runtime fino al collegamento del programma autorevole.
+
+- [x] Estendere `OperationalContext`, `FindingSchema` e i riferimenti alle evidenze con la fonte `vision`.
+- [x] Usare il contesto congelato alla conferma durante generazione e tentativi successivi.
+- [x] Aggiornare il provider operativo per produrre risultati, divergenze e incertezze con riferimenti verificabili.
+- [x] Validare nel backend l'esistenza e l'autorizzazione di ogni evidenza palpebrale citata nel report e nella proposta.
+- [x] Documentare qualità, intervallo osservato e origine sintetica dove rilevanti per l'interpretazione del report.
+- [x] Verificare l'assenza di contenuti privati non condivisi nel contesto operativo.
+- [x] Mantenere esplicita la dipendenza dal programma autorevole per la generazione delle proposte.
 
 Completato quando il report usa esclusivamente evidenze autorizzate e stabili, e nessuna proposta può essere applicata prima della decisione di Terra e della verifica di versione del programma.
 

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "build:vision-worker": "esbuild ./server/agent/vision/worker-entry.ts --bundle --platform=node --format=cjs --outfile=server/agent/vision/validator-worker.cjs",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
@@ -33,6 +34,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "eslint": "^9.20.0",
+    "esbuild": "0.28.2",
     "eslint-config-next": "^15.5.7",
     "prisma": "^6.19.0",
     "tsx": "^4.19.3",

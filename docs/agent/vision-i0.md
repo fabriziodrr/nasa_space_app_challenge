@@ -1,12 +1,12 @@
 # I0 — Contratto di integrazione visione / agent
 
-Stato: decisioni tecniche fissate per I1–I6; la pubblicazione della revisione del parser e il relativo collaudo restano necessari. Nessuna route o persistenza di I1 è attiva. Contratto eseguibile: `server/agent/contracts/vision.ts`.
+Stato: decisioni tecniche fissate per I1–I6; il percorso I1 usa la copia versionata descritta nella [guida I1](i1-vision-import.md). Contratto eseguibile: `server/agent/contracts/vision.ts`.
 
 ## Distribuzione dei sorgenti
 
 La feature è un submodule Git: `.gitmodules` punta alla sua origin e il gitlink ne fissa il commit. Il commit attuale `4893da16c6efec25201049d451bb7a799d66dadf` non include tutte le modifiche locali: il parser v2 e altri file sono ancora non committati. Per una dipendenza riproducibile occorre prima salvare e pubblicare quelle modifiche nella repository palpebrale e aggiornare il gitlink a tale commit; non usare direttamente la cartella sporca in I1. Dopo l'aggiornamento, verificare `git submodule update --init --recursive` da un checkout pulito. Non sovrascrivere o eliminare i file locali.
 
-Integrare come libreria server soltanto la chiusura delle dipendenze di `parse-session-export.ts`: `integration`, `analysis`, `contracts`, `validation/performance` e gli eventuali import transitivi TypeScript puri. Non importare UI, webcam, MediaPipe o asset nel backend; fissare esplicitamente la revisione e verificare la build Next. L'estrazione in un pacchetto versionato va effettuata dopo la pubblicazione della revisione, senza duplicare silenziosamente il motore.
+I1 usa una copia dichiarata e verificabile con hash dei moduli puri e un worker compilato, descritti nella [guida I1](i1-vision-import.md). Questa soluzione temporanea permette checkout riproducibili dell'agent mentre la revisione del submodule resta da pubblicare; va sostituita con una dipendenza fissata dopo la pubblicazione. Non sono importati webcam, React o runtime MediaPipe nel backend.
 
 ## Acquisizione e limiti
 

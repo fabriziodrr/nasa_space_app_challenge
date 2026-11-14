@@ -44,9 +44,9 @@ test("normal integration example is valid and references the same check-in and p
   for (const ref of normal.pendingProposal.candidate.evidence) {
     if (ref.source === "self_report") {
       assert.ok(normal.confirmedCheckIn.sharedObservationIds.includes(ref.observationId));
-    } else {
+    } else if (ref.source === "sensor") {
       assert.ok(normal.sensors.some((sensor) => sensor.id === ref.sensorReadingId));
-    }
+    } else assert.fail("The legacy example does not include vision evidence");
   }
 });
 

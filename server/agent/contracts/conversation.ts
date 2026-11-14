@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { IdSchema, TextSchema, TimestampSchema, VersionSchema } from "./common";
 import { FindingSchema, SensorReadingSchema } from "./context";
+import { VisionObservationSchema } from "./vision";
 
 export const ConversationSessionSchema = z.strictObject({
   id: IdSchema,
@@ -98,6 +99,16 @@ export const DiaryEntrySchema = z.strictObject({
 export const OperationalContextSchema = z.strictObject({
   checkIn: SharedCheckInSchema,
   sensors: z.array(SensorReadingSchema).max(500),
+  vision: z.strictObject({
+    id: VisionObservationSchema.shape.id, source: VisionObservationSchema.shape.source,
+    startedAt: VisionObservationSchema.shape.startedAt, endedAt: VisionObservationSchema.shape.endedAt,
+    elapsedMs: VisionObservationSchema.shape.elapsedMs, validMs: VisionObservationSchema.shape.validMs,
+    coverage: VisionObservationSchema.shape.coverage, closureFraction: VisionObservationSchema.shape.closureFraction,
+    completeCount: VisionObservationSchema.shape.completeCount, incompleteCount: VisionObservationSchema.shape.incompleteCount,
+    prolongedCount: VisionObservationSchema.shape.prolongedCount, longestCompleteMs: VisionObservationSchema.shape.longestCompleteMs,
+    interruption: VisionObservationSchema.shape.interruption, usability: VisionObservationSchema.shape.usability,
+    reasons: VisionObservationSchema.shape.reasons,
+  }).nullable().optional(),
 });
 
 export type ConversationSession = z.infer<typeof ConversationSessionSchema>;

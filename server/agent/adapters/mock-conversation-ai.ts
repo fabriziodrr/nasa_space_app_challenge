@@ -16,13 +16,20 @@ function number(value: string): number {
 /** Deterministic demo parser; not a substitute for natural-language understanding. */
 export class MockConversationAiProvider implements ConversationAiProvider, OperationalAiProvider, DiaryAiProvider {
   async generateOperational({ context }: Parameters<OperationalAiProvider["generateOperational"]>[0]) {
+    const vision = context.vision;
+    const findings = context.checkIn.observations.map((o) => ({
+      text: `${o.field}: ${o.value}`, source: "self_report" as const,
+      evidence: [{ source: "self_report" as const, observationId: o.id }],
+    }));
+    const visionFinding = vision?.source === "webcam" && vision.usability === "USABLE" ? [{
+      text: `Osservazione palpebrale: ${vision.validMs} ms validi, copertura ${vision.coverage}, quota di chiusura ${vision.closureFraction}; intervallo ${vision.startedAt} – ${vision.endedAt}.`,
+      source: "vision" as const, evidence: [{ source: "vision" as const, visionObservationId: vision.id }],
+    }] : [];
     return {
       report: {
-        findings: context.checkIn.observations.map((o) => ({
-          text: `${o.field}: ${o.value}`, source: "self_report" as const,
-          evidence: [{ source: "self_report" as const, observationId: o.id }],
-        })),
-        discrepancies: [], uncertainties: ["Dati dimostrativi, nessuna valutazione clinica."],
+        findings: [...findings, ...visionFinding],
+        discrepancies: [], uncertainties: ["Dati dimostrativi, nessuna valutazione clinica.",
+          ...(vision && !visionFinding.length ? [`Misura palpebrale ${vision.source === "synthetic" ? "sintetica" : "insufficiente"}; motivi: ${vision.reasons.join(", ") || "non specificati"}.`] : [])],
         humanReview: { required: false, reason: null },
       },
       proposal: null,

@@ -7,6 +7,7 @@ import {
 import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleReader, SensorProvider } from "../ports";
 import { AgentErrors } from "../core/errors";
 import { ProposalService } from "./proposals";
+import type { VisionConfirmationService } from "../vision/confirmation";
 
 /** Generates both artifacts from a confirmed check-in using separate privacy boundaries. */
 export class ArtifactService {
@@ -17,6 +18,7 @@ export class ArtifactService {
     sensors: SensorProvider;
     schedule: ScheduleReader;
     proposals: ProposalService;
+    frozenContext?: VisionConfirmationService;
     // Only enable after connecting an authoritative, versioned schedule provider.
     allowProposals?: boolean;
   }) {}
@@ -41,24 +43,42 @@ export class ArtifactService {
       });
       const end = checkIn.confirmedAt;
       const from = new Date(Date.parse(end) - 24 * 60 * 60 * 1000).toISOString();
-      const [readings, day, state] = await Promise.all([
-        sensors.read(identity.astronautId, { from, to: end }),
+      const [frozen, day, state] = await Promise.all([
+        this.deps.frozenContext ? this.deps.frozenContext.getFrozenContext(identity.astronautId, checkIn.id)
+          : sensors.read(identity.astronautId, { from, to: end }).then((readings) => ({ sensors: readings, vision: null })),
         schedule.getDay(identity.astronautId, end.slice(0, 10)),
         repository.getSessionState(identity.astronautId, checkIn.sessionId),
       ]);
+      const { sensors: readings, vision } = frozen;
       if (!state || state.session.astronautId !== identity.astronautId || day.astronautId !== identity.astronautId
+          || (vision && (vision.astronautId !== identity.astronautId || vision.sessionId !== checkIn.sessionId))
           || readings.some((reading) => reading.astronautId !== identity.astronautId)) throw AgentErrors.internal("Contesto non valido.");
-      const context = OperationalContextSchema.parse({ checkIn: shared, sensors: readings });
+      const visibleVision = vision ? { id: vision.id, source: vision.source, startedAt: vision.startedAt, endedAt: vision.endedAt,
+        elapsedMs: vision.elapsedMs, validMs: vision.validMs, coverage: vision.coverage, closureFraction: vision.closureFraction,
+        completeCount: vision.completeCount, incompleteCount: vision.incompleteCount, prolongedCount: vision.prolongedCount,
+        longestCompleteMs: vision.longestCompleteMs, interruption: vision.interruption, usability: vision.usability, reasons: vision.reasons } : null;
+      const context = OperationalContextSchema.parse({ checkIn: shared, sensors: readings, vision: visibleVision });
       const [rawOperational, rawDiary] = await Promise.all([
         operationalAi.generateOperational({ context: structuredClone(context), schedule: structuredClone(day) }),
         diaryAi.generateDiary({ astronautId: identity.astronautId, messages: state.messages, checkIn }),
       ]);
       const operational = OperationalOutputSchema.parse(rawOperational);
       const diaryOutput = DiaryOutputSchema.parse(rawDiary);
+      if (context.vision) {
+        const item = context.vision;
+        const note = `Misura palpebrale ${item.source === "synthetic" ? "sintetica" : "webcam"}; stato ${item.usability}; `
+          + `intervallo ${item.startedAt ?? "non disponibile"} – ${item.endedAt ?? "non disponibile"}; `
+          + `tempo valido ${item.validMs} ms; copertura ${item.coverage ?? "non disponibile"}; `
+          + `limitazioni: ${item.reasons.length ? item.reasons.join(", ") : "nessuna segnalata"}. Misura sperimentale non diagnostica.`;
+        operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
+      }
       const sensorIds = new Set(readings.map((reading) => reading.id));
       for (const finding of [...operational.report.findings, ...operational.report.discrepancies]) {
         for (const evidence of finding.evidence) {
-          if (evidence.source === "self_report" ? !selected.has(evidence.observationId) : !sensorIds.has(evidence.sensorReadingId)) {
+          const allowed = evidence.source === "self_report" ? selected.has(evidence.observationId)
+            : evidence.source === "sensor" ? sensorIds.has(evidence.sensorReadingId)
+            : context.vision?.id === evidence.visionObservationId && context.vision.source === "webcam" && context.vision.usability === "USABLE";
+          if (!allowed) {
             throw AgentErrors.invalidAiOutput("Il report contiene evidenze non condivise o non disponibili.");
           }
         }
