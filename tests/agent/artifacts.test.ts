@@ -10,7 +10,7 @@ import type { CheckIn, ConversationMessage, OperationalContext, ScheduleSnapshot
 const fixture = JSON.parse(readFileSync("docs/agent/examples/normal.json", "utf8"));
 const identity = { userId: "user-1", role: "ASTRONAUT" as const, astronautId: "astro-1" };
 
-function setup() {
+function setup(allowProposals = false) {
   const checkIn: CheckIn = structuredClone(fixture.confirmedCheckIn);
   checkIn.sharedObservationIds = ["obs-hours"];
   const messages: ConversationMessage[] = [{ id: "message-1", sessionId: checkIn.sessionId, role: "ASTRONAUT", text: "Test privato", createdAt: checkIn.createdAt, inputMode: "TEXT" }];
@@ -28,6 +28,7 @@ function setup() {
   } as unknown as AgentRepository;
   const service = new ArtifactService({
     repository,
+    allowProposals,
     sensors: { async read() { return fixture.sensors as SensorReading[]; } },
     schedule: { async getDay() { return fixture.schedule as ScheduleSnapshot; } },
     proposals: new ProposalService(new ScheduleValidatorImpl()),
@@ -77,4 +78,15 @@ test("a model cannot publish a proposal before an authoritative schedule is conn
   await assert.rejects(h.service.generate(identity, h.checkIn.id));
   assert.equal(h.published(), undefined);
   assert.equal(h.failed(), true);
+});
+
+test("an invalid recommendation is discarded while the valid report remains available for ground review", async () => {
+  const h = setup(true);
+  h.makeProposal(); // The candidate cites observations that were not shared.
+  await h.service.generate(identity, h.checkIn.id);
+  assert.equal(h.failed(), false);
+  assert.equal(h.published()?.proposal, null);
+  assert.ok(h.published()?.noChangeReason);
+  assert.equal(h.published()?.report.humanReview.required, true);
+  assert.equal(h.published()?.diary.visibility, "PRIVATE");
 });

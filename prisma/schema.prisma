@@ -87,6 +87,7 @@ model CheckInContextSnapshot {
   sensorsJson      String
   visionJson       String?
   qualityJson      String
+  scheduleJson     String?
   confirmedAt      DateTime
 }
 

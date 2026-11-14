@@ -55,8 +55,10 @@ test("confirmed shared observations produce a ground report and a private editab
     const reportResponse = await handlers.reports(req("/reports?astronautId=astro-1", "ground-token-123456789"));
     assert.equal(reportResponse.status, 200);
     const report = (await reportResponse.json()).data.items[0];
-    assert.equal(report.findings.length, 1);
-    assert.equal(report.findings[0].evidence[0].observationId, hours.id);
+    const sharedFindings = report.findings.filter((finding: { source: string }) => finding.source === "self_report");
+    assert.equal(sharedFindings.length, 1);
+    assert.equal(sharedFindings[0].evidence[0].observationId, hours.id);
+    assert.ok(report.findings.some((finding: { source: string }) => finding.source === "sensor"));
     assert.ok(!JSON.stringify(report).includes("Stanchezza"));
     assert.equal((await handlers.diary(req("/diary?astronautId=astro-1", "ground-token-123456789"))).status, 403);
     const diaryResponse = await handlers.diary(req("/diary?astronautId=astro-1", "astronaut-token-123456"));
