@@ -10,3 +10,11 @@ prisma/*.db-journal
 # Tooling output
 *.tsbuildinfo
 npm-debug.log*
+
+# Python data backend
+server/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+server/data/*.sqlite3*

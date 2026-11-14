@@ -1,0 +1,27 @@
+[
+  {
+    "kind": "sleep_measurement",
+    "observation_id": "simulated-watch-sleep-01",
+    "subject_id": "demo-astronaut",
+    "observed_at": "2026-11-14T07:00:00Z",
+    "synthetic": true,
+    "source": "instrument",
+    "device_id": "simulated-watch",
+    "method": "simulated-actigraphy",
+    "period_start": "2026-11-13T23:00:00Z",
+    "period_end": "2026-11-14T07:00:00Z",
+    "sleep_hours": 5.5
+  },
+  {
+    "kind": "speech_feedback",
+    "observation_id": "simulated-feedback-01",
+    "subject_id": "demo-astronaut",
+    "observed_at": "2026-11-14T07:15:00Z",
+    "synthetic": true,
+    "turn_id": "simulated-turn-01",
+    "basis": "self_report",
+    "user_confirmed": true,
+    "fatigue_rating": 8,
+    "alertness": 4
+  }
+]
