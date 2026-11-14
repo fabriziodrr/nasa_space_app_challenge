@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { HumanVitalsDashboard } from "@/components/dashboard/HumanVitalsDashboard";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardViewSwitch, type DashboardView } from "@/components/dashboard/DashboardViewSwitch";
 
@@ -23,6 +24,7 @@ export function DashboardShell() {
         <div className="dashboard-shell__switch">
           <DashboardViewSwitch activeView={activeView} onViewChange={setActiveView} />
         </div>
+        <HumanVitalsDashboard perspective={activeView} />
       </main>
     </div>
   );
