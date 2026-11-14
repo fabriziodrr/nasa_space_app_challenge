@@ -1,6 +1,6 @@
 // Server-side extension points. Implementations belong in adapters/, not contracts/.
 import type {
-  AudioMimeType, AstronautIdentity, CheckIn, ConfirmCheckInRequest,
+  AudioMimeType, CheckIn, ConfirmCheckInRequest,
   ConversationMessage, ConversationOutput, ConversationSession, DecideProposalRequest,
   DiaryEntry, DiaryOutput, GroundReport, Identity, ListQuery, MessageResult,
   OperationalContext, OperationalOutput, ProposalCandidate, ProposalDecision,
@@ -18,19 +18,24 @@ export interface ConversationContext {
   sensors: SensorReading[];
   schedule: ScheduleSnapshot;
 }
-export interface AiProvider {
+export interface ConversationAiProvider {
   // Private context allowed. Output is untrusted until schema AND reference checks pass.
   converse(input: ConversationContext, options?: ProviderOptions): Promise<ConversationOutput>;
+}
+export interface OperationalAiProvider {
   // Never receives full transcripts, private diary or unshared observations.
   generateOperational(
     input: { context: OperationalContext; schedule: ScheduleSnapshot },
     options?: ProviderOptions,
   ): Promise<OperationalOutput>;
+}
+export interface DiaryAiProvider {
   generateDiary(
     input: { astronautId: string; messages: ConversationMessage[]; checkIn: CheckIn },
     options?: ProviderOptions,
   ): Promise<DiaryOutput>;
 }
+export interface AiProvider extends ConversationAiProvider, OperationalAiProvider, DiaryAiProvider {}
 export interface VoiceProvider {
   transcribe(
     input: { audio: Uint8Array; metadata: TranscriptionMetadata },
@@ -142,10 +147,13 @@ export interface AgentRepository {
 }
 
 // A conversation service receives read-only schedule access, never ScheduleProvider.
+export type ConversationRepository = Pick<AgentRepository,
+  "createSession" | "getSessionState" | "getTurn" | "commitTurn" | "listPreviousCheckIns"
+>;
+
 export interface ConversationDependencies {
-  identity: AstronautIdentity;
-  ai: AiProvider;
-  repository: AgentRepository;
+  ai: ConversationAiProvider;
+  repository: ConversationRepository;
   sensors: SensorProvider;
   schedule: ScheduleReader;
 }
