@@ -211,7 +211,6 @@ function SceneContents(props: HumanVitalsSceneProps) {
   const controls = useRef<OrbitControlsImpl>(null);
   return (
     <>
-      <color attach="background" args={["#dfe3e6"]} />
       <fog attach="fog" args={["#dfe3e6", 5.2, 9]} />
       <ambientLight intensity={1.5} color="#b8e6f6" />
       <directionalLight position={[-3, 5, 4]} intensity={3.3} color="#ffffff" castShadow />
