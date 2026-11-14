@@ -331,6 +331,22 @@ button:focus-visible {
   color: var(--aegis-blue);
 }
 
+.text-type {
+  display: inline-block;
+  min-width: 0;
+}
+
+.text-type__cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--aegis-blue);
+  animation: text-type-blink 0.9s steps(2, start) infinite;
+}
+
+@keyframes text-type-blink {
+  50% { opacity: 0; }
+}
+
 @media (max-width: 850px) {
   .dashboard-shell__main {
     height: auto;
@@ -347,6 +363,10 @@ button:focus-visible {
     margin-left: 0;
     border-left: 0;
     padding-left: 0;
+  }
+
+  .text-type__cursor {
+    animation: none;
   }
 
   .human-vitals-dashboard {

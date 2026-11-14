@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { TextType } from "@/components/reactbits/TextType";
 
 export type PillNavItem = {
   label: string;
@@ -19,7 +20,7 @@ type PillNavProps = {
 export function PillNav({ brand = "SOTERIA", items, trailing, className = "", ariaLabel = "Mission controls" }: PillNavProps) {
   return (
     <nav className={`pill-nav ${className}`.trim()} aria-label={ariaLabel}>
-      <div className="pill-nav__brand">{brand}</div>
+      <div className="pill-nav__brand">{typeof brand === "string" ? <TextType text={brand} /> : brand}</div>
       <div className="pill-nav__items">
         {items.map((item) => (
           <button
@@ -31,7 +32,7 @@ export function PillNav({ brand = "SOTERIA", items, trailing, className = "", ar
             onClick={item.onClick}
           >
             {item.icon}
-            <span>{item.label}</span>
+            <TextType text={item.label} />
           </button>
         ))}
       </div>

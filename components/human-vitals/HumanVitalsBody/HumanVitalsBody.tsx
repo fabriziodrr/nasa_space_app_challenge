@@ -4,6 +4,7 @@ import { HumanVitalsScene } from "./HumanVitalsScene";
 import { VitalPanel } from "./VitalPanel";
 import type { HumanVitalsBodyProps, VitalZone, VitalZoneId } from "./types";
 import { defaultModelPath, femaleModelPath } from "./modelAsset";
+import { TextType } from "@/components/reactbits/TextType";
 import styles from "./HumanVitalsBody.module.css";
 
 export function HumanVitalsBody({
@@ -105,11 +106,11 @@ export function HumanVitalsBody({
                onReset={reset}
              />
            )}
-           <div className={styles["canvas-hint"]}>DRAG TO ORBIT · SCROLL TO ZOOM</div>
-        </div>
-        <div className={styles["zone-legend"]}>
-          <span className={styles["legend-dot"]} /> SELECT A ZONE TO INSPECT VITALS
-          <span className={styles["legend-line"]} /> <span className={styles["legend-muted"]}>DATA LAYER: SYNTHETIC DEMO</span>
+           <div className={styles["canvas-hint"]}><TextType text="DRAG TO ORBIT · SCROLL TO ZOOM" initialDelay={160} /></div>
+         </div>
+         <div className={styles["zone-legend"]}>
+           <span className={styles["legend-dot"]} /> <TextType text="SELECT A ZONE TO INSPECT VITALS" initialDelay={280} />
+           <span className={styles["legend-line"]} /> <span className={styles["legend-muted"]}><TextType text="DATA LAYER: SYNTHETIC DEMO" initialDelay={420} /></span>
         </div>
       </div>
     </section>
