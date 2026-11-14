@@ -1,0 +1,106 @@
+{
+  "data": {
+    "decision": {
+      "id": "decision-1",
+      "proposalId": "proposal-1",
+      "operatorId": "ground-1",
+      "decision": "APPROVE",
+      "comment": "Variazione compatibile con le attivita di oggi.",
+      "decidedAt": "2026-11-14T06:10:00Z",
+      "idempotencyKey": "approve-proposal-1"
+    },
+    "proposal": {
+      "id": "proposal-1",
+      "astronautId": "astro-1",
+      "checkInId": "checkin-1",
+      "scheduleId": "schedule-1",
+      "baseScheduleVersion": 1,
+      "createdAt": "2026-11-14T06:04:00Z",
+      "candidate": {
+        "rationale": "Proposta dimostrativa di pausa prima dell'attivita flessibile, sulla base della stanchezza riferita. Richiede decisione di Terra.",
+        "evidence": [
+          {
+            "source": "self_report",
+            "observationId": "obs-fatigue"
+          },
+          {
+            "source": "sensor",
+            "sensorReadingId": "sensor-sleep"
+          }
+        ],
+        "changes": [
+          {
+            "type": "MOVE_ACTIVITY",
+            "activityId": "science-1",
+            "startsAt": "2026-11-14T09:20:00Z",
+            "endsAt": "2026-11-14T10:00:00Z"
+          },
+          {
+            "type": "ADD_REST",
+            "activityId": "rest-1",
+            "title": "Pausa",
+            "startsAt": "2026-11-14T09:00:00Z",
+            "endsAt": "2026-11-14T09:20:00Z"
+          }
+        ]
+      },
+      "status": "APPLIED",
+      "decisionId": "decision-1",
+      "appliedScheduleVersion": 2,
+      "appliedAt": "2026-11-14T06:10:01Z"
+    },
+    "schedule": {
+      "id": "schedule-1",
+      "astronautId": "astro-1",
+      "date": "2026-11-14",
+      "timeZone": "Etc/UTC",
+      "version": 2,
+      "dayStartsAt": "2026-11-14T06:00:00Z",
+      "dayEndsAt": "2026-11-14T22:00:00Z",
+      "activities": [
+        {
+          "id": "comm-1",
+          "title": "Collegamento Terra",
+          "kind": "MISSION",
+          "startsAt": "2026-11-14T08:00:00Z",
+          "endsAt": "2026-11-14T08:30:00Z",
+          "priority": "CRITICAL",
+          "movable": false,
+          "dependsOn": [],
+          "earliestStart": "2026-11-14T08:00:00Z",
+          "latestEnd": "2026-11-14T08:30:00Z"
+        },
+        {
+          "id": "rest-1",
+          "title": "Pausa",
+          "kind": "REST",
+          "startsAt": "2026-11-14T09:00:00Z",
+          "endsAt": "2026-11-14T09:20:00Z",
+          "priority": "LOW",
+          "movable": true,
+          "dependsOn": [],
+          "earliestStart": "2026-11-14T06:00:00Z",
+          "latestEnd": "2026-11-14T22:00:00Z"
+        },
+        {
+          "id": "science-1",
+          "title": "Inventario campioni",
+          "kind": "MISSION",
+          "startsAt": "2026-11-14T09:20:00Z",
+          "endsAt": "2026-11-14T10:00:00Z",
+          "priority": "NORMAL",
+          "movable": true,
+          "dependsOn": [
+            "comm-1"
+          ],
+          "earliestStart": "2026-11-14T09:00:00Z",
+          "latestEnd": "2026-11-14T16:00:00Z"
+        }
+      ]
+    }
+  },
+  "meta": {
+    "contractVersion": "1.0.0",
+    "requestId": "request-approved"
+  }
+}

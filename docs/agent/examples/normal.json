@@ -1,0 +1,76 @@
+{
+  "createSessionRequest": { "astronautId": "astro-1" },
+  "messageRequest": {
+    "clientMessageId": "client-msg-1",
+    "text": "Ho dormito quattro ore e mezza. Qualita del sonno due su cinque, stanchezza quattro su cinque.",
+    "inputMode": "TEXT"
+  },
+  "confirmRequest": {
+    "expectedRevision": 1,
+    "sharedObservationIds": ["obs-hours", "obs-quality", "obs-fatigue"]
+  },
+  "decisionRequest": { "decision": "APPROVE", "comment": "Variazione compatibile con le attivita di oggi." },
+  "decisionHeaders": { "idempotency-key": "approve-proposal-1" },
+  "session": {
+    "id": "session-1", "astronautId": "astro-1",
+    "openedAt": "2026-11-14T06:00:00Z", "closedAt": null
+  },
+  "confirmedCheckIn": {
+    "id": "checkin-1", "astronautId": "astro-1", "sessionId": "session-1",
+    "revision": 2, "status": "CONFIRMED",
+    "observations": [
+      { "id": "obs-hours", "field": "SLEEP_HOURS", "value": 4.5, "source": "self_report", "messageIds": ["message-1"], "recordedAt": "2026-11-14T06:01:00Z" },
+      { "id": "obs-quality", "field": "SLEEP_QUALITY", "value": 2, "source": "self_report", "messageIds": ["message-1"], "recordedAt": "2026-11-14T06:01:00Z" },
+      { "id": "obs-fatigue", "field": "FATIGUE", "value": 4, "source": "self_report", "messageIds": ["message-1"], "recordedAt": "2026-11-14T06:01:00Z" }
+    ],
+    "sharedObservationIds": ["obs-hours", "obs-quality", "obs-fatigue"],
+    "createdAt": "2026-11-14T06:01:00Z", "confirmedAt": "2026-11-14T06:03:00Z"
+  },
+  "sensors": [
+    { "id": "sensor-sleep", "astronautId": "astro-1", "observedAt": "2026-11-14T05:55:00Z", "source": "sensor", "simulated": true, "scenario": "POOR_SLEEP", "quality": "GOOD", "metric": "SLEEP_DURATION", "value": 4.8, "unit": "h" },
+    { "id": "sensor-wakes", "astronautId": "astro-1", "observedAt": "2026-11-14T05:55:00Z", "source": "sensor", "simulated": true, "scenario": "POOR_SLEEP", "quality": "GOOD", "metric": "SLEEP_INTERRUPTION_COUNT", "value": 6, "unit": "count" },
+    { "id": "sensor-hr", "astronautId": "astro-1", "observedAt": "2026-11-14T05:55:00Z", "source": "sensor", "simulated": true, "scenario": "POOR_SLEEP", "quality": "GOOD", "metric": "RESTING_HEART_RATE", "value": 72, "unit": "bpm" }
+  ],
+  "schedule": {
+    "id": "schedule-1", "astronautId": "astro-1", "date": "2026-11-14", "timeZone": "Etc/UTC", "version": 1,
+    "dayStartsAt": "2026-11-14T06:00:00Z", "dayEndsAt": "2026-11-14T22:00:00Z",
+    "activities": [
+      { "id": "comm-1", "title": "Collegamento Terra", "kind": "MISSION", "startsAt": "2026-11-14T08:00:00Z", "endsAt": "2026-11-14T08:30:00Z", "priority": "CRITICAL", "movable": false, "dependsOn": [], "earliestStart": "2026-11-14T08:00:00Z", "latestEnd": "2026-11-14T08:30:00Z" },
+      { "id": "science-1", "title": "Inventario campioni", "kind": "MISSION", "startsAt": "2026-11-14T09:00:00Z", "endsAt": "2026-11-14T09:40:00Z", "priority": "NORMAL", "movable": true, "dependsOn": ["comm-1"], "earliestStart": "2026-11-14T09:00:00Z", "latestEnd": "2026-11-14T16:00:00Z" }
+    ]
+  },
+  "pendingProposal": {
+    "id": "proposal-1", "astronautId": "astro-1", "checkInId": "checkin-1", "scheduleId": "schedule-1",
+    "baseScheduleVersion": 1, "createdAt": "2026-11-14T06:04:00Z",
+    "candidate": {
+      "rationale": "Proposta dimostrativa di pausa prima dell'attivita flessibile, sulla base della stanchezza riferita. Richiede decisione di Terra.",
+      "evidence": [ { "source": "self_report", "observationId": "obs-fatigue" }, { "source": "sensor", "sensorReadingId": "sensor-sleep" } ],
+      "changes": [
+        { "type": "MOVE_ACTIVITY", "activityId": "science-1", "startsAt": "2026-11-14T09:20:00Z", "endsAt": "2026-11-14T10:00:00Z" },
+        { "type": "ADD_REST", "activityId": "rest-1", "title": "Pausa", "startsAt": "2026-11-14T09:00:00Z", "endsAt": "2026-11-14T09:20:00Z" }
+      ]
+    },
+    "status": "PENDING_REVIEW", "decisionId": null, "appliedScheduleVersion": null, "appliedAt": null
+  },
+  "report": {
+    "id": "report-1", "astronautId": "astro-1", "checkInId": "checkin-1", "generatedAt": "2026-11-14T06:04:00Z",
+    "findings": [
+      { "text": "Il sensore simulato registra 4.8 ore di sonno.", "source": "sensor", "evidence": [ { "source": "sensor", "sensorReadingId": "sensor-sleep" } ] },
+      { "text": "L'astronauta riferisce stanchezza 4 su 5.", "source": "self_report", "evidence": [ { "source": "self_report", "observationId": "obs-fatigue" } ] }
+    ],
+    "discrepancies": [
+      { "text": "Durata riferita 4.5 ore; durata simulata 4.8 ore. Valori conservati separatamente.", "source": "inference", "evidence": [ { "source": "self_report", "observationId": "obs-hours" }, { "source": "sensor", "sensorReadingId": "sensor-sleep" } ] }
+    ],
+    "uncertainties": ["Dati di uno scenario dimostrativo; nessuna valutazione clinica."],
+    "humanReview": { "required": false, "reason": null }, "proposalId": "proposal-1"
+  },
+  "diary": {
+    "id": "diary-1", "astronautId": "astro-1", "checkInId": "checkin-1", "date": "2026-11-14",
+    "text": "Ho raccontato una notte difficile e la stanchezza di questa mattina.",
+    "revision": 1, "status": "DRAFT", "visibility": "PRIVATE", "updatedAt": "2026-11-14T06:04:00Z"
+  },
+  "decision": {
+    "id": "decision-1", "proposalId": "proposal-1", "operatorId": "ground-1", "decision": "APPROVE",
+    "comment": "Variazione compatibile con le attivita di oggi.", "decidedAt": "2026-11-14T06:10:00Z", "idempotencyKey": "approve-proposal-1"
+  }
+}
