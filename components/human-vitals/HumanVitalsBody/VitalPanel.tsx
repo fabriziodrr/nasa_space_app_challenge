@@ -43,6 +43,7 @@ export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZon
 
 function SignalChart({ visualization }: { visualization: VitalVisualization }) {
   const isEcg = visualization.type === "ecg";
+  const isRespiration = visualization.type === "respiration";
   const ecgPath = createEcgPath();
   const path = visualization.waveform
     .map((value, index, values) => {
@@ -64,6 +65,17 @@ function SignalChart({ visualization }: { visualization: VitalVisualization }) {
           <g className={styles["signal-track"]}>
             <path className={styles["signal-glow"]} d={ecgPath} />
             <path className={styles["signal-line"]} d={ecgPath} />
+          </g>
+        ) : isRespiration ? (
+          <g className={`${styles["signal-track"]} ${styles["signal-track-respiration"]}`}>
+            <g>
+              <path className={styles["signal-glow"]} d={path} />
+              <path className={styles["signal-line"]} d={path} />
+            </g>
+            <g transform="translate(320 0)">
+              <path className={styles["signal-glow"]} d={path} />
+              <path className={styles["signal-line"]} d={path} />
+            </g>
           </g>
         ) : (
           <>
