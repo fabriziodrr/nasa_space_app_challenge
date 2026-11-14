@@ -57,7 +57,10 @@
   position: relative;
   background: radial-gradient(ellipse at center, rgba(98, 105, 112, .12), transparent 58%);
 }
-.human-vitals-body .body-canvas canvas { display: block; width: 100% !important; height: 100% !important; min-height: 0; }
+.human-vitals-body .body-canvas > canvas,
+.human-vitals-body .body-canvas > div:not(.shape-grid):not(.vitals-panel):not(.canvas-hint) { position: relative; z-index: 1; }
+.human-vitals-body .body-canvas > canvas { display: block; width: 100% !important; height: 100% !important; min-height: 0; }
+.human-vitals-body .body-canvas .shape-grid { z-index: 0; }
 .human-vitals-body .canvas-hint {
   position: absolute;
   bottom: 16px;

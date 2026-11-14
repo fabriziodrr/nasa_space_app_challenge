@@ -4,7 +4,6 @@ import { useState } from "react";
 import { RotateCcw } from "lucide-react";
 
 import { HumanVitalsDashboard } from "@/components/dashboard/HumanVitalsDashboard";
-import { DotGrid } from "@/components/reactbits/DotGrid";
 import { PillNav } from "@/components/reactbits/PillNav";
 import { TextType } from "@/components/reactbits/TextType";
 import { DashboardIcon } from "@/components/dashboard/DashboardIcon";
@@ -21,14 +20,6 @@ export function DashboardShell() {
   return (
     <div className="dashboard-shell" aria-label="SOTERIA mission dashboard">
       <main className="dashboard-shell__main" aria-label={`${activeView} dashboard workspace`}>
-        <DotGrid
-          className="dashboard-shell__dot-grid"
-          dotSize={3}
-          gap={24}
-          baseColor="#aeb5c0"
-          activeColor="#3b1abd"
-          opacity={0.46}
-        />
         <PillNav
           className="dashboard-shell__nav"
           items={[

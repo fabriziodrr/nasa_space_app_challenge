@@ -236,7 +236,7 @@ function SceneContents(props: HumanVitalsSceneProps) {
 
 export function HumanVitalsScene(props: HumanVitalsSceneProps) {
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.2, 4.15], fov: 38 }} gl={{ antialias: true, alpha: false }} onCreated={({ gl }) => gl.setClearColor("#dfe3e6")}>
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.2, 4.15], fov: 38 }} gl={{ antialias: true, alpha: true }} onCreated={({ gl }) => gl.setClearColor("#000000", 0)}>
       <SceneContents {...props} />
     </Canvas>
   );

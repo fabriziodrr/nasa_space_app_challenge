@@ -5,6 +5,7 @@ import { VitalPanel } from "./VitalPanel";
 import type { HumanVitalsBodyProps, VitalZone, VitalZoneId } from "./types";
 import { defaultModelPath, femaleModelPath } from "./modelAsset";
 import { TextType } from "@/components/reactbits/TextType";
+import { ShapeGrid } from "@/components/reactbits/ShapeGrid";
 import styles from "./HumanVitalsBody.module.css";
 
 export function HumanVitalsBody({
@@ -86,6 +87,7 @@ export function HumanVitalsBody({
     <section className={`${styles["human-vitals-body"]} ${compact ? styles["is-compact"] : ""} ${className}`}>
       <div className={styles["body-explorer"]}>
         <div className={styles["body-canvas"]}>
+           <ShapeGrid size={36} lineColor="rgba(98, 105, 112, .14)" accentColor="rgba(59, 26, 189, .16)" opacity={0.82} />
            <HumanVitalsScene
              key={`${bodyVariant}:${selectedModelPath}`}
              zones={zones}
