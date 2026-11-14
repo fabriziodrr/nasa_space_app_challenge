@@ -13,7 +13,7 @@ import {
 import type {
   AgentRepository, GenerationArtifacts, GenerationClaim, Page,
 } from "../../ports";
-import { AgentErrors } from "../../errors";
+import { AgentErrors } from "../../core/errors";
 import { randomId } from "../../lib/id";
 import {
   checkInFromRow, decisionFromRow, diaryFromRow, messageFromRow,

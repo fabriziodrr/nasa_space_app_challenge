@@ -5,7 +5,7 @@ import type {
   CheckIn, ConfirmCheckInRequest, Identity, UpdateCheckInRequest,
 } from "../contracts";
 import type { AgentRepository } from "../ports";
-import { AgentErrors } from "../errors";
+import { AgentErrors } from "../core/errors";
 
 export class CheckInService {
   constructor(private readonly repository: AgentRepository) {}

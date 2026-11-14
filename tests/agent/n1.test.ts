@@ -9,7 +9,7 @@ import {
 import { PrismaAgentRepository } from "../../server/agent/adapters/prisma/repository";
 import { SimulatedScheduleProvider } from "../../server/agent/adapters/schedule";
 import { SimulatedSensorProvider } from "../../server/agent/adapters/sensors";
-import { AgentServiceError } from "../../server/agent/errors";
+import { isAgentError } from "../../server/agent/core/errors";
 import {
   baseSchedule, DEMO_ASTRONAUT_ID, DEMO_DATE, SCENARIOS, SCENARIO_DEFINITIONS,
   sensorReadings,
@@ -190,7 +190,7 @@ test("repository persists a turn idempotently and recovers the session state", a
       expectedCheckInRevision: null,
       result: messageResult("client-msg-1", draftCheckIn(2, session.id)),
     }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "IDEMPOTENCY_CONFLICT",
+    (error: unknown) => isAgentError(error) && error.code === "IDEMPOTENCY_CONFLICT",
   );
 
   const state = await repository.getSessionState(DEMO_ASTRONAUT_ID, session.id);
@@ -216,7 +216,7 @@ test("check-in correction and confirmation enforce revision CAS and idempotency"
   const checkInId = draftCheckIn(1, sessionId).id;
   await assert.rejects(
     () => repository.updateCheckIn(DEMO_ASTRONAUT_ID, checkInId, { expectedRevision: 9, observations: [] }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "VERSION_CONFLICT",
+    (error: unknown) => isAgentError(error) && error.code === "VERSION_CONFLICT",
   );
 
   const updated = await repository.updateCheckIn(DEMO_ASTRONAUT_ID, checkInId, {
@@ -240,7 +240,7 @@ test("check-in correction and confirmation enforce revision CAS and idempotency"
   assert.equal(replay.status, "CONFIRMED");
   await assert.rejects(
     () => repository.confirmCheckIn(DEMO_ASTRONAUT_ID, checkInId, { expectedRevision: 2, sharedObservationIds: ["obs-hours"] }),
-    (error: unknown) => error instanceof AgentServiceError && error.code === "INVALID_STATE",
+    (error: unknown) => isAgentError(error) && error.code === "INVALID_STATE",
   );
 });
 

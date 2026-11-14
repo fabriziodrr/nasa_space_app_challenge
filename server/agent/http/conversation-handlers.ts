@@ -75,6 +75,7 @@ export function createConversationHttpHandlers(getRuntime: () => HttpRuntime) {
         issues: validation?.issues.slice(0, 100).map((issue) => ({
           path: issue.path.map(String).join(".").slice(0, 200), message: "Valore non valido.",
         })) ?? [],
+        ...(known?.currentVersion === undefined ? {} : { currentVersion: known.currentVersion }),
       } });
       return Response.json(body, {
         status: ERROR_HTTP_STATUS[code], headers: { ...headers, "X-Request-ID": requestId },
