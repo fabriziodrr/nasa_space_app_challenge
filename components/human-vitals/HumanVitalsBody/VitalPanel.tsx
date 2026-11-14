@@ -1,4 +1,5 @@
 import { RotateCcw, X } from "lucide-react";
+import { CountUp } from "@/components/reactbits/CountUp";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import type { VitalMetric, VitalVisualization, VitalZone } from "./types";
 import styles from "./HumanVitalsBody.module.css";
@@ -101,7 +102,7 @@ function MetricRow({ metric }: { metric: VitalMetric }) {
     <div className={styles["metric-row"]}>
       <span className={styles["metric-label"]}>{metric.label}</span>
       <span className={`${styles["metric-value"]} ${styles[`metric-${metric.status ?? "neutral"}`]}`}>
-        {metric.value} <small>{metric.unit}</small>
+        <CountUp value={metric.value} /> <small>{metric.unit}</small>
       </span>
     </div>
   );
