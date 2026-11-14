@@ -2,7 +2,7 @@
 
 Stato: **documentazione di integrazione basata sui contratti C0**. Gli schemi eseguibili sono in `server/agent/contracts/`; le interfacce server in `server/agent/ports.ts`. Questa guida descrive il contratto HTTP che la dashboard deve usare, non i dettagli interni dell'agent.
 
-> Stato di implementazione delle route: `POST /sessions`, `GET /sessions/:id` e `POST /sessions/:id/messages` sono implementate (T1). Le restanti route (check-in, proposte, decisione, report, diario, voce) sono contratte in C0 e verranno esposte nell'integrazione; il payload e gia vincolato dagli schemi condivisi. Non serve attendere le route per sviluppare una vista: le firme non cambiano.
+> Stato di implementazione delle route: sono esposte le route di sessione e messaggi (T1), check-in, report e diario (T2) e voce (T3). Restano da esporre `GET /proposals` e `POST /proposals/:id/decision`, contratte in C0 (la logica di servizio esiste gia in `server/agent/services/approval.ts`). Il payload e vincolato dagli schemi condivisi, quindi una vista puo essere sviluppata senza attendere queste due route: le firme non cambiano.
 
 ## Principi generali
 
@@ -145,6 +145,19 @@ GET /api/agent/v1/sessions/session-1
 
 File di esempio completi: `docs/agent/examples/normal.json`, `normal-response.json`, `no-change.json`, `stale.json`.
 
+## Voce
+
+Il percorso vocale usa gli stessi servizi e messaggi di quello testuale. Due modalita:
+
+- **Browser (predefinito)**: riconoscimento e sintesi delegati al browser (`AGENT_VOICE_PROVIDER=browser`). Non richiede chiavi; serve un contesto sicuro (`localhost` o HTTPS). La trascrizione e modificabile e va inviata con la normale API messaggi usando `inputMode: "VOICE"`.
+- **Server (opzionale)**: con `AGENT_VOICE_PROVIDER=nvidia_nim` si attivano le due route autenticate, che usano servizi NVIDIA Speech NIM locali (ASR e TTS con `it-IT`) configurati via `AGENT_NIM_ASR_URL`/`AGENT_NIM_TTS_URL` (sono accettati solo origin loopback).
+
+`POST /voice/transcriptions` — `multipart/form-data` con `sessionId`, `durationSeconds` e `audio` (file `audio/wav`, PCM 16 bit, mono o stereo). Limiti: 10 MiB e 120 s; la durata e verificata dal contenuto. Risponde `{ text, language }` e **non** invia automaticamente il messaggio: l'interfaccia mostra il testo per la correzione e poi usa `POST /sessions/:id/messages` con `inputMode: "VOICE"`.
+
+`POST /voice/speech` — JSON `{ sessionId, messageId }`; restituisce `audio/mpeg` (`Cache-Control: no-store`) per una risposta `ASSISTANT` della sessione dell'astronauta autenticato (testo fino a 2000 caratteri). Non e un endpoint pubblico di sintesi: non accetta testo arbitrario.
+
+L'audio e elaborato in memoria senza file temporanei o logging. Formato non ammesso → `UNSUPPORTED_AUDIO`; servizi non configurati o non raggiungibili → `PROVIDER_UNAVAILABLE`.
+
 ## Configurazione e variabili d'ambiente
 
 Le credenziali sono lette solo sul server e non vengono inviate al browser. Nessun segreto va inserito nei log o nel codice.
@@ -155,10 +168,13 @@ Le credenziali sono lette solo sul server e non vengono inviate al browser. Ness
 | `NODE_ENV` | `development` | `production` vieta la demo simulata |
 | `AGENT_DEMO_ENABLED` | `false` | `true` abilita la demo locale, vietata in produzione |
 | `AGENT_DEMO_TOKEN` | — | token demo, 16–512 caratteri (autenticazione simulata) |
+| `AGENT_GROUND_TOKEN` | — | token demo distinto per `GROUND_CONTROL` (accesso report/proposte) |
 | `AGENT_DEMO_SCENARIO` | `RESTED` | `RESTED`, `POOR_SLEEP`, `CONFLICTING_DATA` |
 | `AGENT_AI_PROVIDER` | `mock` | `mock`, `nvidia`, `openai` |
 | `NVIDIA_API_KEY`, `NVIDIA_MODEL` | — | obbligatori solo per `nvidia` |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | — | obbligatori solo per `openai` |
+| `AGENT_VOICE_PROVIDER` | `browser` | `browser` oppure `nvidia_nim` |
+| `AGENT_NIM_ASR_URL`, `AGENT_NIM_TTS_URL` | — | obbligatori solo per `nvidia_nim`; origin loopback |
 | `AGENT_AI_TIMEOUT_MS` | `30000` | 100–120000 ms |
 | `AGENT_CONTEXT_MESSAGE_LIMIT` | `20` | 1–100 messaggi |
 | `AGENT_PREVIOUS_CHECK_IN_LIMIT` | `3` | 0–10 check-in precedenti |
@@ -173,6 +189,7 @@ Gli adattatori implementano le interfacce in `server/agent/ports.ts`; il punto d
 - `SensorProvider.read(astronautId, window)` → `SensorReading[]`. Esempio: `adapters/sensors.ts` (N1) o `adapters/demo-context.ts` (bootstrap T1).
 - `ScheduleReader.getDay(astronautId, date)` e `ScheduleProvider` (con `getById`, `applyApproved`, `getApplication`). Il programma autorevole resta un sistema esterno da concordare con Fabrizio; l'implementazione simulata e `adapters/schedule.ts`.
 - `AiProvider` (`ConversationAiProvider`, `OperationalAiProvider`, `DiaryAiProvider`). Selezione esplicita in `adapters/conversation-ai-factory.ts`; nessun fallback automatico tra provider.
+- `VoiceProvider` (`transcribe`, `synthesize`). Esempio server: `adapters/nvidia-nim-voice.ts`; la demo usa riconoscimento e sintesi del browser. Il contratto consente di sostituire l'adattatore senza cambiare la dashboard.
 
 I tipi pubblici in `server/agent/contracts/index.ts` sono importabili dal frontend senza trascinare Prisma, Next.js o variabili d'ambiente.
 
@@ -205,6 +222,7 @@ Da concordare con Fabrizio: sistema di login reale (sostituendo `IdentityProvide
 
 - [Contratti v1 (C0)](./contracts-v1.md)
 - [Setup, reset e avvio (N1)](./setup.md)
+- [Voce (T3)](./t3-voice.md)
 - Schemi e tipi: `server/agent/contracts/index.ts`
 - Interfacce dei provider: `server/agent/ports.ts`
 - Esempi: `docs/agent/examples/`

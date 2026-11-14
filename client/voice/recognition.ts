@@ -23,7 +23,7 @@ export interface RecognitionWindow {
 export interface RecognitionCallbacks {
   onText(finalText: string, interimText: string): void;
   onEnd(hadFinalText: boolean): void;
-  onError(message: string): void;
+  onError(message: string, code?: string): void;
 }
 
 export function recognitionError(code: string): string {
@@ -74,7 +74,7 @@ export class BrowserVoiceInput {
     recognition.onerror = (event) => {
       if (this.disposed) return;
       this.failed = true;
-      this.callbacks.onError(recognitionError(event.error));
+      this.callbacks.onError(recognitionError(event.error), event.error);
     };
     recognition.onend = () => {
       if (this.timer) clearTimeout(this.timer);

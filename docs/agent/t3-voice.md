@@ -1,6 +1,11 @@
 # T3: interfaccia vocale
 
-La voce usa gli stessi servizi e messaggi della conversazione testuale. La demo indipendente è disponibile su `/voice-demo`: avviare il progetto secondo [la guida T1](t1-conversation.md), aprire la pagina, inserire il valore locale `AGENT_DEMO_TOKEN` e creare una sessione. Il token è distinto dalla chiave NVIDIA e resta nello stato della pagina. Premere il microfono, consentire l'accesso, dettare in italiano e interrompere la registrazione. La trascrizione è modificabile e viene inviata solo premendo «Invia». È sempre possibile scrivere; la lettura delle risposte è attivata dall'utente.
+La voce usa gli stessi servizi e messaggi della conversazione testuale. La demo indipendente è disponibile su `/voice-demo`: avviare il progetto secondo [la guida T1](t1-conversation.md), aprire la pagina, inserire il valore locale `AGENT_DEMO_TOKEN` e creare una sessione. Il token è distinto dalla chiave NVIDIA e resta nello stato della pagina.
+
+Due modalità di input vocale:
+
+- **Conversazione continua**: «Avvia conversazione» avvia un ciclo a mani libere. La fine della frase viene rilevata da una pausa stabile nella trascrizione (nessuna parola nuova per circa 1.8 s, regolabile con `quietMs` del componente): a quel punto il messaggio viene inviato, la risposta letta ad alta voce e l'ascolto riprende. «Termina conversazione» interrompe il ciclo. Il rilevamento si basa sulla pausa, non su un'analisi del senso della frase; il microfono deve essere consentito e si consiglia un ambiente senza il suono della sintesi stessa in riproduzione (es. cuffie).
+- **Modalità manuale**: premere il microfono, dettare in italiano e premere «Termina dettatura». La trascrizione è modificabile e viene inviata solo premendo «Invia». È sempre possibile scrivere.
 
 La demo usa il riconoscimento e la sintesi del browser, che devono essere supportati e abilitati dal browser utilizzato. Il riconoscimento può inviare l'audio a un servizio scelto dal browser: non è garantito il funzionamento offline. Non richiede una nuova chiave API dell'applicazione. Microfono e sintesi richiedono un contesto sicuro, come `localhost` o HTTPS.
 

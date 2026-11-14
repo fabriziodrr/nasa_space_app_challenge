@@ -305,7 +305,7 @@ Dipendenza: C0; aggiornamento finale dopo N2 e T3.
 - [x] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
 - [ ] Concordare con Fabrizio il collegamento alla dashboard usando gli stessi endpoint della demo.
 
-Implementazione e prova: [Guida di integrazione](docs/agent/integration.md). Redatta sui contratti C0; le sezioni voce (T3) e le route del flusso N2 saranno rifinite quando le rispettive route saranno esposte. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
+Implementazione e prova: [Guida di integrazione](docs/agent/integration.md). Aggiornata dopo T3 (sezione voce, variabili `AGENT_VOICE_PROVIDER`/`AGENT_NIM_*`). Restano da documentare come "esposte" soltanto le route `GET /proposals` e `POST /proposals/:id/decision`. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
 
 Completato quando Fabrizio puo collegare una propria vista senza importare i componenti grafici della demo o modificare il nucleo dell'agent.
 
