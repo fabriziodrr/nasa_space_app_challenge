@@ -52,6 +52,9 @@ export interface ScheduleReader {
   getDay(astronautId: string, date: string): Promise<ScheduleSnapshot>;
 }
 export interface ScheduleProvider extends ScheduleReader {
+  // Current snapshot by id; used by the approval service to check staleness before
+  // recording a decision. Returns null when the schedule is unknown to this provider.
+  getById(scheduleId: string): Promise<ScheduleSnapshot | null>;
   // Called ONLY by the approval service after a persisted authorized APPROVE decision.
   // Provider must verify that authorization via the decision ID/trusted service boundary.
   // Atomic version check + mutation + durable deduplication by proposalId/decisionId.
