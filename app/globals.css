@@ -56,12 +56,16 @@ button:focus-visible {
   transition: opacity 0.35s ease;
 }
 
-.aegis-threads {
+.aegis-orb {
   position: absolute;
   z-index: 0;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.9;
+  top: 50%;
+  left: 50%;
+  width: min(78vw, 760px);
+  height: min(78vw, 760px);
+  transform: translate(-50%, -50%);
+  opacity: 0.82;
+  pointer-events: auto;
 }
 
 .aegis-wordmark {
@@ -102,6 +106,13 @@ button:focus-visible {
   transform-origin: center;
   filter: invert(1);
   mix-blend-mode: screen;
+}
+
+.aegis-wordmark__intro-logo .sloth-logo__image {
+  object-fit: cover;
+  transform: none;
+  filter: none;
+  mix-blend-mode: normal;
 }
 
 .aegis-wordmark__acronym {

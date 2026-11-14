@@ -3,9 +3,9 @@
 import { useRef, useState } from "react";
 import { gsap } from "gsap";
 
-import WebThreads from "@/components/reactbits/WebThreads";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { SlothLogo } from "@/components/branding/SlothLogo";
+import Orb from "@/components/reactbits/Orb";
 
 /**
  * The first interaction of the product is deliberately small: the S.L.O.T.H.
@@ -60,30 +60,8 @@ export function AegisLanding() {
 
   return (
     <main ref={landingRef} className="aegis-landing">
-      <div className="aegis-threads" aria-hidden="true">
-        <WebThreads
-          colors={["#3b1abd", "#6652d3", "#9b90ef"]}
-          coreColor="#3b1abd"
-          backgroundColor="transparent"
-          threadCount={9}
-          speed={0.12}
-          frequency={5.5}
-          spread={0.2}
-          taper={0.65}
-          glow={0.035}
-          falloff={0.58}
-          thickness={1.3}
-          brightness={0.72}
-          opacity={0.52}
-          depth={0.15}
-          mirror
-          shimmer
-          grain={0.025}
-          intro
-          mouseInteraction
-          mouseStrength={0.35}
-          pulseOnClick
-        />
+      <div className="aegis-orb" aria-hidden="true">
+        <Orb colors={["#36e0ff", "#5574ff", "#101499"]} backgroundColor="#0d0630" glow={1.35} bleed={0.75} trail={0.8} speed={0.7} opacity={0.8} intro hoverIntensity={0.8} followCursor />
       </div>
       <button
         ref={wordmarkRef}
@@ -94,7 +72,7 @@ export function AegisLanding() {
         onClick={enterDashboard}
       >
          <span className="aegis-wordmark__logo-wrap" aria-hidden="true">
-           <SlothLogo className="aegis-wordmark__logo" />
+           <SlothLogo className="aegis-wordmark__logo aegis-wordmark__intro-logo" src="/introduction-logo.jpeg" alt="S.L.O.T.H. mission logo" />
            <span className="aegis-wordmark__acronym">S.L.O.T.H.</span>
          </span>
       </button>
