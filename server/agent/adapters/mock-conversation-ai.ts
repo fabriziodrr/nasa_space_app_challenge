@@ -82,6 +82,15 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
     if (discrepancy && !alreadyAsked) {
       reply = `Il sensore simulato indica ${sensor!.value} ore, mentre tu ne riferisci ${reportedHours}. Si tratta dello stesso periodo di riposo? Conservo entrambi i valori. ${reply}`;
     }
+    const vision = context.visionObservations[0];
+    const askedVision = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("osservazione palpebrale"));
+    if (vision && !askedVision) {
+      const note = vision.source === "synthetic" ? "L'osservazione palpebrale è sintetica e non rappresenta una misura reale."
+        : vision.usability === "INSUFFICIENT" ? "L'osservazione palpebrale non è sufficientemente utilizzabile."
+        : vision.prolongedCount > 0 ? "L'osservazione palpebrale rileva chiusure prolungate. Come ti senti in questo momento?"
+        : "L'osservazione palpebrale è disponibile come dato contestuale.";
+      reply = `${note} ${reply}`;
+    }
     return ConversationOutputSchema.parse({
       reply: `[Simulazione] Sono l'assistente AI di bordo. ${reply}`, observations, missingFields,
     });

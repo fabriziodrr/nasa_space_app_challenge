@@ -129,12 +129,14 @@ Completato quando una misura importata è persistita, recuperabile e selezionabi
 
 Dipendenza: I0. Può iniziare con provider e repository simulati mentre Nello sviluppa I1.
 
-- [ ] Aggiungere un'interfaccia di lettura delle osservazioni palpebrali e collegarla al runtime attraverso un adattatore.
-- [ ] Estendere `ConversationContext` con il riepilogo selezionato, rispettando i limiti del contesto.
-- [ ] Aggiornare istruzioni e provider Nemotron e simulato per distinguere dichiarazioni, sensori e visione.
-- [ ] Gestire misure mancanti, insufficienti, vecchie e sintetiche con risposte comprensibili.
-- [ ] Aggiungere approfondimenti in caso di apparente divergenza, senza creare osservazioni auto-riferite dai dati della webcam.
-- [ ] Mantenere identico il comportamento per messaggi vocali e testuali.
+Implementazione con lettore sostituibile e casi simulati: [I2 — visione nella conversazione](docs/agent/i2-vision-conversation.md). Il runtime usa un lettore vuoto fino al collegamento con I1.
+
+- [x] Aggiungere un'interfaccia di lettura delle osservazioni palpebrali e collegarla al runtime attraverso un adattatore.
+- [x] Estendere `ConversationContext` con il riepilogo selezionato, rispettando i limiti del contesto.
+- [x] Aggiornare istruzioni e provider Nemotron e simulato per distinguere dichiarazioni, sensori e visione.
+- [x] Gestire misure mancanti, insufficienti, vecchie e sintetiche con risposte comprensibili.
+- [x] Aggiungere approfondimenti in caso di apparente divergenza, senza creare osservazioni auto-riferite dai dati della webcam.
+- [x] Mantenere identico il comportamento per messaggi vocali e testuali.
 
 Completato quando la misura influenza le domande dell'agent senza alterare la provenienza delle risposte dell'astronauta e senza impedire il percorso privo di misura.
 

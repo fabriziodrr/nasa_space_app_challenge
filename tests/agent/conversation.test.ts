@@ -4,7 +4,7 @@ import { runInNewContext } from "node:vm";
 import {
   type AstronautIdentity, type ConversationOutput, type Identity, type Scenario,
 } from "../../server/agent/contracts";
-import type { ConversationAiProvider, ConversationContext, ConversationRepository } from "../../server/agent/ports";
+import type { ConversationAiProvider, ConversationContext, ConversationRepository, VisionObservationReader } from "../../server/agent/ports";
 import { createConversationService } from "../../server/agent/core/conversation-service";
 import { AgentError } from "../../server/agent/core/errors";
 import { MemoryConversationRepository } from "../../server/agent/adapters/memory-conversation-repository";
@@ -13,6 +13,7 @@ import { createDemoContextProviders } from "../../server/agent/adapters/demo-con
 import { createConversationHttpHandlers } from "../../server/agent/http/conversation-handlers";
 import { DemoIdentityProvider } from "../../server/agent/adapters/demo-identity";
 import { loadAgentConfig } from "../../server/agent/config";
+import { MockVisionReader } from "../../server/agent/adapters/mock-vision-reader";
 
 const actor: AstronautIdentity = { userId: "user-1", role: "ASTRONAUT", astronautId: "astro-1" };
 const other: AstronautIdentity = { userId: "user-2", role: "ASTRONAUT", astronautId: "astro-2" };
@@ -23,7 +24,7 @@ const code = (expected: string) => (error: unknown) => error instanceof AgentErr
 
 function harness(options: {
   ai?: ConversationAiProvider; repository?: ConversationRepository; scenario?: Scenario;
-  timeoutMs?: number; contextMessageLimit?: number;
+  timeoutMs?: number; contextMessageLimit?: number; vision?: VisionObservationReader;
 } = {}) {
   let nextId = 0;
   const repository = options.repository ?? new MemoryConversationRepository();
@@ -32,10 +33,64 @@ function harness(options: {
     ...createDemoContextProviders(options.scenario ?? "RESTED"),
     now: () => fixedTime, newId: () => `test-${++nextId}`,
     timeoutMs: options.timeoutMs, contextMessageLimit: options.contextMessageLimit,
+    vision: options.vision,
   });
   return { repository, service };
 }
 const message = (id: string, text: string) => ({ clientMessageId: id, text, inputMode: "TEXT" });
+
+test("selected synthetic vision reaches the model without becoming a self report", async () => {
+  let captured: ConversationContext | undefined;
+  const mock = new MockConversationAiProvider();
+  const { service } = harness({ vision: new MockVisionReader("POOR_SLEEP", () => fixedTime),
+    ai: { async converse(context) { captured = structuredClone(context); return mock.converse(context); } } });
+  const session = await service.createSession(actor, { astronautId: actor.astronautId });
+  const result = await service.sendMessage(actor, session.id, { ...message("v1", "Ho dormito 5 ore."), inputMode: "VOICE" });
+  assert.equal(captured?.visionObservations[0].source, "synthetic");
+  assert.equal(captured?.visionObservations[0].usability, "INSUFFICIENT");
+  assert.match(result.assistantMessage.text, /sintetica/);
+  assert.equal(result.astronautMessage.inputMode, "VOICE");
+  assert.deepEqual(result.checkIn.observations.map((item) => item.field), ["SLEEP_HOURS"]);
+});
+
+test("vision reader rejects another astronaut's observation before AI is called", async () => {
+  const mock = new MockVisionReader("RESTED", () => fixedTime);
+  let called = false;
+  const { service } = harness({ vision: { async getSelectedForSession(_astronautId, id) { return mock.getSelectedForSession("other", id); } },
+    ai: { async converse() { called = true; throw new Error("unexpected"); } } });
+  const session = await service.createSession(actor, { astronautId: actor.astronautId });
+  await assert.rejects(service.sendMessage(actor, session.id, message("v2", "Ciao")), code("INTERNAL_ERROR"));
+  assert.equal(called, false);
+});
+
+test("stale and low coverage observations are identified without deriving fatigue", async () => {
+  const mock = new MockVisionReader("RESTED", () => fixedTime);
+  let captured: ConversationContext | undefined;
+  const ai = new MockConversationAiProvider();
+  const { service } = harness({ vision: { async getSelectedForSession(astronautId, id) {
+    const base = await mock.getSelectedForSession(astronautId, id);
+    return { ...base, source: "webcam", startedAt: "2026-11-14T02:00:00Z", endedAt: "2026-11-14T02:01:00Z",
+      validMs: 20_000, coverage: 0.5, usability: "USABLE", reasons: [] };
+  } }, ai: { async converse(context) { captured = structuredClone(context); return ai.converse(context); } } });
+  const session = await service.createSession(actor, { astronautId: actor.astronautId });
+  const result = await service.sendMessage(actor, session.id, message("v3", "Ciao"));
+  assert.deepEqual(new Set(captured?.visionObservations[0].reasons), new Set(["STALE", "LOW_COVERAGE", "TOO_SHORT"]));
+  assert.equal(captured?.visionObservations[0].usability, "INSUFFICIENT");
+  assert.deepEqual(result.checkIn.observations, []);
+  assert.match(result.assistantMessage.text, /non è sufficientemente utilizzabile/);
+});
+
+test("usable webcam closure prompts clarification without adding a fatigue score", async () => {
+  const mock = new MockVisionReader("POOR_SLEEP", () => fixedTime);
+  const { service } = harness({ vision: { async getSelectedForSession(astronautId, id) {
+    const base = await mock.getSelectedForSession(astronautId, id);
+    return { ...base, source: "webcam", startedAt: "2026-11-14T05:58:00Z", endedAt: "2026-11-14T05:59:00Z", usability: "USABLE", reasons: [] };
+  } } });
+  const session = await service.createSession(actor, { astronautId: actor.astronautId });
+  const result = await service.sendMessage(actor, session.id, message("vision-usable", "Mi sento riposato."));
+  assert.match(result.assistantMessage.text, /chiusure prolungate/);
+  assert.deepEqual(result.checkIn.observations, []);
+});
 
 test("textual check-in accumulates explicit answers and preserves stable observation IDs", async () => {
   const { service } = harness();

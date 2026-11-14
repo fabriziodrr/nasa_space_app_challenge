@@ -13,6 +13,7 @@ import { createConversationAiProvider } from "./adapters/conversation-ai-factory
 import { DemoIdentityProvider } from "./adapters/demo-identity";
 import { createDemoContextProviders } from "./adapters/demo-context";
 import { NvidiaNimVoiceProvider } from "./adapters/nvidia-nim-voice";
+import { EmptyVisionReader } from "./adapters/mock-vision-reader";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -33,7 +34,9 @@ function createDemoRuntime() {
     checkIns: new CheckInService(repository),
     artifacts: artifactAi ? new ArtifactService({ repository, ...context, operationalAi: artifactAi, diaryAi: artifactAi, proposals: new ProposalService(new ScheduleValidatorImpl()) }) : null,
     service: createConversationService({
-      ai, repository, ...context, timeoutMs: config.AGENT_AI_TIMEOUT_MS,
+      ai, repository, ...context, vision: new EmptyVisionReader(), timeoutMs: config.AGENT_AI_TIMEOUT_MS,
+      visionQuality: { minValidMs: config.AGENT_VISION_MIN_VALID_MS, minCoverage: config.AGENT_VISION_MIN_COVERAGE,
+        maxAgeMinutes: config.AGENT_VISION_MAX_AGE_MINUTES },
       contextMessageLimit: config.AGENT_CONTEXT_MESSAGE_LIMIT,
       previousCheckInLimit: config.AGENT_PREVIOUS_CHECK_IN_LIMIT,
     }),
