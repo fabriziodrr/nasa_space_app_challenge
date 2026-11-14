@@ -1,0 +1,11 @@
+# Invio all'agent da un'app ospite
+
+Se il prototipo è caricato in un iframe da un'origine autorizzata, una misura webcam arrestata può essere inviata con il pulsante **Invia misura all'agent**. L'utente resta responsabile dell'avvio della webcam, della calibrazione, dell'arresto e dell'invio. La pagina può ancora esportare il file manualmente. I replay sintetici non vengono inviati dal pulsante webcam.
+
+Configurare `VITE_AGENT_ORIGIN` con l'origine esatta dell'host, ad esempio `http://localhost:3000`; il default è questo valore. Per origini remote è richiesto HTTPS. Non inserire percorsi, query, credenziali o segreti. L'host deve caricare il prototipo in un iframe con `allow="camera"`, impostare un referrer che includa l'origine e accedere da un contesto sicuro. Se il referrer non coincide con l'origine configurata, il pulsante di invio non viene mostrato. La configurazione è pubblica e richiede una nuova build dopo una modifica.
+
+Il protocollo `crewready-vision-agent-v1` usa `postMessage` esclusivamente verso l'origine configurata. Il messaggio `IMPORT` contiene `requestId` e il JSON serializzato `crewready-session-v2`; non contiene token, ID sessione, video o immagini. L'host deve controllare sia `event.origin` sia `event.source` rispetto alla finestra dell'iframe, applicare limiti al messaggio, associare la propria identità e sessione e inviare il risultato alla propria API. Non deve fidarsi di dati inviati da altre finestre. L'host risponde con `IMPORT_RESULT`, lo stesso `requestId` e `ok: boolean`, verso l'origine esatta dell'iframe.
+
+Il pulsante congela istantanea e identificativo alla prima richiesta. Se non riceve risposta entro 15 secondi, l'utente può riprovare: vengono inviati gli stessi byte e lo stesso ID, da usare come chiave di idempotenza nel backend. Una risposta positiva indica soltanto che l'host ha ricevuto il risultato; la selezione per la conversazione e la condivisione con Terra spettano all'host. L'utente può annullare l'invio in sospeso e preparare una nuova istantanea.
+
+L'host deve limitare dimensioni e tipologia dell'export e mantenere la validazione server e l'autorizzazione indipendenti dai controlli del browser. I test simulano messaggi, timeout e ritentativi; il collaudo con webcam e microfono fisici resta da eseguire.
