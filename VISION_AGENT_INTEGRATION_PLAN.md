@@ -176,12 +176,14 @@ Completato quando è possibile dimostrare l'incrocio dei dati con un file esport
 
 Dipendenza: percorso tramite export I1–I4 verificato.
 
-- [ ] Aggiungere al prototipo un adattatore che invii il pacchetto alla stessa API al termine di una misura.
-- [ ] Esporre all'app ospite associazione alla sessione e callback del risultato, mantenendo le credenziali sotto il controllo dell'host.
-- [ ] Prevedere azione esplicita, stato d'invio e ripetizione idempotente dopo errori di rete.
-- [ ] Verificare endpoint, origine e autenticazione per l'eventuale esecuzione separata su Vite e Next.js, senza aprire CORS indiscriminatamente.
+Implementazione: [guida I5](docs/agent/i5-direct-vision.md). La prova con dispositivi reali e la pubblicazione della revisione del submodule restano aperte.
+
+- [x] Aggiungere al prototipo un adattatore che invii il pacchetto alla stessa API dopo una misura, su azione esplicita.
+- [x] Esporre all'app ospite associazione alla sessione e callback del risultato, mantenendo le credenziali sotto il controllo dell'host.
+- [x] Prevedere azione esplicita, stato d'invio e ripetizione idempotente dopo errori di rete.
+- [ ] Verificare nel browser endpoint, origine e autenticazione con Vite e Next.js in esecuzione separata; i controlli automatici del bridge e delle API passano.
 - [ ] Verificare chiusura risorse, cambio webcam, sospensione e nuova calibrazione durante l'uso combinato con la voce.
-- [ ] Documentare il riuso dell'adattatore nella futura dashboard.
+- [x] Documentare il riuso dell'adattatore nella futura dashboard.
 
 Completato quando una misura raggiunge l'agent senza download e caricamento manuale e produce lo stesso riepilogo del percorso export.
 

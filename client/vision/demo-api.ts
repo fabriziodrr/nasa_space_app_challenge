@@ -23,7 +23,7 @@ async function call(path: string, init: RequestInit, token: string) {
   return response.json() as Promise<unknown>;
 }
 const base = (sessionId: string) => `/api/agent/v1/sessions/${encodeURIComponent(sessionId)}`;
-export async function uploadVision(token: string, sessionId: string, file: File, key: string) {
+export async function uploadVision(token: string, sessionId: string, file: Blob, key: string) {
   if (!file.size || file.size > 10 * 1024 * 1024) throw new DemoApiError(413, "Scegli un file JSON non vuoto, fino a 10 MiB.");
   return Item.parse(await call(`${base(sessionId)}/vision-observations`, {
     method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": key }, body: file,

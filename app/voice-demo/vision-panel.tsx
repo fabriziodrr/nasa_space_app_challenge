@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DemoApiError, confirmVision, selectVision, uploadVision } from "../../client/vision/demo-api";
+import { parseVisionBridgeMessage, visionOrigin, VISION_BRIDGE_CHANNEL } from "../../client/vision/bridge";
 import type { CheckIn, VisionObservation } from "../../server/agent/contracts";
 import styles from "./voice-demo.module.css";
 
@@ -25,11 +26,37 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [selectionUncertain, setSelectionUncertain] = useState(false);
+  const [showVision, setShowVision] = useState(false);
+  const iframe = useRef<HTMLIFrameElement>(null);
+  const inFlight = useRef(new Set<string>());
   const uploadKey = useRef("");
   const pendingConfirmation = useRef<Confirmation | null>(null);
   const pendingSelection = useRef<{ id: string | null } | null>(null);
   const confirmed = checkIn?.status === "CONFIRMED";
   const selected = observations.find((item) => item.id === selectedId);
+  const bridgeOrigin = (() => { try { return visionOrigin(process.env.NEXT_PUBLIC_VISION_ORIGIN); } catch { return null; } })();
+
+  useEffect(() => {
+    if (!bridgeOrigin) return;
+    function receive(event: MessageEvent) {
+      const frame = iframe.current?.contentWindow ?? null;
+      const received = parseVisionBridgeMessage(event, bridgeOrigin!, frame);
+      if (!received || !frame || inFlight.current.has(received.requestId)) return;
+      const answer = (ok: boolean, message: string) => frame.postMessage({ channel: VISION_BRIDGE_CHANNEL,
+        type: "IMPORT_RESULT", requestId: received.requestId, ok, message }, bridgeOrigin!);
+      if (busy || locked || confirmed) { answer(false, "Completa l'operazione in corso prima di inviare la misura."); return; }
+      inFlight.current.add(received.requestId); setError(""); setMessage("");
+      void run(async () => {
+        const result = await uploadVision(token, sessionId, received.blob, received.requestId);
+        setObservations((current) => [result, ...current.filter((item) => item.id !== result.id)]);
+        setMessage("Misura ricevuta. Selezionala per usarla nella conversazione.");
+        answer(true, "Misura ricevuta dall'agent. Selezionala nella pagina principale.");
+      }).catch(() => answer(false, "Invio non riuscito. Controlla la connessione e riprova."))
+        .finally(() => { inFlight.current.delete(received.requestId); });
+    }
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [bridgeOrigin, busy, locked, confirmed, run, sessionId, token]);
 
   async function perform(operation: () => Promise<void>) {
     setError(""); setMessage("");
@@ -96,6 +123,14 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
     <h2 id="vision-title">Misura palpebrale e check-in</h2>
     <p>Importa il JSON esportato dalla feature palpebrale. La misura è sperimentale e non determina da sola la stanchezza. La sua utilizzabilità viene rivalutata alla conferma.</p>
     <p>La misura selezionata viene usata dall’agent e può essere inviata al provider AI configurato. La condivisione con Terra si sceglie separatamente al momento della conferma.</p>
+    {bridgeOrigin ? <>
+      <button type="button" onClick={() => setShowVision((value) => !value)} disabled={busy || locked || confirmed}>
+        {showVision ? "Chiudi visione palpebrale" : "Apri visione palpebrale"}
+      </button>
+      {showVision && !confirmed && <><p>Avvia il prototipo palpebrale su {bridgeOrigin}, calibra e completa la misura; poi usa il pulsante di invio nel prototipo.</p>
+        <iframe ref={iframe} title="Prototipo di visione palpebrale" src={`${bridgeOrigin}/`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
+      </>}
+    </> : <p role="alert">Indirizzo del prototipo palpebrale non valido. Puoi usare l’importazione del file.</p>}
     <label htmlFor="vision-file">File JSON della misura</label>
     <input id="vision-file" type="file" accept="application/json,.json" onChange={onFileChange} disabled={busy || locked || confirmed} />
     <button type="button" onClick={upload} disabled={!file || busy || locked || confirmed}>Importa misura</button>

@@ -2,6 +2,8 @@
 
 La pagina indipendente è `/voice-demo`. Avviare il progetto dalla root con `npm run dev`, aprire `http://localhost:3000/voice-demo` e inserire il valore locale `AGENT_DEMO_TOKEN`. Il token è distinto dalla chiave NVIDIA e non viene memorizzato nel browser.
 
+È disponibile anche l'invio diretto dal prototipo incorporato: vedere la [guida I5](i5-direct-vision.md). L'importazione manuale resta disponibile.
+
 1. Avviare una sessione e inviare un messaggio testuale o vocale per creare una bozza di check-in. È possibile importare la misura anche prima del primo messaggio.
 2. Nel prototipo palpebrale avviare una misura webcam oppure un replay, quindi esportare il JSON v2. Il prototipo si avvia dalla propria cartella `feature-visione-palpebrale/vision-prototype` con `npm run dev`.
 3. Nella demo agent scegliere il file ed eseguire **Importa misura**. Il caricamento accetta file JSON non vuoti fino a 10 MiB. La validazione effettiva avviene sul server.
