@@ -27,7 +27,8 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
     for (const ref of candidate.evidence) {
       const ok = ref.source === "self_report"
         ? sharedIds.has(ref.observationId)
-        : sensorIds.has(ref.sensorReadingId);
+        : ref.source === "sensor" ? sensorIds.has(ref.sensorReadingId)
+        : context.vision?.id === ref.visionObservationId && context.vision.source === "webcam" && context.vision.usability === "USABLE";
       if (!ok) {
         violations.push({
           code: "UNSHARED_EVIDENCE",

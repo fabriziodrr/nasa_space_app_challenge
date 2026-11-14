@@ -7,6 +7,13 @@ import {
 import { AgentError } from "../core/errors";
 import type { AgentRuntime } from "../runtime";
 import { createConversationHttpHandlers, readJson, response } from "./conversation-handlers";
+import { z } from "zod";
+import { GroundReportSchema } from "../contracts";
+
+const ReportListV2Schema = z.strictObject({
+  data: z.strictObject({ items: z.array(GroundReportSchema).max(100), nextCursor: IdSchema.nullable() }),
+  meta: z.strictObject({ contractVersion: z.literal("2.0.0"), requestId: IdSchema }),
+});
 
 export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
   const { handle } = createConversationHttpHandlers(getRuntime);
@@ -39,7 +46,17 @@ export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
     }),
     reports: (request: Request) => handle(request, async ({ repository }, identity, requestId) => {
       const parsed = query(request); authorize(identity, parsed.astronautId, false);
-      return response(ReportListResponseSchema, await repository.listReports(parsed), requestId);
+      const page = await repository.listReports(parsed);
+      if (page.items.some((report) => [...report.findings, ...report.discrepancies]
+        .some((finding) => finding.source === "vision" || finding.evidence.some((ref) => ref.source === "vision")))) {
+        throw new AgentError("INVALID_STATE", "Questo report richiede l'API /api/agent/v2/reports.");
+      }
+      return response(ReportListResponseSchema, page, requestId);
+    }),
+    reportsV2: (request: Request) => handle(request, async ({ repository }, identity, requestId) => {
+      const parsed = query(request); authorize(identity, parsed.astronautId, false);
+      const body = ReportListV2Schema.parse({ data: await repository.listReports(parsed), meta: { contractVersion: "2.0.0", requestId } });
+      return Response.json(body, { headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Request-ID": requestId } });
     }),
     diary: (request: Request) => handle(request, async ({ repository }, identity, requestId) => {
       const parsed = query(request); authorize(identity, parsed.astronautId, true);

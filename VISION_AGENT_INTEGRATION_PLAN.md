@@ -76,7 +76,7 @@ API iniziali proposte:
 | Recupero | `GET /api/agent/v1/sessions/{sessionId}/vision-observations` | Restituisce riepiloghi accessibili all'astronauta proprietario |
 | Selezione | Estensione della revisione/conferma del check-in | Seleziona la misura e autorizza il suo eventuale uso operativo con controllo di revisione |
 
-Il formato di caricamento, i limiti e l'esatta estensione dei payload esistenti saranno definiti in I0. Si mantengono envelope, errori, autenticazione e regole di idempotenza dell'agent.
+Il caricamento usa JSON v2; la conferma estesa sarà `POST /api/agent/v2/check-ins/{id}/confirm`. Formato, limiti e compatibilità sono fissati in [vision-i0.md](docs/agent/vision-i0.md).
 
 ## Regole di analisi, condivisione e persistenza
 
@@ -96,14 +96,16 @@ Il formato di caricamento, i limiti e l'esatta estensione dei payload esistenti 
 
 Dipendenza: analisi dei due moduli già eseguita. Prerequisito degli altri task.
 
+Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/vision-i0.md](docs/agent/vision-i0.md). La revisione v2 `9803a5f41eff521db5d1305af82323da11332eb5` è pubblicata e fissata nel submodule; i 20 moduli del parser copiati nel backend coincidono con tale revisione.
+
 - [ ] Definire `VisionObservation`, stato di utilizzabilità, riferimenti `vision` ed errori.
 - [ ] Fissare formato del caricamento e limiti di byte, campioni e tempo di elaborazione del parser sincrono.
-- [ ] Concordare durata minima, copertura e freschezza come parametri sperimentali configurabili; definire i messaggi per dati insufficienti.
+- [x] Fissare durata minima, copertura e freschezza come parametri sperimentali configurabili.
 - [ ] Definire conversione dei tempi, trattamento dei replay sintetici e selezione fra più misure.
 - [ ] Definire selezione/condivisione nella revisione e conferma del check-in, congelamento del contesto e conservazione dei dati.
-- [ ] Pianificare la versione dei contratti API e la lettura degli artefatti storici senza evidenze palpebrali.
-- [ ] Concordare una distribuzione riproducibile del codice palpebrale: cartella ordinaria o submodule configurato, preservando prima le modifiche locali.
-- [ ] Separare i moduli TypeScript puri necessari al server da webcam, React, Vite e asset MediaPipe; fissare la revisione integrata.
+- [x] Pianificare la versione dei contratti API e la lettura degli artefatti storici senza evidenze palpebrali.
+- [x] Fissare una distribuzione riproducibile tramite submodule configurato, preservando le modifiche locali.
+- [x] Separare i moduli TypeScript puri necessari al server da webcam, React, Vite e asset MediaPipe; fissare la revisione integrata.
 - [ ] Preparare esempi validi, insufficienti e sintetici condivisi da entrambi gli sviluppatori.
 
 Completato quando Tu e Nello possono implementare sui medesimi contratti e un checkout pulito recupera tutte le dipendenze necessarie.
@@ -112,14 +114,16 @@ Completato quando Tu e Nello possono implementare sui medesimi contratti e un ch
 
 Dipendenza: I0.
 
-- [ ] Aggiungere modelli Prisma e metodi repository per riepiloghi, selezione e deduplicazione.
-- [ ] Implementare caricamento limitato e validazione con il parser del prototipo, verificando versione e coerenza del motore.
-- [ ] Implementare la conversione dall'export al contratto agent, preservando metriche, tempi e limitazioni.
-- [ ] Implementare importazione e recupero dei riepiloghi con identità server e controlli sulla sessione.
-- [ ] Gestire duplicati, conflitti di idempotenza, sessioni concluse, file malformati e limiti di elaborazione.
-- [ ] Estendere revisione e conferma del check-in per selezione e condivisione con controllo atomico della revisione.
-- [ ] Persistire il contesto operativo congelato insieme alla conferma; consentire anche conferme senza misura.
-- [ ] Verificare migrazione e compatibilità dei check-in già esistenti.
+Implementazione: [guida I1](docs/agent/i1-vision-import.md). Il parser usa una copia versionata dei moduli puri, confrontata con la revisione pubblicata del submodule.
+
+- [x] Aggiungere modelli Prisma e metodi per riepiloghi, selezione e deduplicazione.
+- [x] Implementare caricamento limitato e validazione con il parser del prototipo, verificando versione e coerenza del motore.
+- [x] Implementare la conversione dall'export al contratto agent, preservando metriche, tempi e limitazioni.
+- [x] Implementare importazione e recupero dei riepiloghi con identità server e controlli sulla sessione.
+- [x] Gestire duplicati, conflitti di idempotenza, sessioni concluse, file malformati e limiti di elaborazione.
+- [x] Estendere revisione e conferma del check-in per selezione e condivisione con controllo atomico della revisione.
+- [x] Persistire il contesto operativo congelato insieme alla conferma; consentire anche conferme senza misura.
+- [x] Verificare la compatibilità dei check-in già esistenti, trattando quelli senza snapshot come storici non rigenerabili.
 
 Completato quando una misura importata è persistita, recuperabile e selezionabile soltanto dal proprietario, e la conferma ne fissa l'uso operativo in modo riproducibile.
 
@@ -127,12 +131,14 @@ Completato quando una misura importata è persistita, recuperabile e selezionabi
 
 Dipendenza: I0. Può iniziare con provider e repository simulati mentre Nello sviluppa I1.
 
-- [ ] Aggiungere un'interfaccia di lettura delle osservazioni palpebrali e collegarla al runtime attraverso un adattatore.
-- [ ] Estendere `ConversationContext` con il riepilogo selezionato, rispettando i limiti del contesto.
-- [ ] Aggiornare istruzioni e provider Nemotron e simulato per distinguere dichiarazioni, sensori e visione.
-- [ ] Gestire misure mancanti, insufficienti, vecchie e sintetiche con risposte comprensibili.
-- [ ] Aggiungere approfondimenti in caso di apparente divergenza, senza creare osservazioni auto-riferite dai dati della webcam.
-- [ ] Mantenere identico il comportamento per messaggi vocali e testuali.
+Implementazione con lettore sostituibile e casi simulati: [I2 — visione nella conversazione](docs/agent/i2-vision-conversation.md). Il runtime usa un lettore vuoto fino al collegamento con I1.
+
+- [x] Aggiungere un'interfaccia di lettura delle osservazioni palpebrali e collegarla al runtime attraverso un adattatore.
+- [x] Estendere `ConversationContext` con il riepilogo selezionato, rispettando i limiti del contesto.
+- [x] Aggiornare istruzioni e provider Nemotron e simulato per distinguere dichiarazioni, sensori e visione.
+- [x] Gestire misure mancanti, insufficienti, vecchie e sintetiche con risposte comprensibili.
+- [x] Aggiungere approfondimenti in caso di apparente divergenza, senza creare osservazioni auto-riferite dai dati della webcam.
+- [x] Mantenere identico il comportamento per messaggi vocali e testuali.
 
 Completato quando la misura influenza le domande dell'agent senza alterare la provenienza delle risposte dell'astronauta e senza impedire il percorso privo di misura.
 
@@ -140,13 +146,15 @@ Completato quando la misura influenza le domande dell'agent senza alterare la pr
 
 Dipendenze: I0 e I1; coordinamento con I2 per i provider AI condivisi.
 
-- [ ] Estendere `OperationalContext`, `FindingSchema` e i riferimenti alle evidenze con la fonte `vision`.
-- [ ] Usare il contesto congelato alla conferma durante generazione e tentativi successivi.
-- [ ] Aggiornare il provider operativo per produrre risultati, divergenze e incertezze con riferimenti verificabili.
-- [ ] Validare nel backend l'esistenza e l'autorizzazione di ogni evidenza palpebrale citata nel report e nella proposta.
-- [ ] Documentare qualità, intervallo osservato e origine sintetica dove rilevanti per l'interpretazione del report.
-- [ ] Verificare l'assenza di contenuti privati non condivisi nel contesto operativo.
-- [ ] Collegare la verifica delle proposte al programma autorevole; mantenere esplicita la dipendenza se tale collegamento non è ancora disponibile.
+Implementazione: [guida I3](docs/agent/i3-vision-report.md). La generazione delle proposte rimane disattivata nel runtime fino al collegamento del programma autorevole.
+
+- [x] Estendere `OperationalContext`, `FindingSchema` e i riferimenti alle evidenze con la fonte `vision`.
+- [x] Usare il contesto congelato alla conferma durante generazione e tentativi successivi.
+- [x] Aggiornare il provider operativo per produrre risultati, divergenze e incertezze con riferimenti verificabili.
+- [x] Validare nel backend l'esistenza e l'autorizzazione di ogni evidenza palpebrale citata nel report e nella proposta.
+- [x] Documentare qualità, intervallo osservato e origine sintetica dove rilevanti per l'interpretazione del report.
+- [x] Verificare l'assenza di contenuti privati non condivisi nel contesto operativo.
+- [x] Mantenere esplicita la dipendenza dal programma autorevole per la generazione delle proposte.
 
 Completato quando il report usa esclusivamente evidenze autorizzate e stabili, e nessuna proposta può essere applicata prima della decisione di Terra e della verifica di versione del programma.
 
@@ -154,11 +162,13 @@ Completato quando il report usa esclusivamente evidenze autorizzate e stabili, e
 
 Dipendenze: I1 e I2. Estensione tecnica della demo, coordinata con T4 del piano generale.
 
-- [ ] Aggiungere alla pagina di prova caricamento dell'export e riepilogo del risultato.
-- [ ] Mostrare misura selezionata, copertura, durata valida, origine e motivi di indisponibilità.
-- [ ] Consentire la scelta della misura e della sua condivisione prima della conferma del check-in.
-- [ ] Gestire attesa, errori, invio ripetuto e assenza del file; mantenere disponibili testo e voce.
-- [ ] Preparare casi riproducibili per misura utilizzabile, insufficiente e sintetica.
+Implementazione: [guida I4](docs/agent/i4-vision-demo.md). Il collaudo visivo e con webcam reale rimane in I6.
+
+- [x] Aggiungere alla pagina di prova caricamento dell'export e riepilogo del risultato.
+- [x] Mostrare misura selezionata, copertura, durata valida, origine e motivi di indisponibilità.
+- [x] Consentire la scelta della misura e della sua condivisione prima della conferma del check-in.
+- [x] Gestire attesa, errori, invio ripetuto e assenza del file; mantenere disponibili testo e voce.
+- [ ] Preparare e verificare con webcam reale i casi utilizzabile e insufficiente; il replay sintetico è disponibile nel prototipo.
 
 Completato quando è possibile dimostrare l'incrocio dei dati con un file esportato senza dipendere dalla dashboard di Fabrizio.
 
@@ -166,12 +176,14 @@ Completato quando è possibile dimostrare l'incrocio dei dati con un file esport
 
 Dipendenza: percorso tramite export I1–I4 verificato.
 
-- [ ] Aggiungere al prototipo un adattatore che invii il pacchetto alla stessa API al termine di una misura.
-- [ ] Esporre all'app ospite associazione alla sessione e callback del risultato, mantenendo le credenziali sotto il controllo dell'host.
-- [ ] Prevedere azione esplicita, stato d'invio e ripetizione idempotente dopo errori di rete.
-- [ ] Verificare endpoint, origine e autenticazione per l'eventuale esecuzione separata su Vite e Next.js, senza aprire CORS indiscriminatamente.
+Implementazione: [guida I5](docs/agent/i5-direct-vision.md). La revisione del submodule è pubblicata; resta il collaudo documentato con dispositivi reali.
+
+- [x] Aggiungere al prototipo un adattatore che invii il pacchetto alla stessa API dopo una misura, su azione esplicita.
+- [x] Esporre all'app ospite associazione alla sessione e callback del risultato, mantenendo le credenziali sotto il controllo dell'host.
+- [x] Prevedere azione esplicita, stato d'invio e ripetizione idempotente dopo errori di rete.
+- [ ] Verificare nel browser endpoint, origine e autenticazione con Vite e Next.js in esecuzione separata; i controlli automatici del bridge e delle API passano.
 - [ ] Verificare chiusura risorse, cambio webcam, sospensione e nuova calibrazione durante l'uso combinato con la voce.
-- [ ] Documentare il riuso dell'adattatore nella futura dashboard.
+- [x] Documentare il riuso dell'adattatore nella futura dashboard.
 
 Completato quando una misura raggiunge l'agent senza download e caricamento manuale e produce lo stesso riepilogo del percorso export.
 

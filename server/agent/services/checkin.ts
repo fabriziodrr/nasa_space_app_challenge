@@ -6,9 +6,10 @@ import type {
 } from "../contracts";
 import type { AgentRepository } from "../ports";
 import { AgentErrors } from "../core/errors";
+import type { VisionConfirmationService } from "../vision/confirmation";
 
 export class CheckInService {
-  constructor(private readonly repository: AgentRepository) {}
+  constructor(private readonly repository: AgentRepository, private readonly visionConfirmation?: VisionConfirmationService) {}
 
   async update(
     identity: Identity,
@@ -53,6 +54,9 @@ export class CheckInService {
     if (!request.sharedObservationIds.every((id) => observationIds.has(id))) {
       throw AgentErrors.invalidState("La selezione condivisa include osservazioni assenti dalla bozza.");
     }
+    if (this.visionConfirmation) return (await this.visionConfirmation.confirm(astronautId, checkInId, {
+      ...request, vision: { visionObservationId: null, shareWithGround: false },
+    })).checkIn;
     return this.repository.confirmCheckIn(astronautId, checkInId, request);
   }
 

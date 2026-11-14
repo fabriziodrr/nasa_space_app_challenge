@@ -61,6 +61,36 @@ model CheckIn {
   @@index([astronautId])
 }
 
+model VisionObservation {
+  id          String @id
+  astronautId String
+  sessionId   String
+  requestKey  String
+  sha256      String
+  summaryJson String
+  importedAt  DateTime
+
+  @@unique([astronautId, sessionId, requestKey])
+  @@index([astronautId, sessionId, importedAt, id])
+}
+
+model VisionSelection {
+  sessionId      String @id
+  astronautId    String
+  observationId  String?
+}
+
+model CheckInContextSnapshot {
+  checkInId        String @id
+  astronautId      String
+  selectionJson    String
+  sensorsJson      String
+  visionJson       String?
+  qualityJson      String
+  scheduleJson     String?
+  confirmedAt      DateTime
+}
+
 // Snapshot of one message turn, keyed by the idempotent client message id.
 model Turn {
   clientMessageId String   @id

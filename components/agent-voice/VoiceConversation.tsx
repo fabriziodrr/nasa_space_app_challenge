@@ -154,6 +154,10 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
     };
   }, [clearQuiet, listen, reply, stopEverything]);
 
+  useEffect(() => {
+    if (disabled && active.current) stopEverything();
+  }, [disabled, stopEverything]);
+
   function toggle() {
     if (active.current) { stopEverything(); return; }
     if (!input.current?.supported) {

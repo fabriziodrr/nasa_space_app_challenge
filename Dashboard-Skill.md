@@ -1,6 +1,6 @@
 ---
 name: medical-dashboard-style
-description: Create medical dashboards using a gray soft-clay neumorphic visual language with restrained orange accents.
+description: Create medical dashboards using a gray soft-clay neumorphic visual language with restrained blue accents.
 ---
 
 # Medical dashboard style
@@ -9,7 +9,7 @@ Use this skill when creating or restyling a medical dashboard that should match 
 
 ## Visual direction
 
-Build a calm, precise, soft-clay neumorphic interface. The dashboard should look as if its panels and controls were molded from one medium gray surface. Use depth through paired gray highlights and shadows, with rounded corners and a restrained, desaturated orange accent. The orange should guide attention without looking bright or fluorescent.
+Build a calm, precise, soft-clay neumorphic interface. The dashboard should look as if its panels and controls were molded from one medium gray surface. Use depth through paired gray highlights and shadows, with rounded corners and a restrained deep blue accent. The blue should guide attention without overwhelming the neutral surface.
 
 The visual hierarchy is:
 
@@ -29,9 +29,9 @@ Use these tokens unless the host product has an established equivalent:
   --clay-dark: #b2b7bd;
   --hi: #e2e4e6;
   --lo: #92989f;
-  --coral: #b87545; /* legacy token name; use as muted orange */
-  --coral-soft: #e2cbb9;
-  --coral-glow: rgba(184, 117, 69, .34);
+  --blue: #3b1abd;
+  --blue-soft: #d8d2f2;
+  --blue-glow: rgba(59, 26, 189, .28);
   --slate: #626970;
   --ink: #4b5158;
   --deep: #272c31;
@@ -66,9 +66,9 @@ Use these tokens unless the host product has an established equivalent:
 - Use 12–15 px radius for controls, 18–24 px for panels, and around 30 px for the outer shell.
 - Raised controls use `--raise-xs` or `--raise-sm`.
 - Selected, pressed, or input areas use `--press-xs` or `--press-sm`.
-- Use muted orange `#b87545` for selected navigation, primary actions, chart lines, active indicators, and focus rings.
-- Use `#c58a5c` as the lighter orange in progress gradients and `#e2cbb9` for soft orange surfaces.
-- Keep the orange subdued. Do not use neon orange, saturated orange, or a strong glow.
+- Use deep blue `#3b1abd` for selected navigation, primary actions, chart lines, active indicators, and focus rings.
+- Use `#3b1abd` with reduced opacity for progress gradients and soft blue surfaces.
+- Keep the blue controlled. Do not use neon blue, multiple competing accent colors, or a strong glow.
 - Use grayscale pills and visible status labels for confirmed, pending, and cancelled states.
 - Use line icons with rounded strokes. Avoid filled icon sets that make the soft interface look heavy.
 - Hover movement should be subtle, at most 2 px. Pressed controls may scale to `.97` or `.98`.
@@ -86,7 +86,7 @@ Use these tokens unless the host product has an established equivalent:
 
 - Use semantic landmarks: `aside`, `nav`, `main`, `header`, `section`, and appropriate headings.
 - Use real buttons for actions and explicit labels for icon-only controls.
-- Always provide `:focus-visible` styling using a 2 px `#b87545` outline with a 4 px offset.
+- Always provide `:focus-visible` styling using a 2 px `#3b1abd` outline with a 4 px offset.
 - Support `prefers-reduced-motion`.
 - Do not communicate a medical status by color alone. Include visible text such as “Confermato”, “In attesa”, or “Annullato”.
 - Keep text readable against the medium gray background. The visual softness must not reduce clinical clarity.

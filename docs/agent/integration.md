@@ -2,11 +2,11 @@
 
 Stato: **documentazione di integrazione basata sui contratti C0**. Gli schemi eseguibili sono in `server/agent/contracts/`; le interfacce server in `server/agent/ports.ts`. Questa guida descrive il contratto HTTP che la dashboard deve usare, non i dettagli interni dell'agent.
 
-> Stato di implementazione delle route: sono esposte le route di sessione e messaggi (T1), check-in, report e diario (T2) e voce (T3). Restano da esporre `GET /proposals` e `POST /proposals/:id/decision`, contratte in C0 (la logica di servizio esiste gia in `server/agent/services/approval.ts`). Il payload e vincolato dagli schemi condivisi, quindi una vista puo essere sviluppata senza attendere queste due route: le firme non cambiano.
+> Stato di implementazione delle route: sono esposte sessioni e messaggi (T1), check-in, report e diario (T2), voce (T3) e visione. Le proposte e le decisioni sono disponibili in **v2** con `GET /api/agent/v2/proposals` e `POST /api/agent/v2/proposals/:id/decision`; il programma è leggibile da `GET /api/agent/v2/schedule`. Il runtime demo usa un programma persistente/versionato. Vedere [Report e schedule](./report-and-schedule.md) per vincoli, esempi e schemi v2.
 
 ## Principi generali
 
-- Prefisso: `/api/agent/v1`.
+- Prefisso: `/api/agent/v1` per il catalogo storico sotto; proposte, decisioni, lettura schedule e report con visione usano `/api/agent/v2` e `meta.contractVersion: "2.0.0"`.
 - Risposta positiva JSON:
 
 ```json
@@ -55,8 +55,9 @@ Le liste usano `{ items, nextCursor }`, ordinamento stabile per data di creazion
 | `GET /sessions/:id` | astronauta | `beforeMessageId?` | 200, `SessionState` |
 | `PATCH /check-ins/:id` | astronauta | `{ expectedRevision, observations }` | 200, check-in aggiornato |
 | `POST /check-ins/:id/confirm` | astronauta | `{ expectedRevision, sharedObservationIds }` | 202, `SessionState` |
-| `GET /proposals` | astronauta/Terra | `astronautId`, `cursor?`, `limit?` | 200, pagina di proposte |
-| `POST /proposals/:id/decision` | Terra | `{ decision, comment }` + header `Idempotency-Key` | 200, `DecisionResult` |
+| `GET /api/agent/v2/proposals` | astronauta/Terra | `astronautId`, `cursor?`, `limit?` | 200, pagina di proposte v2 |
+| `POST /api/agent/v2/proposals/:id/decision` | Terra | `{ decision, comment }` + header `Idempotency-Key` | 200, `DecisionResult` v2 |
+| `GET /api/agent/v2/schedule` | astronauta/Terra | `astronautId`, `date` | 200, `ScheduleSnapshot` v2 |
 | `GET /reports` | astronauta/Terra | `astronautId`, `cursor?`, `limit?` | 200, pagina di report |
 | `GET /diary` | astronauta | `astronautId`, `cursor?`, `limit?` | 200, pagina di diario |
 | `PATCH /diary/:id` | astronauta | `{ expectedRevision, text, status }` | 200, voce di diario |
@@ -120,12 +121,12 @@ La conferma restituisce 202 senza attendere il modello: fare polling su `GET /se
 ### Elencare e decidere una proposta
 
 ```http
-GET /api/agent/v1/proposals?astronautId=astro-1
+GET /api/agent/v2/proposals?astronautId=astro-1
 Authorization: Bearer <token-terra>
 ```
 
 ```http
-POST /api/agent/v1/proposals/proposal-1/decision
+POST /api/agent/v2/proposals/proposal-1/decision
 Authorization: Bearer <token-terra>
 Idempotency-Key: approve-proposal-1
 Content-Type: application/json
@@ -189,7 +190,7 @@ Gli adattatori implementano le interfacce in `server/agent/ports.ts`; il punto d
 
 - `IdentityProvider.authenticate({ authorizationHeader, sessionCookie })` → `Identity | null`. Verifica le credenziali sul server e non costruisce il ruolo dal body. Esempio demo: `adapters/demo-identity.ts`; per il login reale di Fabrizio sostituire questo adattatore.
 - `SensorProvider.read(astronautId, window)` → `SensorReading[]`. Esempio: `adapters/sensors.ts` (N1) o `adapters/demo-context.ts` (bootstrap T1).
-- `ScheduleReader.getDay(astronautId, date)` e `ScheduleProvider` (con `getById`, `applyApproved`, `getApplication`). Il programma autorevole resta un sistema esterno da concordare con Fabrizio; l'implementazione simulata e `adapters/schedule.ts`.
+- `ScheduleReader.getDay(astronautId, date)` e `ScheduleProvider` (con `getById`, `applyApproved`, `getApplication`). Il programma esterno resta da concordare con il backend di Emanuel; il runtime usa `adapters/demo-program.ts`, basato sulla persistenza di `adapters/schedule.ts`.
 - `AiProvider` (`ConversationAiProvider`, `OperationalAiProvider`, `DiaryAiProvider`). Selezione esplicita in `adapters/conversation-ai-factory.ts`; nessun fallback automatico tra provider.
 - `VoiceProvider` (`transcribe`, `synthesize`). Esempio server: `adapters/nvidia-nim-voice.ts`; la demo usa riconoscimento e sintesi del browser. Il contratto consente di sostituire l'adattatore senza cambiare la dashboard.
 

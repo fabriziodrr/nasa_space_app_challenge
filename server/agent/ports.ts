@@ -8,8 +8,30 @@ import type {
   ScheduleValidationResult, SendMessageRequest, SensorReading, SensorWindow,
   SessionState, TranscriptionMetadata, UpdateCheckInRequest, UpdateDiaryRequest,
 } from "./contracts";
+import type { VisionObservation } from "./contracts/vision";
 
 export interface ProviderOptions { signal?: AbortSignal }
+
+/** Summary of a vision observation for the conversation context. */
+export interface VisionSummary {
+  id: string;
+  source: VisionObservation["source"];
+  usability: VisionObservation["usability"];
+  reasons: VisionObservation["reasons"];
+  elapsedMs: number;
+  validMs: number;
+  coverage: number | null;
+  closureFraction: number | null;
+  completeCount: number;
+  incompleteCount: number;
+  prolongedCount: number;
+  longestCompleteMs: number | null;
+  interruption: VisionObservation["interruption"];
+  startedAt: string | null;
+  endedAt: string | null;
+  importedAt: string;
+}
+
 export interface ConversationContext {
   astronautId: string;
   messages: ConversationMessage[];
@@ -17,6 +39,8 @@ export interface ConversationContext {
   previousCheckIns: CheckIn[];
   sensors: SensorReading[];
   schedule: ScheduleSnapshot;
+  /** Vision observations available for this session; may be empty. */
+  visionObservations: VisionSummary[];
 }
 export interface ConversationAiProvider {
   // Private context allowed. Output is untrusted until schema AND reference checks pass.
@@ -47,6 +71,10 @@ export interface VoiceProvider {
 }
 export interface SensorProvider {
   read(astronautId: string, window: SensorWindow): Promise<SensorReading[]>;
+}
+/** Read-only access to vision observations for a session. I2 uses a mock; I1 provides the real adapter. */
+export interface VisionObservationReader {
+  getSelectedForSession(astronautId: string, sessionId: string): Promise<VisionObservation | null>;
 }
 export interface ScheduleReader {
   getDay(astronautId: string, date: string): Promise<ScheduleSnapshot>;
@@ -156,4 +184,5 @@ export interface ConversationDependencies {
   repository: ConversationRepository;
   sensors: SensorProvider;
   schedule: ScheduleReader;
+  vision?: VisionObservationReader;
 }

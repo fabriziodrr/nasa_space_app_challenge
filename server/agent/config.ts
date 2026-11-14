@@ -20,6 +20,9 @@ const ConfigSchema = z.object({
   OPENAI_MODEL: z.string().trim().min(1).max(200).optional(),
   AGENT_AI_TIMEOUT_MS: z.coerce.number().int().min(100).max(120_000).default(30_000),
   AGENT_CONTEXT_MESSAGE_LIMIT: z.coerce.number().int().min(1).max(100).default(20),
+  AGENT_VISION_MIN_VALID_MS: z.coerce.number().int().min(1).max(3_600_000).default(30_000),
+  AGENT_VISION_MIN_COVERAGE: z.coerce.number().min(0).max(1).default(0.7),
+  AGENT_VISION_MAX_AGE_MINUTES: z.coerce.number().int().min(1).max(10_080).default(120),
   AGENT_PREVIOUS_CHECK_IN_LIMIT: z.coerce.number().int().min(0).max(10).default(3),
 }).superRefine((config, ctx) => {
   if (config.AGENT_DEMO_ENABLED === "true") {

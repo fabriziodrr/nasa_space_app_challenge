@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   CheckInSchema, ConversationOutputSchema, ConversationSessionSchema, CreateSessionRequestSchema,
   IdSchema, MessageResultSchema, ObservationFieldSchema, ScheduleSnapshotSchema,
-  SendMessageRequestSchema, SensorReadingSchema, SessionQuerySchema, SessionStateSchema,
+  SendMessageRequestSchema, SensorReadingSchema, SessionQuerySchema, SessionStateSchema, VisionObservationSchema,
   type AstronautIdentity, type Identity, type MessageResult,
   type Observation, type SendMessageRequest,
 } from "../contracts";
@@ -12,6 +12,7 @@ import type {
 } from "../ports";
 import { AgentError, invalidAiOutput, isAgentError, sameMessage } from "./errors";
 import { withDeadline } from "./deadline";
+import { evaluateVisionQuality } from "../vision/quality";
 
 export interface ConversationServiceDependencies extends ConversationDependencies {
   now?: () => Date;
@@ -19,6 +20,7 @@ export interface ConversationServiceDependencies extends ConversationDependencie
   timeoutMs?: number;
   contextMessageLimit?: number;
   previousCheckInLimit?: number;
+  visionQuality?: { minValidMs: number; minCoverage: number; maxAgeMinutes: number };
 }
 
 function astronaut(identity: Identity | null): AstronautIdentity {
@@ -50,6 +52,7 @@ function buildContext(context: ConversationContext, messageLimit: number): Conve
   const size = () => JSON.stringify(context).length;
   while (size() > 64_000 && context.previousCheckIns.length) context.previousCheckIns.pop();
   while (size() > 64_000 && context.messages.length > 1) context.messages.shift();
+  while (size() > 64_000 && context.visionObservations.length) context.visionObservations.shift();
   while (size() > 64_000 && context.sensors.length) context.sensors.shift();
   if (size() > 64_000) {
     throw new AgentError("PROVIDER_UNAVAILABLE", "Il contesto supera i limiti configurati per la conversazione.");
@@ -92,9 +95,13 @@ export function createConversationService(deps: ConversationServiceDependencies)
   const timeoutMs = deps.timeoutMs ?? 30_000;
   const messageLimit = deps.contextMessageLimit ?? 20;
   const historyLimit = deps.previousCheckInLimit ?? 3;
+  const quality = deps.visionQuality ?? { minValidMs: 30_000, minCoverage: 0.7, maxAgeMinutes: 120 };
   if (!Number.isInteger(messageLimit) || messageLimit < 1 || messageLimit > 100
       || !Number.isInteger(historyLimit) || historyLimit < 0 || historyLimit > 10
-      || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) {
+      || !Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000
+      || !Number.isInteger(quality.minValidMs) || quality.minValidMs < 1 || quality.minValidMs > 3_600_000
+      || !Number.isFinite(quality.minCoverage) || quality.minCoverage < 0 || quality.minCoverage > 1
+      || !Number.isInteger(quality.maxAgeMinutes) || quality.maxAgeMinutes < 1 || quality.maxAgeMinutes > 10_080) {
     throw new Error("Invalid conversation service limits");
   }
   const inFlight = new Map<string, { request: SendMessageRequest; promise: Promise<MessageResult> }>();
@@ -125,25 +132,42 @@ export function createConversationService(deps: ConversationServiceDependencies)
       id: newId(), sessionId, role: "ASTRONAUT" as const, text: request.text,
       createdAt: timestamp, inputMode: request.inputMode,
     };
-    const [rawSensors, rawSchedule, previousCheckIns] = await Promise.all([
+    const [rawSensors, rawSchedule, previousCheckIns, rawVision] = await Promise.all([
       deps.sensors.read(actor.astronautId, {
         from: new Date(Date.parse(timestamp) - 24 * 60 * 60 * 1000).toISOString(), to: timestamp,
       }),
       deps.schedule.getDay(actor.astronautId, timestamp.slice(0, 10)),
       historyLimit ? deps.repository.listPreviousCheckIns(actor.astronautId, historyLimit) : Promise.resolve([]),
+      deps.vision ? deps.vision.getSelectedForSession(actor.astronautId, sessionId) : Promise.resolve(null),
     ]);
     const sensors = fromAdapter(SensorReadingSchema.array().max(500), rawSensors);
     const schedule = fromAdapter(ScheduleSnapshotSchema, rawSchedule);
     const history = fromAdapter(CheckInSchema.array().max(10), previousCheckIns);
+    const vision = rawVision === null ? null : fromAdapter(VisionObservationSchema, rawVision);
     if (schedule.astronautId !== actor.astronautId || schedule.date !== timestamp.slice(0, 10)
         || sensors.some((s) => s.astronautId !== actor.astronautId)
-        || history.some((c) => c.astronautId !== actor.astronautId || c.status !== "CONFIRMED")) {
+        || history.some((c) => c.astronautId !== actor.astronautId || c.status !== "CONFIRMED")
+        || (vision && (vision.astronautId !== actor.astronautId || vision.sessionId !== sessionId))) {
       throw new AgentError("INTERNAL_ERROR", "Contesto della conversazione non disponibile.");
     }
+    if (vision) {
+      if (vision.source === "synthetic" && !vision.reasons.includes("SYNTHETIC_TIME_UNAVAILABLE")) {
+        throw new AgentError("INTERNAL_ERROR", "Provenienza della misura non valida.");
+      }
+      if (vision.endedAt && Date.parse(vision.endedAt) > Date.parse(timestamp) + 5 * 60_000) {
+        throw new AgentError("INTERNAL_ERROR", "Orario della misura non valido.");
+      }
+    }
+    const visionSummary = vision ? [{ id: vision.id, source: vision.source,
+      ...evaluateVisionQuality(vision, new Date(timestamp), quality),
+      elapsedMs: vision.elapsedMs, validMs: vision.validMs, coverage: vision.coverage,
+      closureFraction: vision.closureFraction, completeCount: vision.completeCount, incompleteCount: vision.incompleteCount,
+      prolongedCount: vision.prolongedCount, longestCompleteMs: vision.longestCompleteMs, interruption: vision.interruption,
+      startedAt: vision.startedAt, endedAt: vision.endedAt, importedAt: vision.importedAt }] : [];
     const context = buildContext({
       astronautId: actor.astronautId, messages: [...state.messages, astronautMessage],
       draft: state.checkIn, previousCheckIns: history.slice(0, historyLimit),
-      sensors: sensors.sort((a, b) => a.observedAt.localeCompare(b.observedAt)), schedule,
+      sensors: sensors.sort((a, b) => a.observedAt.localeCompare(b.observedAt)), schedule, visionObservations: visionSummary,
     }, messageLimit);
     let rawOutput: unknown;
     try {
