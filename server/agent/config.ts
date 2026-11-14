@@ -8,6 +8,9 @@ const ConfigSchema = z.object({
   AGENT_GROUND_TOKEN: z.string().min(16).max(512).optional(),
   AGENT_DEMO_SCENARIO: ScenarioSchema.default("RESTED"),
   AGENT_AI_PROVIDER: z.enum(["mock", "nvidia", "openai"]).default("mock"),
+  AGENT_VOICE_PROVIDER: z.enum(["browser", "nvidia_nim"]).default("browser"),
+  AGENT_NIM_ASR_URL: z.url().optional(),
+  AGENT_NIM_TTS_URL: z.url().optional(),
   NVIDIA_API_KEY: z.string().trim().min(1).optional(),
   NVIDIA_MODEL: z.string().trim().min(1).max(200).optional(),
   OPENAI_API_KEY: z.string().trim().min(1).optional(),
@@ -26,6 +29,9 @@ const ConfigSchema = z.object({
   }
   if (config.AGENT_AI_PROVIDER === "nvidia" && !config.NVIDIA_API_KEY) {
     ctx.addIssue({ code: "custom", message: "NVIDIA requires a server API key" });
+  }
+  if (config.AGENT_VOICE_PROVIDER === "nvidia_nim" && (!config.AGENT_NIM_ASR_URL || !config.AGENT_NIM_TTS_URL)) {
+    ctx.addIssue({ code: "custom", message: "Local NVIDIA Speech NIM requires ASR and TTS origins" });
   }
 });
 

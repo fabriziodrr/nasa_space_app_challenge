@@ -1,0 +1,18 @@
+.page { min-height: 100vh; padding: 40px 20px; background: #eef0f2; color: #202a33; font: 16px/1.5 system-ui, sans-serif; }
+.shell { max-width: 760px; margin: 0 auto; }
+.eyebrow { color: #536b7b; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.shell h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; margin: 8px 0; }
+.shell h2 { margin-top: 0; font-size: 1.2rem; }
+.panel { margin: 24px 0; padding: 24px; background: white; border: 1px solid #d6dfe5; border-radius: 16px; box-shadow: 0 8px 30px #273e4d0b; }
+.panel label { display: block; font-weight: 700; margin-bottom: 8px; }
+.panel textarea, .panel input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #a6b4be; border-radius: 8px; font: inherit; }
+.panel textarea { resize: vertical; }
+.panel button { margin: 12px 8px 0 0; padding: 10px 15px; border: 0; border-radius: 8px; background: #234e66; color: white; font: inherit; cursor: pointer; }
+.panel button:disabled { opacity: .5; cursor: not-allowed; }
+.panel :is(button, input, textarea):focus-visible { outline: 3px solid #ca7834; outline-offset: 3px; }
+.panel [role="alert"] { color: #a12b2b; }
+.messages { list-style: none; padding: 0; display: grid; gap: 12px; }
+.messages li { padding: 14px; border-radius: 10px; background: #f2f6f8; overflow-wrap: anywhere; }
+.messages p { margin: 6px 0 0; white-space: pre-wrap; }
+.footnote { color: #536b7b; font-size: .9rem; }
+@media (max-width: 520px) { .page { padding: 24px 12px; } .panel { padding: 18px; } }

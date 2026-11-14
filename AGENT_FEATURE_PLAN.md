@@ -269,12 +269,14 @@ Completato quando una proposta valida viene applicata una sola volta e una propo
 
 Dipendenza: T1 stabile; puo procedere in parallelo a N2.
 
-- [ ] Implementare `VoiceProvider` e le route server di trascrizione e sintesi.
-- [ ] Gestire permesso del microfono, registrazione, invio e riproduzione.
-- [ ] Mostrare la trascrizione e consentirne la correzione prima dell'invio.
-- [ ] Mantenere sempre disponibile l'inserimento testuale.
-- [ ] Gestire permesso negato, audio vuoto, formato non supportato, timeout e doppio invio.
-- [ ] Impostare limiti audio ed evitare salvataggio o logging dell'audio grezzo.
+- [x] Implementare `VoiceProvider` e le route server di trascrizione e sintesi.
+- [x] Gestire permesso del microfono, registrazione, invio e riproduzione.
+- [x] Mostrare la trascrizione e consentirne la correzione prima dell'invio.
+- [x] Mantenere sempre disponibile l'inserimento testuale.
+- [x] Gestire permesso negato, audio vuoto, formato non supportato, timeout e doppio invio.
+- [x] Impostare limiti audio ed evitare salvataggio o logging dell'audio grezzo.
+
+Implementazione e prova: [Guida vocale](docs/agent/t3-voice.md). La verifica pratica richiede un browser compatibile; le route NIM richiedono servizi locali separati.
 
 Completato quando il percorso vocale usa gli stessi servizi e produce gli stessi oggetti del percorso testuale.
 

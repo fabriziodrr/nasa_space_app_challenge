@@ -12,6 +12,7 @@ import { ScheduleValidatorImpl } from "./services/validator";
 import { createConversationAiProvider } from "./adapters/conversation-ai-factory";
 import { DemoIdentityProvider } from "./adapters/demo-identity";
 import { createDemoContextProviders } from "./adapters/demo-context";
+import { NvidiaNimVoiceProvider } from "./adapters/nvidia-nim-voice";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -27,6 +28,8 @@ function createDemoRuntime() {
   return {
     identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN),
     repository,
+    voice: config.AGENT_VOICE_PROVIDER === "nvidia_nim"
+      ? new NvidiaNimVoiceProvider({ asrUrl: config.AGENT_NIM_ASR_URL!, ttsUrl: config.AGENT_NIM_TTS_URL! }) : null,
     checkIns: new CheckInService(repository),
     artifacts: artifactAi ? new ArtifactService({ repository, ...context, operationalAi: artifactAi, diaryAi: artifactAi, proposals: new ProposalService(new ScheduleValidatorImpl()) }) : null,
     service: createConversationService({
