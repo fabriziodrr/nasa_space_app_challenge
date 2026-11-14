@@ -1,0 +1,142 @@
+"use client";
+
+import styles from "./sloth-mascot.module.css";
+
+export interface SlothMascotProps {
+  speaking: boolean;
+}
+
+export function SlothMascot({ speaking }: SlothMascotProps) {
+  return (
+    <div className={styles.wrap}>
+      <svg
+        className={`${styles.mascot} ${speaking ? styles.speaking : ""}`}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 335 315"
+        role="img"
+        aria-labelledby="sloth-title sloth-desc"
+      >
+        <title id="sloth-title">Mascotte bradipo astronauta</title>
+        <desc id="sloth-desc">Illustrazione vettoriale di un bradipo astronauta sorridente. Bocca e occhi sono gruppi SVG separati e animabili.</desc>
+        <defs>
+          <linearGradient id="helmet" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#f9fbfc" /><stop offset=".55" stopColor="#dce4eb" /><stop offset="1" stopColor="#aebdca" />
+          </linearGradient>
+          <linearGradient id="suit" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#cbd6df" />
+          </linearGradient>
+          <linearGradient id="visor" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#243c59" /><stop offset=".55" stopColor="#101f34" /><stop offset="1" stopColor="#405a75" />
+          </linearGradient>
+          <linearGradient id="paw" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#f8fafb" /><stop offset="1" stopColor="#9cabb9" />
+          </linearGradient>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feGaussianBlur stdDeviation="4" />
+          </filter>
+        </defs>
+
+        <path d="M35 178 C18 160 21 130 36 111 C38 64 70 20 121 12 C168 4 211 24 233 59
+                 C246 61 260 70 269 84 C285 91 294 105 293 121 C315 126 321 146 309 166
+                 C298 184 279 206 257 223 C245 267 207 294 160 301 C111 310 69 289 49 258
+                 C28 249 22 226 31 205 Z" fill="#7f8b96" opacity=".22" filter="url(#softShadow)" />
+        <path d="M35 178 C18 160 21 130 36 111 C38 64 70 20 121 12 C168 4 211 24 233 59
+                 C246 61 260 70 269 84 C285 91 294 105 293 121 C315 126 321 146 309 166
+                 C298 184 279 206 257 223 C245 267 207 294 160 301 C111 310 69 289 49 258
+                 C28 249 22 226 31 205 Z" fill="#fff" />
+
+        <g id="stars" fill="#13283e">
+          <path d="M247 32 Q250 46 264 50 Q250 53 247 68 Q243 54 231 50 Q244 46 247 32Z" />
+          <path d="M270 70 Q273 81 284 84 Q273 87 270 99 Q267 88 256 84 Q267 81 270 70Z" />
+        </g>
+
+        <g id="raised-arm" stroke="#142a40" strokeWidth="5" strokeLinejoin="round">
+          <path d="M222 190 C240 165 252 133 274 121 C290 112 304 124 307 140
+                   C311 158 294 178 278 196 L250 230Z" fill="url(#suit)" />
+          <path d="M267 130 C280 118 294 125 299 140 C302 150 291 165 281 174
+                   C272 160 265 145 267 130Z" fill="#8e9eae" opacity=".8" stroke="none" />
+          <path d="M235 185 C245 168 254 151 267 140" fill="none" stroke="#aab8c5" strokeWidth="3" />
+        </g>
+
+        <g id="body">
+          <path d="M78 183 C91 172 119 174 144 184 L207 184 C227 190 240 211 238 238
+                   C235 272 206 291 162 296 C113 302 72 283 61 256 C54 235 60 199 78 183Z"
+                fill="url(#suit)" stroke="#142a40" strokeWidth="6" strokeLinejoin="round" />
+          <path d="M81 214 C93 201 116 202 129 215 C138 224 137 243 128 256
+                   C114 272 86 271 69 256 C66 241 70 224 81 214Z"
+                fill="#dce4eb" stroke="#142a40" strokeWidth="5" />
+          <path d="M150 221 Q169 215 185 224 L190 276 Q169 284 149 278Z"
+                fill="#f7f9fa" stroke="#142a40" strokeWidth="5" strokeLinejoin="round" />
+          <path d="M156 234 Q169 227 181 236 L181 260 Q168 267 157 259Z"
+                fill="#e8eef2" stroke="#142a40" strokeWidth="3" />
+          <path d="M165 213 Q176 219 190 215" fill="none" stroke="#142a40" strokeWidth="4" />
+          <path d="M118 183 Q131 189 144 207 L136 221 Q124 205 108 200Z" fill="#19aeb0" opacity=".9" />
+        </g>
+
+        <g id="left-arm" stroke="#142a40" strokeWidth="5" strokeLinejoin="round">
+          <path d="M59 231 C48 239 42 257 47 272 C52 286 68 293 85 287
+                   L117 275 L105 244 C91 230 73 224 59 231Z" fill="url(#suit)" />
+          <path d="M80 257 C95 253 112 262 124 275 C139 289 142 303 130 309
+                   C114 317 89 303 72 290 C59 280 64 263 80 257Z" fill="url(#paw)" />
+        </g>
+
+        <g id="helmet-group">
+          <path d="M38 114 C39 61 80 19 132 17 C188 14 234 54 239 107
+                   C245 160 210 202 158 211 C105 220 54 193 40 151Z"
+                fill="url(#helmet)" stroke="#10253b" strokeWidth="6" />
+          <path d="M48 111 C51 67 86 31 132 29 C180 27 220 60 228 104"
+                fill="none" stroke="#fff" strokeWidth="5" opacity=".9" />
+          <path d="M32 119 C20 129 25 158 39 171 C48 180 58 177 65 169
+                   L58 117 C49 111 40 112 32 119Z"
+                fill="url(#helmet)" stroke="#142a40" strokeWidth="5" />
+          <path d="M220 111 C233 96 252 105 259 121 C267 139 256 163 241 174
+                   C232 180 222 173 218 164Z"
+                fill="url(#helmet)" stroke="#142a40" strokeWidth="5" />
+          <path d="M61 108 C63 67 98 43 141 43 C188 43 226 72 232 111
+                   C239 155 208 190 164 198 C117 206 72 181 62 145Z"
+                fill="url(#visor)" stroke="#142a40" strokeWidth="5" />
+          <path d="M190 66 Q199 67 205 75" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity=".65" />
+          <path d="M219 129 Q230 117 243 121" fill="none" stroke="#fff" strokeWidth="3" opacity=".55" />
+        </g>
+
+        <g id="face">
+          <path d="M88 132 C97 102 126 87 157 86 C192 84 218 103 222 133
+                   C226 163 202 181 166 185 C126 190 91 171 88 145Z"
+                fill="#f8f8f5" />
+          <g className={styles.eyeLeft} fill="#182d45">
+            <path d="M89 145 C93 128 107 117 122 118 C133 119 139 127 138 137
+                     C127 130 112 132 101 140 C96 143 92 147 89 153Z" />
+          </g>
+          <g className={styles.eyeRight} fill="#182d45">
+            <path d="M177 123 C186 108 204 108 215 120 C220 126 222 135 219 143
+                     C211 132 198 126 185 128 C181 128 178 129 174 131Z" />
+          </g>
+          <g className={styles.mouth}>
+            <path className={styles.mouthSmile} d="M115 148 C128 157 144 161 160 160 C177 159 192 152 204 143
+                     C198 164 181 176 160 177 C139 178 121 167 115 148Z" fill="#fff" />
+            <path className={styles.mouthOpen} d="M143 148 Q160 145 178 148 Q172 158 160 160 Q148 158 143 148Z"
+                  fill="#182d45" />
+            <path className={styles.mouthTongue} d="M151 153 Q160 157 170 153 Q166 160 160 160 Q154 159 151 153Z"
+                  fill="#aebdca" />
+          </g>
+          <path d="M145 139 Q160 133 175 139 Q168 146 160 147 Q151 146 145 139Z" fill="#142a40" />
+        </g>
+
+        <path d="M82 188 Q126 207 177 195 Q199 190 216 178 L224 198
+                 Q199 222 153 226 Q105 227 73 206Z"
+              fill="url(#helmet)" stroke="#142a40" strokeWidth="5" strokeLinejoin="round" />
+        <path d="M92 207 Q140 226 193 207" fill="none" stroke="#fff" strokeWidth="3" opacity=".8" />
+
+        <g id="badge" transform="translate(170 246)">
+          <rect x="-17" y="-15" width="34" height="30" rx="8" fill="#f9fbfc" stroke="#142a40" strokeWidth="3" />
+          <path d="M-10 1 C-8 -8 7 -10 12 -1 C16 7 7 11 0 10 C-8 9 -13 6 -10 1Z" fill="#172c43" />
+          <path d="M-6 0 Q0 -5 6 0 Q2 7 -4 5Z" fill="#f8f8f5" />
+          <circle cx="-3" cy="-1" r="1.4" fill="#172c43" /><circle cx="5" cy="-1" r="1.4" fill="#172c43" />
+        </g>
+      </svg>
+      <div className={`${styles.waves} ${speaking ? styles.wavesActive : ""}`} aria-hidden="true">
+        <span /><span /><span /><span /><span />
+      </div>
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TalkingAvatar } from "../../components/agent-avatar/TalkingAvatar";
+import { SlothMascot } from "../../components/agent-avatar/SlothMascot";
 import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
 import { VoiceConversation, type SpeakableReply } from "../../components/agent-voice/VoiceConversation";
 import { speakServerReply } from "../../client/voice/server-speech";
@@ -99,7 +99,7 @@ export function SlothDemo() {
         {error && <p role="alert">{error}</p>}
       </form> : <>
         <div className={styles.stage}>
-          <TalkingAvatar speaking={speaking} />
+          <SlothMascot speaking={speaking} />
           {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
         </div>
         <div className={styles.panel}><VoiceConversation onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
