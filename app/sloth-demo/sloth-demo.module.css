@@ -1,0 +1,21 @@
+.page { min-height: 100vh; padding: 40px 20px; background: linear-gradient(180deg, #eef4f8, #dfe9f0); color: #202a33; font: 16px/1.5 system-ui, sans-serif; }
+.shell { max-width: 680px; margin: 0 auto; }
+.header { text-align: center; margin-bottom: 12px; }
+.eyebrow { color: #536b7b; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.header h1 { font-size: clamp(2rem, 6vw, 2.6rem); margin: 8px 0 0; }
+.stage { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 30px 20px; }
+.bubble { max-width: 460px; margin: 0; padding: 16px 20px; background: white; border-radius: 18px; border: 1px solid #d6dfe5; box-shadow: 0 10px 30px rgba(39, 62, 77, 0.08); overflow-wrap: anywhere; white-space: pre-wrap; font-size: 1.05rem; }
+.panel { margin: 20px 0; padding: 22px; background: white; border: 1px solid #d6dfe5; border-radius: 16px; box-shadow: 0 8px 30px rgba(39, 62, 77, 0.06); }
+.panel h2 { margin-top: 0; font-size: 1.2rem; }
+.panel label { display: block; font-weight: 700; margin-bottom: 8px; }
+.panel input, .panel textarea { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #a6b4be; border-radius: 8px; font: inherit; }
+.panel textarea { resize: vertical; }
+.panel button { margin: 12px 8px 0 0; padding: 10px 15px; border: 0; border-radius: 8px; background: #234e66; color: white; font: inherit; cursor: pointer; }
+.panel button:disabled { opacity: 0.5; cursor: not-allowed; }
+.panel :is(button, input, textarea):focus-visible { outline: 3px solid #ca7834; outline-offset: 3px; }
+.panel [role="alert"] { color: #a12b2b; }
+.log { list-style: none; padding: 0; display: grid; gap: 12px; }
+.log li { padding: 14px; border-radius: 10px; background: #f2f6f8; overflow-wrap: anywhere; }
+.log p { margin: 6px 0 0; white-space: pre-wrap; }
+.footnote { color: #536b7b; font-size: 0.9rem; text-align: center; }
+@media (max-width: 520px) { .page { padding: 24px 12px; } .panel { padding: 18px; } }

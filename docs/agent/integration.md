@@ -173,8 +173,10 @@ Le credenziali sono lette solo sul server e non vengono inviate al browser. Ness
 | `AGENT_AI_PROVIDER` | `mock` | `mock`, `nvidia`, `openai` |
 | `NVIDIA_API_KEY`, `NVIDIA_MODEL` | — | obbligatori solo per `nvidia` |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | — | obbligatori solo per `openai` |
-| `AGENT_VOICE_PROVIDER` | `browser` | `browser` oppure `nvidia_nim` |
+| `AGENT_VOICE_PROVIDER` | `browser` | `browser`, `nvidia_nim`, `elevenlabs` |
 | `AGENT_NIM_ASR_URL`, `AGENT_NIM_TTS_URL` | — | obbligatori solo per `nvidia_nim`; origin loopback |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | — | obbligatori solo per `elevenlabs` |
+| `ELEVENLABS_MODEL_ID` | `eleven_multilingual_v2` | modello TTS ElevenLabs |
 | `AGENT_AI_TIMEOUT_MS` | `30000` | 100–120000 ms |
 | `AGENT_CONTEXT_MESSAGE_LIMIT` | `20` | 1–100 messaggi |
 | `AGENT_PREVIOUS_CHECK_IN_LIMIT` | `3` | 0–10 check-in precedenti |

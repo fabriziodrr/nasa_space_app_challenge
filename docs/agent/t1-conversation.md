@@ -58,7 +58,7 @@ Invoke-RestMethod -Method Get -Uri "$base/sessions/$sessionId" -Headers $headers
 
 Ripetere lo stesso body con lo stesso `clientMessageId` restituisce lo stesso turno salvato, senza una nuova chiamata AI. Riutilizzare l'ID con un testo o un `inputMode` diverso restituisce 409 `IDEMPOTENCY_CONFLICT`. Un nuovo messaggio usa un nuovo ID. Ogni sessione appartiene a `astro-1`, l'unico astronauta dell'identita demo.
 
-La modalita mock ha un parser limitato e risposte marcate `[Simulazione]`. Forme supportate:
+La modalita mock ha un parser limitato e risposte deterministiche. Forme supportate:
 
 - `Ho dormito 5 ore.` oppure `Ho dormito cinque ore e mezza.`
 - `Qualita del sonno 2 su 5.`

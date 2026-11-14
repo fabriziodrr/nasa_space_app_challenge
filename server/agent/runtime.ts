@@ -13,6 +13,7 @@ import { createConversationAiProvider } from "./adapters/conversation-ai-factory
 import { DemoIdentityProvider } from "./adapters/demo-identity";
 import { createDemoContextProviders } from "./adapters/demo-context";
 import { NvidiaNimVoiceProvider } from "./adapters/nvidia-nim-voice";
+import { ElevenLabsVoiceProvider } from "./adapters/elevenlabs-voice";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -29,7 +30,10 @@ function createDemoRuntime() {
     identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN),
     repository,
     voice: config.AGENT_VOICE_PROVIDER === "nvidia_nim"
-      ? new NvidiaNimVoiceProvider({ asrUrl: config.AGENT_NIM_ASR_URL!, ttsUrl: config.AGENT_NIM_TTS_URL! }) : null,
+      ? new NvidiaNimVoiceProvider({ asrUrl: config.AGENT_NIM_ASR_URL!, ttsUrl: config.AGENT_NIM_TTS_URL! })
+      : config.AGENT_VOICE_PROVIDER === "elevenlabs"
+        ? new ElevenLabsVoiceProvider({ apiKey: config.ELEVENLABS_API_KEY!, voiceId: config.ELEVENLABS_VOICE_ID!, modelId: config.ELEVENLABS_MODEL_ID })
+        : null,
     checkIns: new CheckInService(repository),
     artifacts: artifactAi ? new ArtifactService({ repository, ...context, operationalAi: artifactAi, diaryAi: artifactAi, proposals: new ProposalService(new ScheduleValidatorImpl()) }) : null,
     service: createConversationService({

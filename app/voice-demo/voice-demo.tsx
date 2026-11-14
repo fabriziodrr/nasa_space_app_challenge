@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
-import { VoiceConversation } from "../../components/agent-voice/VoiceConversation";
+import { VoiceConversation, type SpeakableReply } from "../../components/agent-voice/VoiceConversation";
 import { VoicePlayback } from "../../components/agent-voice/VoicePlayback";
+import { speakServerReply } from "../../client/voice/server-speech";
 import { CreateSessionResponseSchema, MessageResponseSchema } from "../../server/agent/contracts";
 import styles from "./voice-demo.module.css";
 
@@ -51,7 +52,7 @@ export function VoiceDemo() {
     finally { startingRef.current = false; if (mounted.current) setStarting(false); }
   }
 
-  async function send(text: string, mode: "TEXT" | "VOICE"): Promise<string> {
+  async function send(text: string, mode: "TEXT" | "VOICE"): Promise<SpeakableReply> {
     if (!sessionId) throw new Error("Avvia prima la sessione.");
     const previous = pending.current;
     if (!previous || previous.text !== text || previous.mode !== mode) pending.current = { id: crypto.randomUUID(), text, mode };
@@ -66,10 +67,18 @@ export function VoiceDemo() {
     const result = MessageResponseSchema.parse(payload).data;
     pending.current = null;
     if (mounted.current) setMessages((items) => [...items, result.astronautMessage, result.assistantMessage]);
-    return result.assistantMessage.text;
+    return { text: result.assistantMessage.text, messageId: result.assistantMessage.id };
   }
 
   const manualSend = (text: string, mode: "TEXT" | "VOICE") => send(text, mode).then(() => undefined);
+
+  function speakReply(reply: SpeakableReply, onEnd: () => void, onError: (message: string) => void) {
+    return speakServerReply(
+      { sessionId, messageId: reply.messageId, text: reply.text, token: token.trim() },
+      onEnd,
+      onError,
+    );
+  }
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
   return <main className={styles.page} lang="it">
@@ -91,9 +100,10 @@ export function VoiceDemo() {
           </ol>
           {lastReply && <VoicePlayback text={lastReply.text} />}
         </section>
-        <div className={styles.panel}><VoiceConversation onSend={(text) => send(text, "VOICE")} /></div>
+        <div className={styles.panel}><VoiceConversation onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
         <div className={styles.panel}><VoiceComposer onSend={manualSend} /></div>
         <p className={styles.footnote}>In modalità continua la risposta viene letta ad alta voce e l’assistente torna in ascolto da solo. Puoi sempre interrompere e usare la modalità manuale per correggere il testo. Il check-in rimane una bozza e non viene condiviso automaticamente.</p>
+        <p className={styles.footnote}>Voce: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (con browser di riserva).</p>
       </>}
     </div>
   </main>;

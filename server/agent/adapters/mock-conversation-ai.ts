@@ -67,10 +67,10 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
     }
     const missingFields = ObservationFieldSchema.options.filter((field) => !observations.some((o) => o.field === field));
     const questions: Record<Observation["field"], string> = {
-      SLEEP_HOURS: "Quante ore hai dormito? Nella demo puoi scrivere: Ho dormito 5 ore.",
-      SLEEP_QUALITY: "Come valuti la qualita del sonno da 1 (molto scarsa) a 5 (molto buona)? Scrivi: Qualita del sonno 2 su 5.",
-      FATIGUE: "Quanta stanchezza senti da 1 (assente/minima) a 5 (molto elevata)? Scrivi: Stanchezza 4 su 5.",
-      PHYSICAL_NOTES: "Come ti senti fisicamente? Nella demo scrivi: Fisicamente: seguito dalla tua descrizione.",
+      SLEEP_HOURS: "Quante ore hai dormito?",
+      SLEEP_QUALITY: "Come valuti la qualita del sonno da 1 a 5?",
+      FATIGUE: "Quanto ti senti stanco da 1 a 5?",
+      PHYSICAL_NOTES: "Come ti senti fisicamente?",
     };
     const reportedHours = observations.find((o) => o.field === "SLEEP_HOURS")?.value;
     const sensor = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality !== "UNAVAILABLE");
@@ -83,7 +83,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       reply = `Il sensore simulato indica ${sensor!.value} ore, mentre tu ne riferisci ${reportedHours}. Si tratta dello stesso periodo di riposo? Conservo entrambi i valori. ${reply}`;
     }
     return ConversationOutputSchema.parse({
-      reply: `[Simulazione] Sono l'assistente AI di bordo. ${reply}`, observations, missingFields,
+      reply, observations, missingFields,
     });
   }
 }

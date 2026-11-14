@@ -45,7 +45,7 @@ async function main() {
     text: "Ho dormito 5 ore. Valuto la qualita del sonno 2 su 5 e la stanchezza 4 su 5.",
   };
   const first = await call(`/sessions/${session.id}/messages`, "POST", firstRequest);
-  assert.ok(!first.assistantMessage.text.startsWith("[Simulazione]"), "Il server sta usando il mock: riavviarlo con AGENT_AI_PROVIDER=nvidia.");
+  assert.ok(!first.assistantMessage.text.startsWith("Ho raccolto la bozza"), "Il server sta usando il mock: riavviarlo con AGENT_AI_PROVIDER=nvidia.");
   for (const [field, value] of [["SLEEP_HOURS", 5], ["SLEEP_QUALITY", 2], ["FATIGUE", 4]]) {
     assert.equal(first.checkIn.observations.find((o) => o.field === field)?.value, value, `Dato estratto non corretto: ${field}`);
   }

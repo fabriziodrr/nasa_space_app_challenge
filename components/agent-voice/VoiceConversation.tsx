@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserVoiceInput, type RecognitionWindow } from "../../client/voice/recognition";
-import { speakItalian, type SpeakHandle } from "../../client/voice/speech";
+import type { SpeakHandle } from "../../client/voice/speech";
 
 type Phase = "idle" | "listening" | "thinking" | "speaking";
 
+export interface SpeakableReply { text: string; messageId: string }
+
 export interface VoiceConversationProps {
   disabled?: boolean;
-  /** Sends a voice message and resolves with the assistant's reply text. */
-  onSend(text: string): Promise<string>;
+  /** Sends a voice message and resolves with the assistant's reply. */
+  onSend(text: string): Promise<SpeakableReply>;
+  /** Plays the assistant's reply (server or browser); resolves via onEnd when done. */
+  onSpeak(reply: SpeakableReply, onEnd: () => void, onError: (message: string) => void): SpeakHandle;
   /** Silence (no new recognized words) before considering the sentence finished. */
   quietMs?: number;
 }
@@ -18,7 +22,7 @@ export interface VoiceConversationProps {
  * Hands-free loop: listen, detect the end of the sentence by a stable pause in the
  * transcript (not by the browser's own stop), send, speak the reply, then listen again.
  */
-export function VoiceConversation({ disabled = false, onSend, quietMs = 2500 }: VoiceConversationProps) {
+export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs = 2500 }: VoiceConversationProps) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [interim, setInterim] = useState("");
   const [error, setError] = useState("");
@@ -31,10 +35,12 @@ export function VoiceConversation({ disabled = false, onSend, quietMs = 2500 }: 
   const speak = useRef<SpeakHandle | null>(null);
   const quiet = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSendRef = useRef(onSend);
+  const onSpeakRef = useRef(onSpeak);
   const quietMsRef = useRef(quietMs);
   const mounted = useRef(true);
 
   useEffect(() => { onSendRef.current = onSend; });
+  useEffect(() => { onSpeakRef.current = onSpeak; });
   useEffect(() => { quietMsRef.current = quietMs; });
 
   const clearQuiet = useCallback(() => {
@@ -70,9 +76,9 @@ export function VoiceConversation({ disabled = false, onSend, quietMs = 2500 }: 
     if (!active.current) return;
     setPhase("thinking");
     setError("");
-    let assistantText: string;
+    let result: SpeakableReply;
     try {
-      assistantText = await onSendRef.current(text);
+      result = await onSendRef.current(text);
     } catch (e) {
       if (mounted.current) setError(e instanceof Error ? e.message : "Invio non riuscito. Riavvia la conversazione per riprovare.");
       stopEverything();
@@ -81,8 +87,8 @@ export function VoiceConversation({ disabled = false, onSend, quietMs = 2500 }: 
     if (!active.current) return;
     setPhase("speaking");
     await new Promise<void>((resolve) => {
-      speak.current = speakItalian(
-        assistantText,
+      speak.current = onSpeakRef.current(
+        result,
         () => { speak.current = null; resolve(); },
         (message) => { speak.current = null; setError(message); resolve(); },
       );
