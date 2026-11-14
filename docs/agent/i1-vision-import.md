@@ -1,6 +1,6 @@
 # I1 — Importazione e persistenza palpebrale
 
-L'importazione usa un'istantanea locale dei moduli puri del prototipo in `server/agent/vision/vendor`; `SHA256SUMS.txt` ne registra i contenuti. I 20 sorgenti TypeScript coincidono con la revisione C01 v2 `9803a5f41eff521db5d1305af82323da11332eb5`, pubblicata nella repository palpebrale e fissata nel submodule; il confronto normalizza i fine riga Windows/Unix. È una copia esplicita e versionata nella repository agent. Non modificare separatamente i due motori senza aggiornare test, hash e worker.
+L'importazione usa un'istantanea locale dei moduli puri del prototipo in `server/agent/vision/vendor`; `SHA256SUMS.txt` ne registra i contenuti. I 20 sorgenti TypeScript coincidono con la revisione C01 v2 di origine `9803a5f41eff521db5d1305af82323da11332eb5`, ora inclusa direttamente in `feature-visione-palpebrale/`; il confronto normalizza i fine riga Windows/Unix. È una copia esplicita e versionata nella repository agent. Non modificare separatamente i due motori senza aggiornare test, hash e worker.
 
 `validator-worker.cjs` è generato dai sorgenti vendor tramite `npm run build:vision-worker` con esbuild 0.28.2. Il worker viene lanciato da `server/agent/vision/validate-export.ts`, isolando parsing e replay con limite di 5 secondi. Il processo Next deve partire dalla root del progetto e la distribuzione deve includere il file worker. La validazione verifica coerenza, non autentica che un file provenga effettivamente da una webcam.
 

@@ -96,7 +96,7 @@ Il caricamento usa JSON v2; la conferma estesa sarà `POST /api/agent/v2/check-i
 
 Dipendenza: analisi dei due moduli già eseguita. Prerequisito degli altri task.
 
-Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/vision-i0.md](docs/agent/vision-i0.md). La revisione v2 `9803a5f41eff521db5d1305af82323da11332eb5` è pubblicata e fissata nel submodule; i 20 moduli del parser copiati nel backend coincidono con tale revisione.
+Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/vision-i0.md](docs/agent/vision-i0.md). I sorgenti della revisione v2 di origine `9803a5f41eff521db5d1305af82323da11332eb5` sono inclusi direttamente in `feature-visione-palpebrale/`; i 20 moduli del parser copiati nel backend coincidono con tale revisione.
 
 - [ ] Definire `VisionObservation`, stato di utilizzabilità, riferimenti `vision` ed errori.
 - [ ] Fissare formato del caricamento e limiti di byte, campioni e tempo di elaborazione del parser sincrono.
@@ -104,7 +104,7 @@ Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/visio
 - [ ] Definire conversione dei tempi, trattamento dei replay sintetici e selezione fra più misure.
 - [ ] Definire selezione/condivisione nella revisione e conferma del check-in, congelamento del contesto e conservazione dei dati.
 - [x] Pianificare la versione dei contratti API e la lettura degli artefatti storici senza evidenze palpebrali.
-- [x] Fissare una distribuzione riproducibile tramite submodule configurato, preservando le modifiche locali.
+- [x] Fissare una distribuzione riproducibile con sorgenti e asset inclusi nella repo principale, preservando la revisione integrata.
 - [x] Separare i moduli TypeScript puri necessari al server da webcam, React, Vite e asset MediaPipe; fissare la revisione integrata.
 - [ ] Preparare esempi validi, insufficienti e sintetici condivisi da entrambi gli sviluppatori.
 
@@ -114,7 +114,7 @@ Completato quando Tu e Nello possono implementare sui medesimi contratti e un ch
 
 Dipendenza: I0.
 
-Implementazione: [guida I1](docs/agent/i1-vision-import.md). Il parser usa una copia versionata dei moduli puri, confrontata con la revisione pubblicata del submodule.
+Implementazione: [guida I1](docs/agent/i1-vision-import.md). Il parser usa una copia versionata dei moduli puri, confrontata con la revisione integrata nella cartella palpebrale.
 
 - [x] Aggiungere modelli Prisma e metodi per riepiloghi, selezione e deduplicazione.
 - [x] Implementare caricamento limitato e validazione con il parser del prototipo, verificando versione e coerenza del motore.
@@ -176,7 +176,7 @@ Completato quando è possibile dimostrare l'incrocio dei dati con un file esport
 
 Dipendenza: percorso tramite export I1–I4 verificato.
 
-Implementazione: [guida I5](docs/agent/i5-direct-vision.md). La revisione del submodule è pubblicata; resta il collaudo documentato con dispositivi reali.
+Implementazione: [guida I5](docs/agent/i5-direct-vision.md). I sorgenti sono inclusi nella repo principale; resta il collaudo documentato con dispositivi reali.
 
 - [x] Aggiungere al prototipo un adattatore che invii il pacchetto alla stessa API dopo una misura, su azione esplicita.
 - [x] Esporre all'app ospite associazione alla sessione e callback del risultato, mantenendo le credenziali sotto il controllo dell'host.
