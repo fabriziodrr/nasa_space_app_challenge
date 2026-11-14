@@ -130,7 +130,6 @@ export function AegisLanding() {
           </span>
         </span>
       </button>
-      <p className="aegis-landing__hint">Click to enter mission control</p>
     </main>
   );
 }
