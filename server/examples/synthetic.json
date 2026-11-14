@@ -1,0 +1,38 @@
+[
+  {
+    "observation_id": "demo-sleep-01",
+    "subject_id": "demo-astronaut",
+    "kind": "sleep",
+    "observed_at": "2026-11-14T07:00:00+00:00",
+    "synthetic": true,
+    "sleep_hours": 5.5,
+    "sleep_quality": 2
+  },
+  {
+    "observation_id": "demo-mood-01",
+    "subject_id": "demo-astronaut",
+    "kind": "mood",
+    "observed_at": "2026-11-14T07:05:00+00:00",
+    "synthetic": true,
+    "confirmed": true,
+    "mood_rating": 3,
+    "alertness": 7
+  },
+  {
+    "observation_id": "demo-pvt-01",
+    "subject_id": "demo-astronaut",
+    "kind": "vigilance",
+    "observed_at": "2026-11-14T07:10:00+00:00",
+    "synthetic": true,
+    "device_id": "demo-workstation",
+    "trials": [
+      {"status": "response", "rt_ms": 300},
+      {"status": "response", "rt_ms": 320},
+      {"status": "response", "rt_ms": 310},
+      {"status": "response", "rt_ms": 600},
+      {"status": "response", "rt_ms": 290},
+      {"status": "false_start"},
+      {"status": "missed"}
+    ]
+  }
+]

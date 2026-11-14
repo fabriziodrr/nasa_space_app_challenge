@@ -1,3 +1,5 @@
+import { AegisLanding } from "@/components/landing/AegisLanding";
+
 export default function HomePage() {
-  return <main>ISS Mission Dashboard</main>;
+  return <AegisLanding />;
 }

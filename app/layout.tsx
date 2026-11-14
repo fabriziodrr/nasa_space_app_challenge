@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
+import { Bebas_Neue } from "next/font/google";
+
+import "./globals.css";
+
+const bebasNeue = Bebas_Neue({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bebas-neue",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "ISS Mission Dashboard",
-  description: "Initial project setup for the ISS mission dashboard demo.",
+  title: "SOTERIA",
+  description: "SOTERIA mission operations interface.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={bebasNeue.variable}>{children}</body>
     </html>
   );
 }

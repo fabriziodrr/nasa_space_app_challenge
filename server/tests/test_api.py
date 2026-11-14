@@ -1,0 +1,20 @@
+import pytest
+
+pytest.importorskip("fastapi")
+from fastapi.testclient import TestClient
+
+from aegis_data.api import create_app
+
+
+def test_api_round_trip_and_error_contract(tmp_path):
+    with TestClient(create_app(tmp_path / "api.sqlite3")) as client:
+        payload = {"observation_id": "sleep-1", "kind": "sleep", "subject_id": "crew-1",
+                   "observed_at": "2026-11-14T07:00:00Z", "sleep_hours": 6, "sleep_quality": 3}
+        assert client.post("/v1/observations", json=payload).status_code == 201
+        assert client.post("/v1/observations", json=payload).status_code == 409
+        assert client.post("/v1/observations", json=payload | {"sleep_hours": -1}).status_code == 422
+        snap = client.get("/v1/subjects/crew-1/snapshot").json()
+        context = client.get("/v1/subjects/crew-1/agent-context").json()
+        assert snap["snapshot_id"] == context["snapshot_id"]
+        assert snap["sleep"][0]["sleep_hours"] == 6
+        assert client.get("/v1/subjects/crew-1/snapshot?start=2026-11-15T00:00:00Z&end=2026-11-14T00:00:00Z").status_code == 422
