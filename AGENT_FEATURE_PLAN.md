@@ -190,13 +190,15 @@ Assegnazione proposta: **tu segui conversazione AI, voce e demo; Nello segue dat
 
 ### C0 — Contratti e accordi iniziali — Tu + Nello
 
-- [ ] Definire schemi di input/output, enum, errori e interfacce degli adattatori.
-- [ ] Definire le informazioni condivisibili nel check-in e quelle private.
-- [ ] Definire il formato del programma, i vincoli e le operazioni ammesse nel MVP.
-- [ ] Preparare esempi JSON per percorso normale, nessuna proposta e proposta obsoleta.
+- [x] Definire schemi di input/output, enum, errori e interfacce degli adattatori.
+- [x] Definire le informazioni condivisibili nel check-in e quelle private.
+- [x] Definire il formato del programma, i vincoli e le operazioni ammesse nel MVP.
+- [x] Preparare esempi JSON per percorso normale, nessuna proposta e proposta obsoleta.
 - [ ] Concordare con Fabrizio il confine di integrazione per identita e programma, senza bloccare lo sviluppo degli adattatori simulati.
-- [ ] Scegliere il runner dei test e aggiungere uno script comune per i test del modulo.
-- [ ] Assegnare un referente unico per le modifiche a `contracts/` e `package.json`: Nello nella fase iniziale.
+- [x] Scegliere il runner dei test e aggiungere uno script comune per i test del modulo.
+- [x] Assegnare un referente unico per le modifiche a `contracts/` e `package.json`: Nello nella fase iniziale.
+
+Base tecnica disponibile: [Contratti v1](docs/agent/contracts-v1.md), schemi in `server/agent/contracts/`, interfacce in `server/agent/ports.ts`, esempi in `docs/agent/examples/`. Le route HTTP e gli adattatori sono contratti da implementare nei task successivi. Il confronto con Fabrizio resta da svolgere: non e stato assunto un accordo esterno.
 
 Completato quando entrambi possono implementare usando gli stessi esempi e le stesse firme, senza dipendere dal lavoro interno dell'altro.
 
