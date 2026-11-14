@@ -1,18 +1,15 @@
 .shape-grid {
   position: absolute;
-  z-index: 0;
+  z-index: 1;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  isolation: isolate;
   background-image:
-    linear-gradient(to right, var(--shape-grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--shape-grid-line) 1px, transparent 1px),
-    linear-gradient(45deg, transparent 44%, var(--shape-grid-accent) 46%, var(--shape-grid-accent) 54%, transparent 56%),
-    linear-gradient(-45deg, transparent 44%, var(--shape-grid-accent) 46%, var(--shape-grid-accent) 54%, transparent 56%);
+    repeating-linear-gradient(to right, var(--shape-grid-line) 0 1px, transparent 1px var(--shape-grid-size)),
+    repeating-linear-gradient(to bottom, var(--shape-grid-line) 0 1px, transparent 1px var(--shape-grid-size)),
+    repeating-linear-gradient(45deg, transparent 0 16px, var(--shape-grid-accent) 17px 18px, transparent 19px var(--shape-grid-size)),
+    repeating-linear-gradient(-45deg, transparent 0 16px, var(--shape-grid-accent) 17px 18px, transparent 19px var(--shape-grid-size));
   background-position: center;
-  background-size:
-    var(--shape-grid-size) var(--shape-grid-size),
-    var(--shape-grid-size) var(--shape-grid-size),
-    var(--shape-grid-size) var(--shape-grid-size),
-    var(--shape-grid-size) var(--shape-grid-size);
+  background-size: var(--shape-grid-size) var(--shape-grid-size);
 }
