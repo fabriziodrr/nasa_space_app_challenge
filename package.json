@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit --incremental false",
     "test:agent": "prisma generate && tsx --test tests/agent/*.test.ts",
     "test:agent:live": "node scripts/test-agent-live.mjs",
+    "test:agent:t2:live": "node scripts/test-agent-t2-live.mjs",
+    "chat:agent": "node scripts/chat-agent.mjs",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed"

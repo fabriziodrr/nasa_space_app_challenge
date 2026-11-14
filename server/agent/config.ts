@@ -5,6 +5,7 @@ const ConfigSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   AGENT_DEMO_ENABLED: z.enum(["true", "false"]).default("false"),
   AGENT_DEMO_TOKEN: z.string().min(16).max(512).optional(),
+  AGENT_GROUND_TOKEN: z.string().min(16).max(512).optional(),
   AGENT_DEMO_SCENARIO: ScenarioSchema.default("RESTED"),
   AGENT_AI_PROVIDER: z.enum(["mock", "nvidia", "openai"]).default("mock"),
   NVIDIA_API_KEY: z.string().trim().min(1).optional(),
@@ -18,6 +19,7 @@ const ConfigSchema = z.object({
   if (config.AGENT_DEMO_ENABLED === "true") {
     if (config.NODE_ENV === "production") ctx.addIssue({ code: "custom", message: "Demo is forbidden in production" });
     if (!config.AGENT_DEMO_TOKEN) ctx.addIssue({ code: "custom", message: "Demo token is required" });
+    if (config.AGENT_GROUND_TOKEN && config.AGENT_GROUND_TOKEN === config.AGENT_DEMO_TOKEN) ctx.addIssue({ code: "custom", message: "Ground token must differ from astronaut token" });
   }
   if (config.AGENT_AI_PROVIDER === "openai" && (!config.OPENAI_API_KEY || !config.OPENAI_MODEL)) {
     ctx.addIssue({ code: "custom", message: "OpenAI requires key and model" });

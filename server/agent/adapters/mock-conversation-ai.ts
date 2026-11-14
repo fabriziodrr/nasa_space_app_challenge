@@ -2,7 +2,7 @@ import {
   ConversationOutputSchema, ObservationFieldSchema,
   type Observation, type ConversationOutput,
 } from "../contracts";
-import type { ConversationAiProvider, ConversationContext, ProviderOptions } from "../ports";
+import type { ConversationAiProvider, ConversationContext, ProviderOptions, OperationalAiProvider, DiaryAiProvider } from "../ports";
 
 const words = ["zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette", "otto", "nove", "dieci",
   "undici", "dodici", "tredici", "quattordici", "quindici", "sedici", "diciassette", "diciotto", "diciannove",
@@ -14,7 +14,26 @@ function number(value: string): number {
 }
 
 /** Deterministic demo parser; not a substitute for natural-language understanding. */
-export class MockConversationAiProvider implements ConversationAiProvider {
+export class MockConversationAiProvider implements ConversationAiProvider, OperationalAiProvider, DiaryAiProvider {
+  async generateOperational({ context }: Parameters<OperationalAiProvider["generateOperational"]>[0]) {
+    return {
+      report: {
+        findings: context.checkIn.observations.map((o) => ({
+          text: `${o.field}: ${o.value}`, source: "self_report" as const,
+          evidence: [{ source: "self_report" as const, observationId: o.id }],
+        })),
+        discrepancies: [], uncertainties: ["Dati dimostrativi, nessuna valutazione clinica."],
+        humanReview: { required: false, reason: null },
+      },
+      proposal: null,
+      noChangeReason: "Nessuna variazione proposta nella simulazione.",
+    };
+  }
+
+  async generateDiary({ messages }: Parameters<DiaryAiProvider["generateDiary"]>[0]) {
+    const text = messages.filter((m) => m.role === "ASTRONAUT").map((m) => m.text).join(" ").slice(0, 7900);
+    return { text: text || "Nessuna osservazione personale registrata." };
+  }
   async converse(context: ConversationContext, options?: ProviderOptions): Promise<ConversationOutput> {
     options?.signal?.throwIfAborted();
     const current = context.messages.at(-1)!;

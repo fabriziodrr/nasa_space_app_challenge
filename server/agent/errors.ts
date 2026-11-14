@@ -2,8 +2,10 @@
 import { ERROR_HTTP_STATUS, type ApiError, type ErrorCode } from "./contracts";
 
 export interface ServiceIssue { path: string; message: string }
+const AGENT_ERROR_BRAND = Symbol.for("iss.agent.AgentError");
 
 export class AgentServiceError extends Error {
+  readonly [AGENT_ERROR_BRAND] = true;
   readonly code: ErrorCode;
   readonly retryable: boolean;
   readonly issues: ServiceIssue[];

@@ -297,7 +297,7 @@ export class PrismaAgentRepository implements AgentRepository {
       if (checkIn.status !== "CONFIRMED") throw AgentErrors.invalidState("Il check-in non e confermato.");
       const existing = await tx.generationClaim.findUnique({ where: { checkInId } });
       if (existing?.completedAt) return null;
-      if (existing && existing.leaseExpiresAt.getTime() > Date.now()) return null;
+      if (existing && !existing.failed && existing.leaseExpiresAt.getTime() > Date.now()) return null;
       const token = randomId("claim");
       const leaseExpiresAt = new Date(Date.now() + leaseMs);
       await tx.generationClaim.upsert({

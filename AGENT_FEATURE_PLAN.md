@@ -213,7 +213,7 @@ Dipendenza: C0.
 - [x] Gestire informazioni mancanti, dati discordanti e il caso in cui non serva alcuna modifica.
 - [x] Esporre le API di sessione e messaggi usando le interfacce di persistenza concordate.
 
-Implementazione e prova: [Guida T1](docs/agent/t1-conversation.md). Gli adattatori implementano la capability `ConversationAiProvider`; report e diario restano a T2. Il bootstrap usa memoria temporanea e dati dimostrativi sostituibili con N1. In T1 il programma resta invariato e non si generano ancora proposte operative. Il provider reale principale e NVIDIA Nemotron tramite l'accesso gratuito per prototipazione del Developer Program; OpenAI resta opzionale. Gli adattatori sono testati con trasporto simulato e con un collaudo live NVIDIA di due turni. `npm run test:agent:live` permette di ripetere la prova con la propria chiave e un server locale gia avviato.
+Implementazione e prova: [Guida T1](docs/agent/t1-conversation.md). Il runtime usa Prisma con sensori e programma dimostrativi. Il provider reale principale e NVIDIA Nemotron; OpenAI resta opzionale per la conversazione. `npm run test:agent:live` permette di ripetere la prova con la propria chiave e un server locale gia avviato.
 
 Completato quando uno scenario testuale produce una risposta utile e una bozza di check-in corretta, senza poter applicare modifiche al programma.
 
@@ -234,12 +234,14 @@ Completato quando i dati sopravvivono al riavvio e ogni scenario puo essere ripe
 
 Dipendenze: T1; N1 per il salvataggio reale. Si puo iniziare con repository simulato.
 
-- [ ] Generare report e bozza del diario dal check-in confermato e dal contesto autorizzato.
-- [ ] Distinguere nel report misure, dichiarazioni, discrepanze e interpretazioni.
-- [ ] Implementare un comportamento di compagnia che riconosca la propria natura artificiale e mantenga continuita con le conversazioni autorizzate.
-- [ ] Non inserire nel report contenuti privati estranei al check-in condivisibile.
-- [ ] Esporre recupero e modifica del diario e recupero dei report, con i relativi controlli di accesso.
-- [ ] Gestire la rigenerazione senza duplicare report o voci dello stesso check-in.
+- [x] Generare report e bozza del diario dal check-in confermato e dal contesto autorizzato.
+- [x] Distinguere nel report misure, dichiarazioni, discrepanze e interpretazioni.
+- [x] Implementare un comportamento di compagnia che riconosca la propria natura artificiale e mantenga continuita con le conversazioni autorizzate.
+- [x] Non inserire nel report contenuti privati estranei al check-in condivisibile.
+- [x] Esporre recupero e modifica del diario e recupero dei report, con i relativi controlli di accesso.
+- [x] Gestire la rigenerazione senza duplicare report o voci dello stesso check-in.
+
+Guida e prova: [report e diario T2](docs/agent/t2-report-diary.md). La generazione usa NVIDIA o mock; il testo richiede revisione umana. Il programma del runtime e dimostrativo e le proposte di variazione non sono ancora collegate.
 
 Completato quando l'astronauta puo correggere il diario e Terra riceve soltanto il report previsto.
 

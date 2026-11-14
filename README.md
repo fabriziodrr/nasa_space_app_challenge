@@ -11,7 +11,9 @@ Prototipo ISS Mission Dashboard con Next.js, TypeScript e Prisma.
 - Schemi pubblici e tipi: `server/agent/contracts/index.ts`
 - Interfacce dei provider e della persistenza: `server/agent/ports.ts`
 
-C0 definisce contratti ed esempi. T1 implementa conversazione testuale e API di sessione/messaggi, con AI simulata o NVIDIA Nemotron configurabile tramite `AGENT_AI_PROVIDER=nvidia` e `NVIDIA_API_KEY` in `.env`; OpenAI rimane un'alternativa opzionale. N1/N2 implementano persistenza Prisma, provider simulati, scenari, check-in, validatore e ciclo di approvazione. La conversazione usa ancora il repository temporaneo in memoria: il collegamento agli adattatori Prisma e alla dashboard resta da completare. Report, diario e voce restano ai task successivi. Login condiviso e backend autorevole del programma restano da concordare con Fabrizio.
+C0 definisce contratti ed esempi. T1 e T2 implementano conversazione, check-in persistente, report operativo e diario privato; il provider reale configurato per T2 e NVIDIA Nemotron. La conversazione usa Prisma con sensori e programma dimostrativi. N1/N2 includono anche validatore e servizi di approvazione, ancora da collegare al programma autorevole e alla dashboard di Fabrizio. La voce resta a T3.
+
+Per T2 vedere [guida report e diario](docs/agent/t2-report-diary.md). La generazione del report non propone ancora variazioni della giornata.
 
 ```sh
 npm ci

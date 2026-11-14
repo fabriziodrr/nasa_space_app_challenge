@@ -4,9 +4,9 @@
 
 Implementati: apertura e lettura della sessione, conversazione testuale, domande di approfondimento, bozza privata del check-in, adattatore AI simulato, adattatore NVIDIA Nemotron, adattatore OpenAI opzionale, autenticazione dimostrativa e API HTTP.
 
-La composizione locale usa un repository in memoria e sensori/programma dimostrativi per rendere T1 provabile prima di N1. Non sostituisce la persistenza Prisma prevista per Nello: i dati si perdono al riavvio e non sono condivisi tra processi o istanze server.
+La composizione locale usa un repository Prisma e sensori/programma dimostrativi. Le sessioni persistono nel database SQLite al riavvio. Per inizializzarlo eseguire `npm run db:push`, senza eseguire il seed se non si intende resettare i dati.
 
-Report, diario, conferma del check-in, proposte, decisioni di Terra e voce restano ai task T2/N2/T3. La conversazione T1 non pubblica report e non applica modifiche al programma.
+La conferma del check-in e la generazione di report e diario sono descritte nella [guida T2](t2-report-diary.md). Le API di approvazione e la voce restano da collegare. La conversazione non applica modifiche al programma.
 
 ## Avvio locale senza chiavi AI
 
@@ -21,13 +21,15 @@ AGENT_DEMO_SCENARIO=CONFLICTING_DATA
 
 Sostituire il segnaposto con un token locale. Non usare prefissi `NEXT_PUBLIC_` e non pubblicare il token o le chiavi. Lo stesso token puo essere usato nei client locali di prova; nella dashboard finale si usera l'autenticazione condivisa, non una credenziale di servizio inclusa nel bundle frontend.
 
-Eseguire `npm run dev`. Non serve inizializzare il database per questa modalita. Su PowerShell usare `npm.cmd` se `npm.ps1` e bloccato dalla policy.
+Eseguire `npm run db:push` per inizializzare il database e poi `npm run dev`. Su PowerShell usare `npm.cmd` se `npm.ps1` e bloccato dalla policy.
 
 La demo e disabilitata per impostazione predefinita. `instrumentation.ts` valida la configurazione all'avvio e rifiuta `AGENT_DEMO_ENABLED=true` in produzione. Finche non sono collegati gli adattatori reali di identita e persistenza, le API in produzione restituiscono 503: non attivano una memoria temporanea o un'identita anonima.
 
-Il runtime demo e condiviso tra le route nello stesso processo e mantenuto durante gli aggiornamenti a caldo di Next. Riavviare il server quando si cambiano configurazione o implementazioni del runtime/core; il riavvio azzera le sessioni.
+Il runtime demo e condiviso tra le route nello stesso processo e mantenuto durante gli aggiornamenti a caldo di Next. Riavviare il server quando si cambiano configurazione o implementazioni del runtime/core; il riavvio conserva le sessioni nel database.
 
 ## Provare le API da PowerShell
+
+Per parlare liberamente senza preparare chiamate HTTP, avviare il server e in un secondo terminale eseguire `npm run chat:agent`. Se il server usa la porta 3101, eseguire `npm run chat:agent -- --base-url http://127.0.0.1:3101`. Scrivere un messaggio per volta; `/checkin` mostra la bozza e `/esci` termina. La chat non conferma e non condivide automaticamente il check-in.
 
 In un secondo terminale, usare lo stesso token configurato nel server:
 
@@ -132,7 +134,7 @@ L'orchestratore legge sensori delle ultime 24 ore e passa al modello al massimo 
 
 Il contesto serializzato e limitato a 64000 caratteri. Se necessario vengono rimossi prima i check-in storici meno recenti, poi i messaggi piu vecchi, poi le letture piu vecchie. L'ultimo messaggio, la bozza corrente e lo snapshot del programma non sono troncati; se da soli superano il limite, il servizio restituisce un errore esplicito.
 
-La richiesta HTTP JSON e limitata a 64 KiB effettivi, anche senza `Content-Length`. I messaggi mantengono il limite di 8000 caratteri del contratto. La memoria demo ammette massimo 500 sessioni e 2000 messaggi per sessione; sono limiti di sviluppo, non una politica di conservazione.
+La richiesta HTTP JSON e limitata a 64 KiB effettivi, anche senza `Content-Length`. I messaggi mantengono il limite di 8000 caratteri del contratto. Le sessioni sono persistite nel database locale; definire una politica di conservazione prima di usare dati reali.
 
 ## Comportamento dell'orchestratore
 
@@ -147,9 +149,9 @@ La richiesta HTTP JSON e limitata a 64 KiB effettivi, anche senza `Content-Lengt
 
 L'output dell'AI e sempre non fidato. Una nuova osservazione o una correzione deve citare l'ultimo messaggio dell'astronauta; non puo citare risposte dell'assistente, sessioni altrui o ID inventati. Le osservazioni precedenti devono essere preservate nello snapshot; ID e provenienza invariati vengono mantenuti anche quando il messaggio originale e fuori dal contesto limitato.
 
-Nessuna osservazione viene condivisa automaticamente: `sharedObservationIds` resta vuoto. T1 non dispone di accesso in scrittura al programma. I metodi di generazione report/diario del contratto completo `AiProvider` sono separati in capability (`ConversationAiProvider`, `OperationalAiProvider`, `DiaryAiProvider`); gli adattatori T1 implementano soltanto la prima, senza metodi fittizi per i task successivi.
+Nessuna osservazione viene condivisa automaticamente: l'astronauta seleziona `sharedObservationIds` alla conferma. La conversazione non dispone di accesso in scrittura al programma. NVIDIA e mock implementano anche le capability di report e diario; OpenAI per ora supporta solo la conversazione.
 
-In caso di output invalido, riferimenti errati, timeout o errore del modello non viene salvato un mezzo turno. Il client puo ritentare con lo stesso ID. Le richieste identiche in corso condividono una chiamata nel singolo processo; l'atomicita e la deduplicazione persistente di `commitTurn` restano obbligatorie per N1. Due messaggi differenti sulla stessa revisione non si sovrascrivono: uno riceve un conflitto e deve rileggere lo stato prima di ritentare. Il client dovrebbe inviare un turno alla volta.
+In caso di output invalido, riferimenti errati, timeout o errore del modello non viene salvato un mezzo turno. Il client puo ritentare con lo stesso ID. Le richieste identiche in corso condividono una chiamata nel singolo processo; il repository Prisma gestisce deduplicazione e revisione in transazione. Due messaggi differenti sulla stessa revisione non si sovrascrivono: uno riceve un conflitto e deve rileggere lo stato prima di ritentare. Il client dovrebbe inviare un turno alla volta.
 
 ## Integrazione con N1 e dashboard
 
@@ -159,16 +161,16 @@ File principali:
 | --- | --- |
 | `server/agent/core/conversation-service.ts` | Logica della conversazione, senza dipendenze da Next o Prisma |
 | `server/agent/ports.ts` | `ConversationRepository`, provider e capability |
-| `server/agent/runtime.ts` | Punto di composizione da collegare agli adattatori N1 |
+| `server/agent/runtime.ts` | Punto di composizione con repository Prisma e provider dimostrativi |
 | `server/agent/http/conversation-handlers.ts` | Identita, JSON, envelope e codici HTTP |
 | `server/agent/prompts/conversation.ts` | Istruzioni del provider reale |
 | `server/agent/adapters/conversation-ai-factory.ts` | Selezione esplicita tra mock, NVIDIA e OpenAI |
 | `server/agent/adapters/nvidia-conversation-ai.ts` | Chiamata Nemotron e validazione del risultato |
 | `app/api/agent/v1/sessions/**/route.ts` | Route sottili Next.js |
 
-Per Nello: implementare `AgentRepository`; il sottoinsieme `ConversationRepository` e gia compatibile con le firme C0. Le operazioni di `commitTurn` devono deduplicare, controllare la revisione e salvare entrambi i messaggi e la bozza in una sola transazione. Non inserire chiamate al modello dentro una transazione. Usare `AgentError` da `core/errors.ts` per i conflitti del dominio.
+Il repository Prisma implementa `AgentRepository`; il sottoinsieme `ConversationRepository` e compatibile con le firme C0. `commitTurn` deduplica e controlla la revisione, salvando messaggi e bozza in una transazione. Le chiamate al modello restano fuori dalla transazione.
 
-Nel punto di composizione sostituire repository in memoria, identita demo e provider di contesto con gli adattatori reali, poi creare il servizio:
+Per la futura integrazione, sostituire identita demo e provider di contesto con gli adattatori condivisi, poi creare il servizio:
 
 ```ts
 const service = createConversationService({
@@ -205,7 +207,7 @@ npm run test:agent:live -- --base-url http://127.0.0.1:3101
 
 Su PowerShell usare `npm.cmd` se necessario. Il comando legge i token da `.env` senza stamparli, usa due messaggi fittizi e mostra le risposte dell'agent. Verifica estrazione, continuita del check-in, retry senza duplicati, 401 senza autenticazione e 409 con ID riutilizzato per un testo diverso. Le due generazioni consumano la quota NVIDIA del proprio account; le verifiche successive non generano altre risposte AI. Non modifica il programma e non invia report a Terra.
 
-L'URL del test e limitato a localhost. Per azzerare le sessioni del repository temporaneo riavviare il server. Per una conversazione manuale usare le chiamate PowerShell riportate sopra, cambiando `clientMessageId` a ogni nuovo turno.
+L'URL del test e limitato a localhost. I dati fittizi restano nel database locale anche dopo il riavvio. Per una conversazione manuale usare le chiamate PowerShell riportate sopra, cambiando `clientMessageId` a ogni nuovo turno.
 
 ### Controlli automatici senza chiamate al modello
 

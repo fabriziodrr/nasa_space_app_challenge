@@ -135,6 +135,32 @@ test("NVIDIA requests respect timeout and caller cancellation", async () => {
   assert.equal(calls, 0);
 });
 
+test("NVIDIA generates operational report and private diary through separate inputs", async () => {
+  const base = await context();
+  let calls = 0;
+  const ai = provider(async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    const input = JSON.parse(body.messages[1].content);
+    calls++;
+    if (calls === 1) {
+      assert.ok(!JSON.stringify(input).includes("messaggio privato"));
+      return Response.json(completion(JSON.stringify({ report: {
+        findings: [], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null },
+      }, proposal: null, noChangeReason: "Nessuna variazione necessaria." })));
+    }
+    assert.ok(JSON.stringify(input).includes("messaggio privato"));
+    return Response.json(completion(JSON.stringify({ text: "Oggi ho parlato del mio riposo." })));
+  });
+  const shared = { id: "checkin-1", astronautId: "astro-1", confirmedAt: "2026-11-14T06:00:00Z", observations: [] };
+  const result = await ai.generateOperational({ context: { checkIn: shared, sensors: base.sensors }, schedule: base.schedule });
+  assert.equal(result.proposal, null);
+  const diary = await ai.generateDiary({ astronautId: "astro-1", messages: [{ ...base.messages[0], text: "messaggio privato" }], checkIn: {
+    id: "checkin-1", astronautId: "astro-1", sessionId: "session-1", revision: 2, status: "CONFIRMED", observations: [], sharedObservationIds: [], createdAt: "2026-11-14T06:00:00Z", confirmedAt: "2026-11-14T06:00:00Z",
+  } });
+  assert.match(diary.text, /riposo/);
+  assert.equal(calls, 2);
+});
+
 test("NVIDIA output still passes core provenance checks before any turn is saved", async () => {
   const ai = provider(async (_url, init) => {
     const input = JSON.parse(JSON.parse(String(init?.body)).messages[1].content) as ConversationContext;

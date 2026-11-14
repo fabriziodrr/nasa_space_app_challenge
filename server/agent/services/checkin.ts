@@ -19,6 +19,25 @@ export class CheckInService {
     const draft = await this.repository.getCheckIn(astronautId, checkInId);
     if (!draft) throw AgentErrors.notFound();
     if (draft.status !== "DRAFT") throw AgentErrors.invalidState("Il check-in confermato non puo essere corretto.");
+    for (const observation of request.observations) {
+      const sameField = draft.observations.find((item) => item.field === observation.field);
+      const sameId = draft.observations.find((item) => item.id === observation.id);
+      if ((sameField && sameField.id !== observation.id) || (sameId && sameId.field !== observation.field)) {
+        throw AgentErrors.invalidState("La correzione deve mantenere l'identita delle osservazioni esistenti.");
+      }
+    }
+    const remaining = new Set(request.observations.flatMap((observation) => observation.messageIds));
+    let cursor: string | undefined;
+    const seenCursors = new Set<string>();
+    do {
+      const state = await this.repository.getSessionState(astronautId, draft.sessionId, cursor);
+      if (!state) throw AgentErrors.notFound();
+      for (const message of state.messages) if (message.role === "ASTRONAUT") remaining.delete(message.id);
+      cursor = state.nextMessageCursor ?? undefined;
+      if (cursor && seenCursors.has(cursor)) throw AgentErrors.internal("Paginazione dei messaggi non valida.");
+      if (cursor) seenCursors.add(cursor);
+    } while (remaining.size && cursor);
+    if (remaining.size) throw AgentErrors.invalidState("Le osservazioni devono riferirsi ai messaggi dell'astronauta nella sessione.");
     return this.repository.updateCheckIn(astronautId, checkInId, request);
   }
 
