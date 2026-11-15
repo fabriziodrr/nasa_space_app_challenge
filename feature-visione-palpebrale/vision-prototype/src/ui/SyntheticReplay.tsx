@@ -5,9 +5,9 @@ import type { EyeObservation } from '../contracts/sample';
 import { createSessionExport } from '../integration/session-export';
 import { downloadExport } from './download-export';
 
-const percent = (value: number | null) => value === null ? 'Non disponibile' : `${(value * 100).toFixed(1)}%`;
-const ms = (value: number | null) => value === null ? 'Non disponibile' : `${value.toFixed(0)} ms`;
-const states = { unknown: 'Non valutabile', open: 'Aperto', closed: 'Chiuso' };
+const percent = (value: number | null) => value === null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`;
+const ms = (value: number | null) => value === null ? 'Unavailable' : `${value.toFixed(0)} ms`;
+const states = { unknown: 'Unusable', open: 'Open', closed: 'Closed' };
 function reasons(eye: EyeObservation | undefined) {
   return eye?.validity === 'invalid' ? eye.reasons.join(', ') : 'Nessuno';
 }
@@ -50,34 +50,34 @@ export function SyntheticReplay() {
       setError(null);
       if (finished || index >= replay.steps.length - 1) { setIndex(-1); setFinished(false); }
       setPlaying(true);
-    } catch { setError('Impossibile avviare lo scenario sintetico.'); }
+    } catch { setError('Unable to start the synthetic scenario.'); }
   };
 
   return <section className="camera-panel" aria-labelledby="replay-title">
-    <div className="camera-heading"><h2 id="replay-title">Replay sintetico</h2><span className="status">Dati simulati</span></div>
-    <p>Scenari riproducibili senza webcam. I risultati descrivono esclusivamente i dati sintetici.</p>
+    <div className="camera-heading"><h2 id="replay-title">Synthetic replay</h2><span className="status">Simulated data</span></div>
+    <p>Reproducible scenarios without a webcam. Results describe only the synthetic data.</p>
     <label htmlFor="fixture">Scenario</label>{' '}
     <select id="fixture" value={fixture.name} disabled={playing} onChange={(event) => { setSelected(event.target.value); setIndex(-1); setFinished(false); setError(null); }}>
       {fixtures.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
     </select>
     <p className="field-hint">{fixture.description}</p>
     <div className="camera-actions">
-      <button className="button-primary" type="button" onClick={play} disabled={playing}>{index >= 0 && !finished ? 'Riprendi' : 'Avvia replay'}</button>
-      <button className="button-secondary" type="button" onClick={() => setPlaying(false)} disabled={!playing}>Pausa</button>
-      <button className="button-secondary" type="button" onClick={() => { setPlaying(false); setIndex(-1); setFinished(false); setError(null); }} disabled={index < 0 && !playing}>Azzera</button>
+      <button className="button-primary" type="button" onClick={play} disabled={playing}>{index >= 0 && !finished ? 'Resume' : 'Start replay'}</button>
+      <button className="button-secondary" type="button" onClick={() => setPlaying(false)} disabled={!playing}>Pause</button>
+      <button className="button-secondary" type="button" onClick={() => { setPlaying(false); setIndex(-1); setFinished(false); setError(null); }} disabled={index < 0 && !playing}>Reset</button>
     </div>
-    <p role="status">{error ?? (playing ? 'Riproduzione in corso' : finished ? 'Replay completato' : index >= 0 ? 'Replay in pausa' : 'Pronto per il replay')}</p>
+    <p role="status">{error ?? (playing ? 'Playing' : finished ? 'Replay complete' : index >= 0 ? 'Replay paused' : 'Ready for replay')}</p>
     {snapshot && <>
       <div className="replay-grid">
         {(['left', 'right'] as const).map((side) => <article className="replay-card" key={side}>
-          <h3>Occhio {side === 'left' ? 'sinistro' : 'destro'}</h3>
+          <h3>Eye {side === 'left' ? 'left' : 'right'}</h3>
           <p>{states[snapshot.current[side].state]}</p>
-          <p>Apertura normalizzata: {snapshot.current[side].openness === null ? 'Non disponibile' : snapshot.current[side].openness.toFixed(2)}</p>
-          <p>Motivi di invalidità: {reasons(step?.sample[side])}</p>
+          <p>Normalized openness: {snapshot.current[side].openness === null ? 'Unavailable' : snapshot.current[side].openness.toFixed(2)}</p>
+          <p>Invalidity reasons: {reasons(step?.sample[side])}</p>
         </article>)}
       </div>
-      <h3>Andamento dell’apertura</h3>
-      <p className="field-hint">Verde: sinistro · Blu: destro · Fasce grigie: intervalli non valutabili. Scala grafica limitata a 0–1; i valori numerici restano originali.</p>
+      <h3>Openness timeline</h3>
+      <p className="field-hint">Verde: left · Blu: right · Fasce grigie: intervalli non valutabili. Scala grafica limitata a 0–1; i valori numerici restano originali.</p>
       <svg className="replay-chart" viewBox="0 0 800 200" role="img" aria-label="Grafico temporale dell'apertura dei due occhi e degli intervalli non valutabili">
         <line x1="40" y1="40" x2="760" y2="40" stroke="#ccd8d1" /><line x1="40" y1="160" x2="760" y2="160" stroke="#ccd8d1" />
         <text x="8" y="45">1</text><text x="8" y="165">0</text>
@@ -97,26 +97,26 @@ export function SyntheticReplay() {
         }))}
         <text x="40" y="190">{first} ms</text><text x="675" y="190">{last} ms</text>
       </svg>
-      <h3>Riepilogo della sessione</h3>
+      <h3>Session summary</h3>
       <dl className="capture-details">
-        <div><dt>Tempo osservato</dt><dd>{ms(snapshot.session.elapsedMs)}</dd></div>
-        <div><dt>Tempo bilaterale valido</dt><dd>{ms(snapshot.session.validMs)}</dd></div>
+        <div><dt>Observed time</dt><dd>{ms(snapshot.session.elapsedMs)}</dd></div>
+        <div><dt>Valid bilateral time</dt><dd>{ms(snapshot.session.validMs)}</dd></div>
         <div><dt>Copertura</dt><dd>{percent(snapshot.session.coverage)}</dd></div>
-        <div><dt>Quota temporale di chiusura sperimentale</dt><dd>{percent(snapshot.session.closureFraction)}</dd></div>
-        <div><dt>Chiusure bilaterali complete / incomplete</dt><dd>{snapshot.session.closures.completeCount} / {snapshot.session.closures.incompleteCount}</dd></div>
-        <div><dt>Massima chiusura completa</dt><dd>{ms(snapshot.session.closures.longestCompleteMs)}</dd></div>
-        <div><dt>Campioni rifiutati</dt><dd>{snapshot.diagnostics.rejectedSamples}</dd></div>
+        <div><dt>Experimental closure time fraction</dt><dd>{percent(snapshot.session.closureFraction)}</dd></div>
+        <div><dt>Complete / incomplete bilateral closures</dt><dd>{snapshot.session.closures.completeCount} / {snapshot.session.closures.incompleteCount}</dd></div>
+        <div><dt>Longest complete closure</dt><dd>{ms(snapshot.session.closures.longestCompleteMs)}</dd></div>
+        <div><dt>Rejected samples</dt><dd>{snapshot.diagnostics.rejectedSamples}</dd></div>
       </dl>
-      <h3>Eventi bilaterali</h3>
-      {snapshot.session.events.filter((event) => event.kind === 'bilateral').length === 0 ? <p>Nessun evento osservato.</p> : <ul>{snapshot.session.events.filter((event) => event.kind === 'bilateral').map((event) => <li key={event.id}>{ms(event.startedAtMs)}: {ms(event.durationMs)} · {event.complete ? 'completo' : 'incompleto'} · {event.endedReason ?? 'in corso'}</li>)}</ul>}
+      <h3>Bilateral events</h3>
+      {snapshot.session.events.filter((event) => event.kind === 'bilateral').length === 0 ? <p>No events observed.</p> : <ul>{snapshot.session.events.filter((event) => event.kind === 'bilateral').map((event) => <li key={event.id}>{ms(event.startedAtMs)}: {ms(event.durationMs)} · {event.complete ? 'complete' : 'incomplete'} · {event.endedReason ?? 'in progress'}</li>)}</ul>}
       <button className="button-secondary" type="button" onClick={() => {
         try {
           const lastSample = step ? fixture.samples.indexOf(step.sample) : -1;
           const samples = finished ? fixture.samples : fixture.samples.slice(0, lastSample + 1);
           downloadExport(createSessionExport({ source: 'synthetic', fixture, snapshot, samples }, new Date().toISOString()));
           setError(null);
-        } catch (failure) { setError(failure instanceof Error ? failure.message : 'Esportazione non riuscita.'); }
-      }}>Esporta JSON sintetico</button>
+        } catch (failure) { setError(failure instanceof Error ? failure.message : 'Export failed.'); }
+      }}>Export synthetic JSON</button>
     </>}
   </section>;
 }

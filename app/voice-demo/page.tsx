@@ -1,6 +1,6 @@
 import { VoiceDemo } from "./voice-demo";
 
-export const metadata = { title: "Prova vocale | Assistente di bordo" };
+export const metadata = { title: "Voice demo | Onboard assistant" };
 
 export default function VoiceDemoPage() {
   return <VoiceDemo />;

@@ -13,16 +13,16 @@ export function demoProgram(astronautId: string, date: string): ScheduleSnapshot
   });
   return ScheduleSnapshotSchema.parse({ id: `demo-${astronautId}-${date}`, astronautId, date, timeZone: "Etc/UTC", version: 1,
     dayStartsAt: `${date}T06:00:00Z`, dayEndsAt: `${nextDate}T06:00:00Z`, activities: [
-      fixed("meal-1", "Colazione", "MEAL", `${date}T06:30:00Z`, `${date}T07:00:00Z`),
-      fixed("exercise-1", "Esercizio programmato", "EXERCISE", `${date}T07:00:00Z`, `${date}T08:00:00Z`),
-      fixed("comm-1", "Collegamento Terra", "MISSION", `${date}T08:00:00Z`, `${date}T08:30:00Z`),
-      { id: "science-1", title: "Inventario campioni", kind: "MISSION", startsAt: `${date}T09:00:00Z`, endsAt: `${date}T09:40:00Z`,
+      fixed("meal-1", "Breakfast", "MEAL", `${date}T06:30:00Z`, `${date}T07:00:00Z`),
+      fixed("exercise-1", "Scheduled exercise", "EXERCISE", `${date}T07:00:00Z`, `${date}T08:00:00Z`),
+      fixed("comm-1", "Ground contact", "MISSION", `${date}T08:00:00Z`, `${date}T08:30:00Z`),
+      { id: "science-1", title: "Sample inventory", kind: "MISSION", startsAt: `${date}T09:00:00Z`, endsAt: `${date}T09:40:00Z`,
         priority: "NORMAL", movable: true, dependsOn: ["comm-1"], earliestStart: `${date}T09:00:00Z`, latestEnd: `${date}T11:30:00Z` },
-      fixed("meal-2", "Pranzo", "MEAL", `${date}T12:00:00Z`, `${date}T13:00:00Z`),
-      { id: "science-2", title: "Revisione dati", kind: "MISSION", startsAt: `${date}T14:00:00Z`, endsAt: `${date}T14:40:00Z`,
+      fixed("meal-2", "Lunch", "MEAL", `${date}T12:00:00Z`, `${date}T13:00:00Z`),
+      { id: "science-2", title: "Data review", kind: "MISSION", startsAt: `${date}T14:00:00Z`, endsAt: `${date}T14:40:00Z`,
         priority: "LOW", movable: true, dependsOn: [], earliestStart: `${date}T14:00:00Z`, latestEnd: `${date}T15:30:00Z` },
-      fixed("exercise-2", "Esercizio programmato", "EXERCISE", `${date}T16:00:00Z`, `${date}T17:00:00Z`),
-      fixed("meal-3", "Cena", "MEAL", `${date}T19:00:00Z`, `${date}T20:00:00Z`),
+      fixed("exercise-2", "Scheduled exercise", "EXERCISE", `${date}T16:00:00Z`, `${date}T17:00:00Z`),
+      fixed("meal-3", "Dinner", "MEAL", `${date}T19:00:00Z`, `${date}T20:00:00Z`),
       fixed("sleep-1", "Opportunità di sonno protetta", "REST", `${date}T21:30:00Z`, `${nextDate}T06:00:00Z`),
     ] });
 }

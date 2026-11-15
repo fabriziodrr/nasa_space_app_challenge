@@ -1,4 +1,4 @@
-import { speakItalian, type SpeakHandle } from "./speech";
+import { speakEnglish, type SpeakHandle } from "./speech";
 
 export interface ServerSpeechRequest {
   sessionId: string;
@@ -41,11 +41,11 @@ export function speakServerReply(
         },
       };
       audio.onended = () => { current = null; URL.revokeObjectURL(url); onEnd(); };
-      audio.onerror = () => { current = null; URL.revokeObjectURL(url); onError("Impossibile riprodurre la risposta."); };
+      audio.onerror = () => { current = null; URL.revokeObjectURL(url); onError("Unable to play the reply."); };
       await audio.play();
     } catch {
       if (cancelled) return;
-      current = speakItalian(request.text, onEnd, onError);
+      current = speakEnglish(request.text, onEnd, onError);
     }
   })();
 

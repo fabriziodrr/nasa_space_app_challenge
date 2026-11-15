@@ -64,7 +64,7 @@ test("unshared evidence is excluded and the report requires human review", async
   await h.service.generate(identity, h.checkIn.id);
   assert.deepEqual(h.published()?.report.findings, []);
   assert.equal(h.published()?.report.humanReview.required, true);
-  assert.ok(h.published()?.report.uncertainties.some((item) => item.includes("escluse")));
+  assert.ok(h.published()?.report.uncertainties.some((item) => item.includes("excluded")));
 });
 
 test("ground control cannot generate an astronaut's private diary", async () => {

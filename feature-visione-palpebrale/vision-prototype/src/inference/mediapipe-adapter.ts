@@ -117,7 +117,7 @@ function errorMessage(error: unknown): string {
     return error.message;
   }
 
-  return typeof error === 'string' ? error : 'Errore sconosciuto.';
+  return typeof error === 'string' ? error : 'Error sconosciuto.';
 }
 
 function isPositiveFinite(value: unknown): value is number {
@@ -392,7 +392,7 @@ export class MediaPipeFaceLandmarkerAdapter {
     } catch (error) {
       throw new InferenceError(
         'runtime_error',
-        'Errore durante l’inferenza MediaPipe.',
+        'Error durante l’inferenza MediaPipe.',
         error,
       );
     }

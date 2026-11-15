@@ -292,7 +292,7 @@ export class CalibrationCollector {
 
   getConfig(): ResolvedCalibrationConfig { return this.config; }
 
-  /** Azzera la raccolta e comincia la fase aperta. */
+  /** Reset la raccolta e comincia la fase aperta. */
   start(): void {
     this.reset();
     this.beginPhase('open');

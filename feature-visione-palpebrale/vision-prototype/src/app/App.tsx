@@ -12,17 +12,17 @@ import type { ApplicationPhase, SessionInterruptionReason } from '../contracts/s
 import { AgentBridge, allowedParentOrigin } from '../integration/agent-bridge';
 
 const statusLabels = {
-  idle: 'Spenta', requesting: 'Autorizzazione', starting: 'Avvio in corso',
-  active: 'Anteprima attiva', suspended: 'Interrotta', error: 'Errore webcam',
+  idle: 'Off', requesting: 'Permission', starting: 'Starting',
+  active: 'Preview active', suspended: 'Interrupted', error: 'Webcam error',
 };
 const phaseLabels: Record<ApplicationPhase, string> = {
-  idle: 'Inattiva', loading: 'Caricamento', preview: 'Anteprima', calibrating: 'Calibrazione',
-  measuring: 'Misura in corso', stopped: 'Arrestata', suspended: 'Sospesa', error: 'Errore',
+  idle: 'Inactive', loading: 'Loading', preview: 'Preview', calibrating: 'Calibration',
+  measuring: 'Measuring', stopped: 'Stopta', suspended: 'Suspended', error: 'Error',
 };
 const interruptionLabels: Record<SessionInterruptionReason, string> = {
-  user_stop: 'Arresto richiesto', source_changed: 'Sorgente cambiata', page_hidden: 'Scheda sospesa',
-  device_lost: 'Fotocamera non disponibile', calibration_invalidated: 'Calibrazione non più valida',
-  sample_limit: 'Limite di campioni raggiunto', processing_error: 'Errore durante l’elaborazione',
+  user_stop: 'Requested stop', source_changed: 'Source changed', page_hidden: 'Tab hidden',
+  device_lost: 'Camera unavailable', calibration_invalidated: 'Calibration no longer valid',
+  sample_limit: 'Sample limit reached', processing_error: 'Processing error',
 };
 
 export function App() {
@@ -58,18 +58,18 @@ export function App() {
 
   return (
     <main className="page">
-      <header className="brand">CrewReady <span>Prototipo locale</span></header>
+      <header className="brand">CrewReady <span>Local prototype</span></header>
       <section className="intro" aria-labelledby="page-title">
-        <p className="eyebrow">Osservazione palpebrale</p>
-        <h1 id="page-title">Visione palpebrale</h1>
+        <p className="eyebrow">Eyelid observation</p>
+        <h1 id="page-title">Eyelid measurement</h1>
         <p className="description">
-          Prepara l’inquadratura e verifica la tua fotocamera.
-          Avvia l’anteprima quando sei pronto.
+          Frame your face and check your camera.
+          Start the preview when you are ready.
         </p>
       </section>
       <section className="camera-panel" aria-labelledby="camera-title">
         <div className="camera-heading">
-          <h2 id="camera-title">La tua fotocamera</h2>
+          <h2 id="camera-title">Your camera</h2>
           <span className={`status status-${snapshot.status}`}>{statusLabels[snapshot.status]}</span>
         </div>
         <div className="camera-layout">
@@ -80,10 +80,10 @@ export function App() {
                 autoPlay
                 muted
                 playsInline
-                aria-label="Anteprima della webcam"
+                aria-label="Webcam preview"
                 className={`${active ? 'video-visible' : ''} ${mirrored ? 'video-mirrored' : ''}`}
               />
-              {active && showOverlay && live?.inference?.landmarks && <svg className={`camera-overlay ${mirrored ? 'video-mirrored' : ''}`} viewBox={`0 0 ${live.inference.geometry.imageWidth} ${live.inference.geometry.imageHeight}`} preserveAspectRatio="xMidYMid meet" aria-label="Punti palpebrali rilevati">
+              {active && showOverlay && live?.inference?.landmarks && <svg className={`camera-overlay ${mirrored ? 'video-mirrored' : ''}`} viewBox={`0 0 ${live.inference.geometry.imageWidth} ${live.inference.geometry.imageHeight}`} preserveAspectRatio="xMidYMid meet" aria-label="Detected eyelid landmarks">
                 {(['left', 'right'] as const).map((side) => {
                   const eye = live.inference!.landmarks![side];
                   const points = [eye.outerCorner, eye.upperOuter, eye.upperInner, eye.innerCorner, eye.lowerInner, eye.lowerOuter];
@@ -96,87 +96,87 @@ export function App() {
                     <rect x="7" y="14" width="25" height="22" rx="5" />
                     <path d="m32 21 9-5v18l-9-5M15 9h9" />
                   </svg>
-                  <strong>{pending ? 'Preparazione dell’anteprima…' : 'Anteprima non attiva'}</strong>
-                  <span>{pending ? 'Puoi annullare premendo Arresta.' : 'Premi Avvia webcam per iniziare.'}</span>
+                  <strong>{pending ? 'Preparing preview…' : 'Preview inactive'}</strong>
+                  <span>{pending ? 'You can cancel by pressing Stop.' : 'Press Start webcam to begin.'}</span>
                 </div>
               )}
-              {active && <span className="live-label"><span />In diretta</span>}
+              {active && <span className="live-label"><span />Live</span>}
             </div>
             <label className="mirror-control">
               <input type="checkbox" checked={mirrored} onChange={(event) => setMirrored(event.target.checked)} />
-              Anteprima a specchio
+              Mirror preview
             </label>
-            <label className="mirror-control"><input type="checkbox" checked={showOverlay} onChange={(event) => setShowOverlay(event.target.checked)} />Mostra punti palpebrali</label>
+            <label className="mirror-control"><input type="checkbox" checked={showOverlay} onChange={(event) => setShowOverlay(event.target.checked)} />Show eyelid landmarks</label>
           </div>
           <div className="camera-controls">
-            <label htmlFor="camera-device">Sorgente video</label>
+            <label htmlFor="camera-device">Video source</label>
             <select id="camera-device" value={deviceId} disabled={pending} onChange={(event) => selectDevice(event.target.value)}>
-              <option value="">Fotocamera predefinita</option>
+              <option value="">Default camera</option>
               {deviceId && !devices.some((device) => device.deviceId === deviceId) && (
-                <option value={deviceId}>Fotocamera selezionata non disponibile</option>
+                <option value={deviceId}>Selected camera unavailable</option>
               )}
               {devices.map((device, index) => (
-                <option key={device.deviceId} value={device.deviceId}>{device.label || `Fotocamera ${index + 1}`}</option>
+                <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>
               ))}
             </select>
-            <p className="field-hint">L’elenco si aggiorna dopo l’autorizzazione. Cambiare sorgente arresta l’anteprima.</p>
+            <p className="field-hint">The list updates after permission is granted. Changing the source stops the preview.</p>
             {deviceMessage && <p className="field-hint">{deviceMessage}</p>}
             <div className="camera-actions">
-              <button className="button-primary" type="button" onClick={start} disabled={canStop}>Avvia webcam</button>
-              <button className="button-secondary" type="button" onClick={stop} disabled={!canStop}>Arresta</button>
+              <button className="button-primary" type="button" onClick={start} disabled={canStop}>Start webcam</button>
+              <button className="button-secondary" type="button" onClick={stop} disabled={!canStop}>Stop</button>
             </div>
             <div className={`camera-message ${snapshot.status === 'error' ? 'message-error' : ''}`}>
               <p role={snapshot.status === 'error' ? 'alert' : 'status'} aria-live="polite">{snapshot.message}</p>
             </div>
             {active && (
               <dl className="capture-details">
-                <div><dt>Risoluzione video</dt><dd>{snapshot.width ? `${snapshot.width} × ${snapshot.height}` : 'In attesa di immagini'}</dd></div>
-                <div><dt>Fotogrammi ricevuti</dt><dd>{snapshot.frameCount.toLocaleString('it-IT')}</dd></div>
+                <div><dt>Video resolution</dt><dd>{snapshot.width ? `${snapshot.width} × ${snapshot.height}` : 'Waiting for video'}</dd></div>
+                <div><dt>Received frames</dt><dd>{snapshot.frameCount.toLocaleString('en-US')}</dd></div>
               </dl>
             )}
-            <p className="local-note">Solo video, senza audio. Le immagini restano in questa pagina e non vengono registrate o inviate.</p>
+            <p className="local-note">Video only, no audio. Images stay on this page and are neither recorded nor transmitted.</p>
           </div>
         </div>
       </section>
       <section className="camera-panel" aria-labelledby="live-title">
-        <div className="camera-heading"><h2 id="live-title">Calibrazione e misura</h2><span className="status">{phaseLabels[live?.phase ?? 'idle']}</span></div>
-        <p role="status">{live?.message ?? 'Avvia la webcam, poi prepara l’analisi.'}</p>
-        {live?.interruption && <p>Causa: {interruptionLabels[live.interruption]}.</p>}
-        {live?.error && <p role="alert">Fase dell’errore: {live.error.stage}.</p>}
+        <div className="camera-heading"><h2 id="live-title">Calibration and measurement</h2><span className="status">{phaseLabels[live?.phase ?? 'idle']}</span></div>
+        <p role="status">{live?.message ?? 'Start the webcam, then prepare the analysis.'}</p>
+        {live?.interruption && <p>Reason: {interruptionLabels[live.interruption]}.</p>}
+        {live?.error && <p role="alert">Error stage: {live.error.stage}.</p>}
         <div className="camera-actions">
-          <button className="button-primary" type="button" disabled={!active || !['idle', 'stopped', 'suspended', 'error'].includes(live?.phase ?? 'idle')} onClick={() => void session.start()}>Prepara analisi</button>
-          <button className="button-secondary" type="button" disabled={!active || live?.phase !== 'preview'} onClick={() => session.startOpen()}>Calibra: occhi aperti</button>
-          <button className="button-secondary" type="button" disabled={live?.phase !== 'calibrating' || live.calibration.status !== 'collecting' || live.calibration.reference !== 'open' || !live.progress?.open.complete} onClick={() => session.startClosed()}>Continua: occhi chiusi</button>
-          <button className="button-secondary" type="button" disabled={live?.phase !== 'calibrating' || live.calibration.status !== 'collecting' || live.calibration.reference !== 'closed' || !live.progress?.closed.complete} onClick={() => session.finishCalibration()}>Completa calibrazione</button>
-          <button className="button-primary" type="button" disabled={live?.phase !== 'preview' || live.calibration.status !== 'ready'} onClick={() => session.startMeasurement()}>Avvia misura</button>
-          <button className="button-secondary" type="button" disabled={live?.phase !== 'measuring'} onClick={() => session.stopMeasurement()}>Arresta misura</button>
-          <button className="button-secondary" type="button" disabled={!live || ['idle', 'stopped'].includes(live.phase)} onClick={() => session.stop()}>Chiudi analisi</button>
+          <button className="button-primary" type="button" disabled={!active || !['idle', 'stopped', 'suspended', 'error'].includes(live?.phase ?? 'idle')} onClick={() => void session.start()}>Prepare analysis</button>
+          <button className="button-secondary" type="button" disabled={!active || live?.phase !== 'preview'} onClick={() => session.startOpen()}>Calibrate: eyes open</button>
+          <button className="button-secondary" type="button" disabled={live?.phase !== 'calibrating' || live.calibration.status !== 'collecting' || live.calibration.reference !== 'open' || !live.progress?.open.complete} onClick={() => session.startClosed()}>Continue: eyes closed</button>
+          <button className="button-secondary" type="button" disabled={live?.phase !== 'calibrating' || live.calibration.status !== 'collecting' || live.calibration.reference !== 'closed' || !live.progress?.closed.complete} onClick={() => session.finishCalibration()}>Complete calibration</button>
+          <button className="button-primary" type="button" disabled={live?.phase !== 'preview' || live.calibration.status !== 'ready'} onClick={() => session.startMeasurement()}>Start measurement</button>
+          <button className="button-secondary" type="button" disabled={live?.phase !== 'measuring'} onClick={() => session.stopMeasurement()}>Stop measurement</button>
+          <button className="button-secondary" type="button" disabled={!live || ['idle', 'stopped'].includes(live.phase)} onClick={() => session.stop()}>Close analysis</button>
         </div>
-        {live?.progress && <p>Campioni validi — aperti: sinistro {live.progress.open.samples.left}, destro {live.progress.open.samples.right}; chiusi: sinistro {live.progress.closed.samples.left}, destro {live.progress.closed.samples.right}. Richiesti per fase: {live.progress.open.requiredPerEye}.</p>}
-        {live?.calibration.status === 'insufficient' && <p role="alert">Calibrazione non disponibile: {live.calibration.reasons.join(', ')}{live.calibration.details?.length ? ` (${live.calibration.details.join(', ')})` : ''}</p>}
-        {live?.inference && <p>Qualità: {live.inference.message} Sinistro: {live.inference.geometry.left.valid ? 'valido' : live.inference.geometry.left.invalidityReasons.join(', ')}; destro: {live.inference.geometry.right.valid ? 'valido' : live.inference.geometry.right.invalidityReasons.join(', ')}.</p>}
-        {live?.lastSample && (live.lastSample.left.validity === 'invalid' || live.lastSample.right.validity === 'invalid') && <p>Ultimo campione accettato non valutabile: sinistro {live.lastSample.left.validity === 'invalid' ? live.lastSample.left.reasons.join(', ') : 'valido'}; destro {live.lastSample.right.validity === 'invalid' ? live.lastSample.right.reasons.join(', ') : 'valido'}.</p>}
+        {live?.progress && <p>Valid samples — aperti: left {live.progress.open.samples.left}, right {live.progress.open.samples.right}; chiusi: left {live.progress.closed.samples.left}, right {live.progress.closed.samples.right}. Required per phase: {live.progress.open.requiredPerEye}.</p>}
+        {live?.calibration.status === 'insufficient' && <p role="alert">Calibration unavailable: {live.calibration.reasons.join(', ')}{live.calibration.details?.length ? ` (${live.calibration.details.join(', ')})` : ''}</p>}
+        {live?.inference && <p>Quality: {live.inference.message} Sinistro: {live.inference.geometry.left.valid ? 'valid' : live.inference.geometry.left.invalidityReasons.join(', ')}; right: {live.inference.geometry.right.valid ? 'valid' : live.inference.geometry.right.invalidityReasons.join(', ')}.</p>}
+        {live?.lastSample && (live.lastSample.left.validity === 'invalid' || live.lastSample.right.validity === 'invalid') && <p>Latest accepted sample unusable: left {live.lastSample.left.validity === 'invalid' ? live.lastSample.left.reasons.join(', ') : 'valid'}; right {live.lastSample.right.validity === 'invalid' ? live.lastSample.right.reasons.join(', ') : 'valid'}.</p>}
         {live?.engine && <div className="replay-grid">
-          {(['left', 'right'] as const).map((side) => <article className="replay-card" key={side}><h3>Occhio {side === 'left' ? 'sinistro' : 'destro'}</h3><p>Stato: {{ open: 'Aperto', closed: 'Chiuso', unknown: 'Non valutabile' }[live.engine!.current[side].state]}</p><p>Apertura normalizzata: {live.engine!.current[side].openness?.toFixed(2) ?? 'Non disponibile'}</p></article>)}
-          <article className="replay-card"><h3>Riepilogo</h3><p>Tempo valido: {live.engine.session.validMs.toFixed(0)} ms</p><p>Copertura: {live.engine.session.coverage === null ? 'Non disponibile' : `${(live.engine.session.coverage * 100).toFixed(1)}%`}</p><p>Quota temporale di chiusura sperimentale: {live.engine.session.closureFraction === null ? 'Non disponibile' : `${(live.engine.session.closureFraction * 100).toFixed(1)}%`}</p><p>Chiusure complete: {live.engine.session.closures.completeCount}; incomplete: {live.engine.session.closures.incompleteCount}</p></article>
+          {(['left', 'right'] as const).map((side) => <article className="replay-card" key={side}><h3>Eye {side === 'left' ? 'left' : 'right'}</h3><p>Stato: {{ open: 'Open', closed: 'Closed', unknown: 'Unusable' }[live.engine!.current[side].state]}</p><p>Normalized openness: {live.engine!.current[side].openness?.toFixed(2) ?? 'Unavailable'}</p></article>)}
+          <article className="replay-card"><h3>Summary</h3><p>Valid time: {live.engine.session.validMs.toFixed(0)} ms</p><p>Coverage: {live.engine.session.coverage === null ? 'Unavailable' : `${(live.engine.session.coverage * 100).toFixed(1)}%`}</p><p>Experimental closure time fraction: {live.engine.session.closureFraction === null ? 'Unavailable' : `${(live.engine.session.closureFraction * 100).toFixed(1)}%`}</p><p>Complete closures: {live.engine.session.closures.completeCount}; incomplete: {live.engine.session.closures.incompleteCount}</p></article>
         </div>}
-        {live?.engine && <><h3>Andamento della misura</h3>{live.chartReduced && <p>Grafico semplificato; i campioni originali rimangono nell’esportazione.</p>}<LiveChart points={live.history} /><h3>Eventi bilaterali</h3>{live.engine.session.events.filter((event) => event.kind === 'bilateral').length === 0 ? <p>Nessun evento osservato.</p> : <ul>{live.engine.session.events.filter((event) => event.kind === 'bilateral').map((event) => <li key={event.id}>{event.durationMs.toFixed(0)} ms · {event.complete ? 'completo' : 'incompleto'} · {event.endedReason ?? 'in corso'}</li>)}</ul>}</>}
+        {live?.engine && <><h3>Measurement timeline</h3>{live.chartReduced && <p>Simplified chart; original samples remain in the export.</p>}<LiveChart points={live.history} /><h3>Bilateral events</h3>{live.engine.session.events.filter((event) => event.kind === 'bilateral').length === 0 ? <p>No events observed.</p> : <ul>{live.engine.session.events.filter((event) => event.kind === 'bilateral').map((event) => <li key={event.id}>{event.durationMs.toFixed(0)} ms · {event.complete ? 'complete' : 'incomplete'} · {event.endedReason ?? 'in progress'}</li>)}</ul>}</>}
         <button className="button-secondary" type="button" disabled={!live?.engine || !live.exportProfile} onClick={() => {
           if (!live) return;
           try { downloadExport(session.exportSnapshot(live)); setExportError(''); }
-          catch (error) { setExportError(error instanceof Error ? error.message : 'Esportazione non riuscita.'); }
-        }}>Esporta JSON webcam</button>
+          catch (error) { setExportError(error instanceof Error ? error.message : 'Export failed.'); }
+        }}>Export webcam JSON</button>
         {parentOrigin && <>
           <button className="button-primary" type="button" disabled={bridgeState === 'sending' || (bridgeState !== 'failed' && (!live?.engine || live.engine.status !== 'stopped' || !live.exportProfile))} onClick={() => {
             try {
               if (bridgeState === 'failed') bridge.current?.send('');
               else if (live) bridge.current?.send(JSON.stringify(session.exportSnapshot(live)));
               setBridgeError('');
-            } catch (error) { setBridgeError(error instanceof Error ? error.message : 'Invio non riuscito.'); }
-          }}>{bridgeState === 'sending' ? 'Invio in corso…' : bridgeState === 'failed' ? 'Riprova invio all’agent' : 'Invia misura all’agent'}</button>
-          {bridgeState === 'failed' && <button className="button-secondary" type="button" onClick={() => { bridge.current?.clear(); setBridgeError(''); }}>Annulla invio in sospeso</button>}
-          {bridgeState === 'sent' && <p role="status">Misura ricevuta. Selezionala nella pagina dell’agent per usarla.</p>}
-          {bridgeState === 'failed' && <p role="alert">Invio non confermato. Puoi riprovare oppure annullare: la misura potrebbe essere già arrivata all’agent.</p>}
+            } catch (error) { setBridgeError(error instanceof Error ? error.message : 'Sending failed.'); }
+          }}>{bridgeState === 'sending' ? 'Sending…' : bridgeState === 'failed' ? 'Retry sending to agent' : 'Send measurement to agent'}</button>
+          {bridgeState === 'failed' && <button className="button-secondary" type="button" onClick={() => { bridge.current?.clear(); setBridgeError(''); }}>Cancel pending submission</button>}
+          {bridgeState === 'sent' && <p role="status">Measurement received. Select it on the agent page to use it.</p>}
+          {bridgeState === 'failed' && <p role="alert">Submission unconfirmed. Retry or cancel; the measurement may already have reached the agent.</p>}
           {bridgeError && <p role="alert">{bridgeError}</p>}
         </>}
         {exportError && <p role="alert">{exportError}</p>}
@@ -186,17 +186,17 @@ export function App() {
             const report = createSessionValidationReport(session.exportSnapshot(live));
             downloadJson(`crewready-prestazioni-${Date.now()}.json`, JSON.stringify(report, null, 2));
             setExportError('');
-          } catch (error) { setExportError(error instanceof Error ? error.message : 'Report non disponibile.'); }
-        }}>Esporta report N05</button>
+          } catch (error) { setExportError(error instanceof Error ? error.message : 'Report unavailable.'); }
+        }}>Export N05 report</button>
       </section>
       <SyntheticReplay />
       <section className="session-note" aria-labelledby="next-title">
-        <h2 id="next-title">Prima l’inquadratura, poi la misura</h2>
-        <p>L’anteprima non avvia automaticamente una sessione di misura.</p>
-        <p>Se lasci questa scheda o riduci il browser a icona, la fotocamera viene arrestata. Al ritorno premi Avvia per ripartire.</p>
+        <h2 id="next-title">Frame your face before measuring</h2>
+        <p>The preview does not automatically start a measurement session.</p>
+        <p>Leaving this tab or minimizing the browser stops the camera. Press Start when you return.</p>
         <p className="disclaimer">
-          Le misure descriveranno il comportamento palpebrale osservato.
-          Non forniscono diagnosi o valutazioni di idoneità.
+          Measurements describe observed eyelid behavior.
+          They do not provide a diagnosis or fitness assessment.
         </p>
       </section>
     </main>

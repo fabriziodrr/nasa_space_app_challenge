@@ -39,6 +39,16 @@ function harness(options: {
 }
 const message = (id: string, text: string) => ({ clientMessageId: id, text, inputMode: "TEXT" });
 
+test("English check-ins collect explicit ratings and reply in English", async () => {
+  const { service } = harness();
+  const session = await service.createSession(actor, { astronautId: actor.astronautId });
+  const result = await service.sendMessage(actor, session.id, message("english", "I slept 6 hours. Sleep quality is 3 out of 10. Fatigue is 8 out of 10."));
+  assert.equal(result.checkIn.observations.find((item) => item.field === "SLEEP_HOURS")?.value, 6);
+  assert.equal(result.checkIn.observations.find((item) => item.field === "SLEEP_QUALITY")?.value, 3);
+  assert.equal(result.checkIn.observations.find((item) => item.field === "FATIGUE")?.value, 8);
+  assert.match(result.assistantMessage.text, /How do you feel physically/);
+});
+
 test("check-in records 1–10 scales and leaves explicit 1–5 values for clarification", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
@@ -61,7 +71,7 @@ test("selected synthetic vision reaches the model without becoming a self report
   const result = await service.sendMessage(actor, session.id, { ...message("v1", "Ho dormito 5 ore."), inputMode: "VOICE" });
   assert.equal(captured?.visionObservations[0].source, "synthetic");
   assert.equal(captured?.visionObservations[0].usability, "INSUFFICIENT");
-  assert.match(result.assistantMessage.text, /sintetica/);
+  assert.match(result.assistantMessage.text, /synthetic/);
   assert.equal(result.astronautMessage.inputMode, "VOICE");
   assert.deepEqual(result.checkIn.observations.map((item) => item.field), ["SLEEP_HOURS"]);
 });
@@ -90,7 +100,7 @@ test("stale and low coverage observations are identified without deriving fatigu
   assert.deepEqual(new Set(captured?.visionObservations[0].reasons), new Set(["STALE", "LOW_COVERAGE", "TOO_SHORT"]));
   assert.equal(captured?.visionObservations[0].usability, "INSUFFICIENT");
   assert.deepEqual(result.checkIn.observations, []);
-  assert.match(result.assistantMessage.text, /non è sufficientemente utilizzabile/);
+  assert.match(result.assistantMessage.text, /not usable/);
 });
 
 test("usable webcam closure prompts clarification without adding a fatigue score", async () => {
@@ -101,7 +111,7 @@ test("usable webcam closure prompts clarification without adding a fatigue score
   } } });
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
   const result = await service.sendMessage(actor, session.id, message("vision-usable", "Mi sento riposato."));
-  assert.match(result.assistantMessage.text, /chiusure prolungate/);
+  assert.match(result.assistantMessage.text, /prolonged closures/);
   assert.deepEqual(result.checkIn.observations, []);
 });
 
@@ -111,7 +121,7 @@ test("textual check-in accumulates explicit answers and preserves stable observa
   const first = await service.sendMessage(actor, session.id, message("client-1", "Ho dormito cinque ore e mezza."));
   assert.equal(first.checkIn.observations[0].value, 5.5);
   const hoursId = first.checkIn.observations[0].id;
-  assert.match(first.assistantMessage.text, /qualita/i);
+  assert.match(first.assistantMessage.text, /quality/i);
   const second = await service.sendMessage(actor, session.id, message("client-2", "Qualita del sonno 2 su 10. Stanchezza 4 su 10."));
   assert.equal(second.checkIn.revision, 2);
   assert.equal(second.checkIn.id, first.checkIn.id);
@@ -140,7 +150,7 @@ test("missing or qualitative answers do not become fabricated numeric measuremen
   const session = await service.createSession(actor, { astronautId: "astro-1" });
   const result = await service.sendMessage(actor, session.id, message("first", "Ho dormito male e mi sento stanco."));
   assert.deepEqual(result.checkIn.observations, []);
-  assert.match(result.assistantMessage.text, /Quante ore/);
+  assert.match(result.assistantMessage.text, /How many hours/);
 });
 
 test("conflicting sensor and self-report values remain separate and trigger clarification", async () => {
@@ -148,8 +158,8 @@ test("conflicting sensor and self-report values remain separate and trigger clar
   const session = await service.createSession(actor, { astronautId: "astro-1" });
   const result = await service.sendMessage(actor, session.id, message("first", "Ho dormito 4 ore."));
   assert.equal(result.checkIn.observations[0].value, 4);
-  assert.match(result.assistantMessage.text, /8 ore/);
-  assert.match(result.assistantMessage.text, /stesso periodo di riposo/);
+  assert.match(result.assistantMessage.text, /8 hours/);
+  assert.match(result.assistantMessage.text, /same sleep period/);
 });
 
 test("a rested conversation never applies or invents a schedule proposal in T1", async () => {
@@ -157,7 +167,7 @@ test("a rested conversation never applies or invents a schedule proposal in T1",
   const session = await service.createSession(actor, { astronautId: "astro-1" });
   await service.sendMessage(actor, session.id, message("first", "Ho dormito 8 ore. Qualita del sonno 4 su 10. Stanchezza 1 su 10."));
   const result = await service.sendMessage(actor, session.id, message("second", "Fisicamente: mi sento bene."));
-  assert.match(result.assistantMessage.text, /programma resta invariato/i);
+  assert.match(result.assistantMessage.text, /schedule is unchanged/i);
   assert.equal((await service.getSession(actor, session.id)).proposal, null);
 });
 

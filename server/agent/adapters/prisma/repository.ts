@@ -96,7 +96,7 @@ export class PrismaAgentRepository implements AgentRepository {
     if (beforeMessageId) {
       const cursor = await this.prisma.conversationMessage.findUnique({ where: { id: beforeMessageId } });
       if (!cursor || cursor.sessionId !== sessionId) {
-        throw AgentErrors.notFound("Messaggio di cursore non trovato nella sessione.");
+        throw AgentErrors.notFound("Cursor message not found in this session.");
       }
       where = {
         sessionId,

@@ -33,10 +33,10 @@ export function SlothDemo() {
     });
     const payload: unknown = await result.json();
     if (!result.ok) {
-      if (result.status === 401) throw new Error("Token non riconosciuto. Controlla il token demo dell'astronauta.");
-      if (result.status === 429) throw new Error("Limite del servizio raggiunto. Riprova più tardi.");
-      if (result.status === 409) throw new Error("La conversazione è cambiata. Ricarica la pagina e apri una nuova sessione.");
-      throw new Error("Servizio non disponibile. Controlla il server e riprova.");
+      if (result.status === 401) throw new Error("Token not recognized. Check the astronaut demo token.");
+      if (result.status === 429) throw new Error("Service limit reached. Try again later.");
+      if (result.status === 409) throw new Error("The conversation has changed. Reload and start a new session.");
+      throw new Error("Service unavailable. Check the server and try again.");
     }
     return payload;
   }
@@ -48,12 +48,12 @@ export function SlothDemo() {
     try {
       const parsed = CreateSessionResponseSchema.parse(await request("/sessions", { astronautId: "astro-1" }));
       if (mounted.current) setSessionId(parsed.data.id);
-    } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Impossibile avviare la sessione."); }
+    } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Unable to start the session."); }
     finally { startingRef.current = false; if (mounted.current) setStarting(false); }
   }
 
   async function send(text: string, mode: "TEXT" | "VOICE"): Promise<SpeakableReply> {
-    if (!sessionId) throw new Error("Avvia prima la sessione.");
+    if (!sessionId) throw new Error("Start a session first.");
     const previous = pending.current;
     if (!previous || previous.text !== text || previous.mode !== mode) pending.current = { id: crypto.randomUUID(), text, mode };
     const current = pending.current!;
@@ -85,17 +85,17 @@ export function SlothDemo() {
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
 
-  return <main className={styles.page} lang="it">
+  return <main className={styles.page} lang="en">
     <div className={styles.shell}>
       <header className={styles.header}>
         <p className={styles.eyebrow}>Assistente di bordo · Demo interattiva</p>
         <h1>Parla con l’assistente</h1>
       </header>
       {!sessionId ? <form className={styles.panel} onSubmit={start}>
-        <label htmlFor="demo-token">Token demo astronauta</label>
-        <p>Inserisci il valore di <code>AGENT_DEMO_TOKEN</code> dal file locale <code>.env</code>. Non è la chiave NVIDIA.</p>
+        <label htmlFor="demo-token">Astronaut demo token</label>
+        <p>Enter the value of <code>AGENT_DEMO_TOKEN</code> from your local file <code>.env</code>. This is separate from your NVIDIA key.</p>
         <input id="demo-token" type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} />
-        <button type="submit" disabled={starting || !token.trim()}>{starting ? "Avvio…" : "Avvia sessione"}</button>
+        <button type="submit" disabled={starting || !token.trim()}>{starting ? "Starting…" : "Start session"}</button>
         {error && <p role="alert">{error}</p>}
       </form> : <>
         <div className={styles.stage}>
@@ -106,13 +106,13 @@ export function SlothDemo() {
         <div className={styles.panel}><VoiceComposer onSend={manualSend} /></div>
         <section className={styles.panel} aria-labelledby="history-title">
           <h2 id="history-title">Cronologia</h2>
-          {!messages.length && <p>La sessione è pronta. Avvia la conversazione continua oppure scrivi il primo messaggio.</p>}
+          {!messages.length && <p>Your session is ready. Start voice conversation or type your first message.</p>}
           <ol className={styles.log} aria-live="polite">
-            {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "Tu" : "Assistente"}</strong><p>{item.text}</p></li>)}
+            {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "You" : "Assistant"}</strong><p>{item.text}</p></li>)}
           </ol>
         </section>
-        <p className={styles.footnote}>L’assistente risponde ad alta voce e il suo avatar si anima mentre parla. Puoi dettare o scrivere in modo libero: capisce il senso delle tue frasi. Il check-in rimane una bozza e non viene condiviso automaticamente.</p>
-        <p className={styles.footnote}>Voce: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (con browser di riserva).</p>
+        <p className={styles.footnote}>The assistant speaks aloud and its avatar animates while speaking. You can dictate or type freely. The check-in stays a private draft until you choose to share it.</p>
+        <p className={styles.footnote}>Voice: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (with browser fallback).</p>
       </>}
     </div>
   </main>;

@@ -7,7 +7,7 @@ export function LiveChart({ points }: { points: readonly LivePoint[] }) {
   const x = (time: number) => 40 + (time - first) / duration * 720;
   const y = (value: number) => 160 - Math.max(0, Math.min(1, value)) * 120;
   return <>
-    <p className="field-hint">Sinistro verde, destro blu; grigio: dati non valutabili o intervalli mancanti. Scala grafica 0–1.</p>
+    <p className="field-hint">Sinistro verde, right blu; grigio: dati non valutabili o intervalli mancanti. Scala grafica 0–1.</p>
     <svg className="replay-chart" viewBox="0 0 800 200" role="img" aria-label="Apertura degli occhi e intervalli non valutabili nella misura webcam">
       <line x1="40" y1="40" x2="760" y2="40" stroke="#ccd8d1" /><line x1="40" y1="160" x2="760" y2="160" stroke="#ccd8d1" />
       <text x="8" y="45">1</text><text x="8" y="165">0</text>

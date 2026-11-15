@@ -76,7 +76,7 @@ export class OpenAiConversationProvider implements ConversationAiProvider {
         await response.body?.cancel();
         if (response.status === 429) throw new AgentError("RATE_LIMITED", "Il servizio AI ha raggiunto un limite. Riprova piu tardi.", true);
         if (response.status === 408 || response.status === 504) throw new AgentError("PROVIDER_TIMEOUT", "Il servizio AI non ha risposto in tempo.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio AI non disponibile. Verificare la configurazione server.", response.status >= 500);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio AI unavailable. Verificare la configurazione server.", response.status >= 500);
       }
       let raw: unknown;
       try { raw = await response.json(); }

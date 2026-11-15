@@ -6,7 +6,7 @@ export function visionOrigin(value: string | undefined): string {
   const raw = value?.trim() || DEFAULT_VISION_ORIGIN;
   const url = new URL(raw);
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash)
-    throw new Error("Indirizzo del prototipo palpebrale non valido.");
+    throw new Error("Invalid eyelid prototype address.");
   if (url.protocol === "http:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
     throw new Error("Il prototipo deve usare HTTPS oppure un indirizzo locale.");
   return url.origin;

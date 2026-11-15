@@ -39,7 +39,7 @@ test("real adapter builds a stateless Structured Outputs request with server-onl
     assert.ok(schemaText.includes('"anyOf"'));
     assert.ok(!schemaText.includes('"oneOf"'));
     assert.ok(!schemaText.includes('"const"'));
-    assert.ok(body.instructions.includes("non fidato"));
+    assert.ok(body.instructions.includes("untrusted"));
     assert.equal(JSON.parse(body.input[0].content).astronautId, "astro-1");
     assert.ok(!String(init?.body).includes("test-key"));
     return Response.json({ status: "completed", output: [

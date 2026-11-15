@@ -20,6 +20,6 @@ export async function POST(request: Request) {
     });
     return Response.json(await result.json(), { status: result.status, headers: { "Cache-Control": "no-store" } });
   } catch {
-    return Response.json({ error: "Backend dati non disponibile." }, { status: 503 });
+    return Response.json({ error: "Backend dati unavailable." }, { status: 503 });
   }
 }

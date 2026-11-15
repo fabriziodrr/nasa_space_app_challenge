@@ -24,10 +24,10 @@ export function createDemoContextProviders(scenario: Scenario): { sensors: Senso
           id: `demo-${date}`, astronautId, date, timeZone: "Etc/UTC", version: 1,
           dayStartsAt: `${date}T06:00:00Z`, dayEndsAt: `${date}T22:00:00Z`,
           activities: [
-            { id: "comm-1", title: "Collegamento Terra", kind: "MISSION", startsAt: `${date}T08:00:00Z`,
+            { id: "comm-1", title: "Ground contact", kind: "MISSION", startsAt: `${date}T08:00:00Z`,
               endsAt: `${date}T08:30:00Z`, priority: "CRITICAL", movable: false, dependsOn: [],
               earliestStart: `${date}T08:00:00Z`, latestEnd: `${date}T08:30:00Z` },
-            { id: "science-1", title: "Inventario campioni", kind: "MISSION", startsAt: `${date}T09:00:00Z`,
+            { id: "science-1", title: "Sample inventory", kind: "MISSION", startsAt: `${date}T09:00:00Z`,
               endsAt: `${date}T09:40:00Z`, priority: "NORMAL", movable: true, dependsOn: ["comm-1"],
               earliestStart: `${date}T09:00:00Z`, latestEnd: `${date}T16:00:00Z` },
           ],

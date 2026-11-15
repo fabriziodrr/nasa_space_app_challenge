@@ -53,10 +53,10 @@ export function VoiceDemo() {
     const payload: unknown = await result.json();
     if (!result.ok) {
       // Render a controlled message: never display upstream/provider bodies.
-      if (result.status === 401) throw new Error("Token non riconosciuto. Controlla il token demo dell'astronauta.");
-      if (result.status === 429) throw new Error("Limite del servizio raggiunto. Riprova più tardi.");
-      if (result.status === 409) throw new Error("La conversazione è cambiata. Ricarica la pagina e apri una nuova sessione.");
-      throw new Error("Servizio non disponibile. Controlla il server e riprova.");
+      if (result.status === 401) throw new Error("Token not recognized. Check the astronaut demo token.");
+      if (result.status === 429) throw new Error("Service limit reached. Try again later.");
+      if (result.status === 409) throw new Error("The conversation has changed. Reload and start a new session.");
+      throw new Error("Service unavailable. Check the server and try again.");
     }
     return payload;
   }
@@ -68,13 +68,13 @@ export function VoiceDemo() {
     try {
       const parsed = CreateSessionResponseSchema.parse(await request("/sessions", { astronautId }));
       if (mounted.current) setSessionId(parsed.data.id);
-    } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Impossibile avviare la sessione."); }
+    } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Unable to start the session."); }
     finally { startingRef.current = false; if (mounted.current) setStarting(false); }
   }
 
   async function send(text: string, mode: "TEXT" | "VOICE"): Promise<SpeakableReply> {
-    if (!sessionId) throw new Error("Avvia prima la sessione.");
-    if (operation.current || confirmationPending || checkIn?.status === "CONFIRMED") throw new Error("Attendi il completamento dell'operazione in corso.");
+    if (!sessionId) throw new Error("Start a session first.");
+    if (operation.current || confirmationPending || checkIn?.status === "CONFIRMED") throw new Error("Wait for the current operation to finish.");
     operation.current = true; setChatBusy(true);
     try {
       const previous = pending.current;
@@ -95,7 +95,7 @@ export function VoiceDemo() {
   }
 
   async function runPanel<T>(task: () => Promise<T>): Promise<T> {
-    if (operation.current) throw new Error("Attendi il completamento dell'operazione in corso.");
+    if (operation.current) throw new Error("Wait for the current operation to finish.");
     operation.current = true; setPanelBusy(true);
     try { return await task(); }
     finally { operation.current = false; if (mounted.current) setPanelBusy(false); }
@@ -136,17 +136,17 @@ export function VoiceDemo() {
   }
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
-  return <main className={styles.page} lang="it">
+  return <main className={styles.page} lang="en">
     <div className={styles.shell}>
       <header><p className={styles.eyebrow}>Prova locale · Assistente di bordo</p><h1>Parla con l’assistente</h1>
-        <p>Avvia una sessione, detta o scrivi un messaggio e ascolta la risposta.</p></header>
+        <p>Start a session, speak or type a message, and listen to the reply.</p></header>
       {!sessionId ? <form className={styles.panel} onSubmit={start}>
-        <label htmlFor="demo-token">Token demo astronauta</label>
-        <label htmlFor="demo-astronaut">Profilo astronauta</label>
+        <label htmlFor="demo-token">Astronaut demo token</label>
+        <label htmlFor="demo-astronaut">Astronaut profile</label>
         <select id="demo-astronaut" value={astronautId} onChange={(event) => setAstronautId(event.target.value)}>{demoCrewMappings.map((member) => <option value={member.astronautId} key={member.astronautId}>{member.name}</option>)}</select>
-        <p>Inserisci il valore di <code>{demoCrewMappings.find((member) => member.astronautId === astronautId)?.tokenEnv}</code> dal file locale <code>.env</code>. Non è la chiave NVIDIA.</p>
+        <p>Enter the value of <code>{demoCrewMappings.find((member) => member.astronautId === astronautId)?.tokenEnv}</code> from your local file <code>.env</code>. This is separate from your NVIDIA key.</p>
         <input id="demo-token" type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} />
-        <button type="submit" disabled={starting || !token.trim()}>{starting ? "Avvio…" : "Avvia sessione"}</button>
+        <button type="submit" disabled={starting || !token.trim()}>{starting ? "Starting…" : "Start session"}</button>
         {error && <p role="alert">{error}</p>}
       </form> : <>
         <div className={styles.stage}>
@@ -154,14 +154,14 @@ export function VoiceDemo() {
           {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
         </div>
         <section className={styles.panel} aria-labelledby="conversation-title">
-          <h2 id="conversation-title">Conversazione</h2>
-          {!messages.length && <p>La sessione è pronta. Avvia la conversazione continua oppure scrivi il primo messaggio.</p>}
+          <h2 id="conversation-title">Conversation</h2>
+          {!messages.length && <p>Your session is ready. Start voice conversation or type your first message.</p>}
           <ol className={styles.messages} aria-live="polite">
-            {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "Tu" : "Assistente"}</strong><p>{item.text}</p></li>)}
+            {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "You" : "Assistant"}</strong><p>{item.text}</p></li>)}
           </ol>
           {lastReply && <div>
-            <button type="button" disabled={speaking} onClick={() => speakReply({ text: lastReply.text, messageId: lastReply.id }, () => {}, setSpeechError)}>Ascolta risposta</button>
-            <button type="button" disabled={!speaking} onClick={stopPlayback}>Interrompi lettura</button>
+            <button type="button" disabled={speaking} onClick={() => speakReply({ text: lastReply.text, messageId: lastReply.id }, () => {}, setSpeechError)}>Play reply</button>
+            <button type="button" disabled={!speaking} onClick={stopPlayback}>Stop playback</button>
           </div>}
           {speechError && <p role="alert">{speechError}</p>}
         </section>
@@ -169,8 +169,8 @@ export function VoiceDemo() {
           run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
         <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
         <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>
-        <p className={styles.footnote}>In modalità continua la risposta viene letta ad alta voce e l’assistente torna in ascolto da solo. Puoi interrompere e usare la modalità manuale per correggere il testo. La condivisione avviene solo alla conferma del check-in.</p>
-        <p className={styles.footnote}>Voce: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (con browser di riserva).</p>
+        <p className={styles.footnote}>In continuous mode, replies are read aloud and the assistant resumes listening. You can stop and use manual mode to edit the text. Sharing happens only when you confirm the check-in.</p>
+        <p className={styles.footnote}>Voice: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (with browser fallback).</p>
       </>}
     </div>
   </main>;

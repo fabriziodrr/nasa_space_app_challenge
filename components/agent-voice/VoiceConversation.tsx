@@ -67,7 +67,7 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
     try {
       input.current?.start();
     } catch {
-      setError("Impossibile avviare il microfono. Verifica i permessi o scrivi il messaggio.");
+      setError("Unable to start the microphone. Check permissions or type your message.");
       stopEverything();
     }
   }, [clearQuiet, stopEverything]);
@@ -80,7 +80,7 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
     try {
       result = await onSendRef.current(text);
     } catch (e) {
-      if (mounted.current) setError(e instanceof Error ? e.message : "Invio non riuscito. Riavvia la conversazione per riprovare.");
+      if (mounted.current) setError(e instanceof Error ? e.message : "Message could not be sent. Restart the conversation to try again.");
       stopEverything();
       return;
     }
@@ -161,7 +161,7 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
   function toggle() {
     if (active.current) { stopEverything(); return; }
     if (!input.current?.supported) {
-      setError("Riconoscimento vocale non disponibile in questo browser; puoi scrivere il messaggio.");
+      setError("Speech recognition is unavailable in this browser; you can type your message.");
       return;
     }
     setError("");
@@ -170,15 +170,15 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
   }
 
   const running = phase !== "idle";
-  return <section aria-label="Conversazione vocale continua">
-    <p>L’assistente ascolta, capisce quando hai finito la frase e risponde, poi torna in ascolto.</p>
+  return <section aria-label="Continuous voice conversation">
+    <p>The assistant listens, detects when you finish speaking, replies, then listens again.</p>
     <button type="button" onClick={toggle} disabled={disabled || !supported}>
-      {running ? "Termina conversazione" : "Avvia conversazione"}
+      {running ? "End conversation" : "Start conversation"}
     </button>
-    {phase === "listening" && <p role="status" aria-live="polite">In ascolto…{interim ? ` ${interim}` : ""}</p>}
-    {phase === "thinking" && <p role="status">Elaborazione…</p>}
-    {phase === "speaking" && <p role="status">Risposta in riproduzione…</p>}
-    {!supported && <p>Riconoscimento vocale non disponibile in questo browser; puoi scrivere il messaggio.</p>}
+    {phase === "listening" && <p role="status" aria-live="polite">Listening…{interim ? ` ${interim}` : ""}</p>}
+    {phase === "thinking" && <p role="status">Thinking…</p>}
+    {phase === "speaking" && <p role="status">Playing reply…</p>}
+    {!supported && <p>Speech recognition is unavailable in this browser; you can type your message.</p>}
     {error && <p role="alert">{error}</p>}
   </section>;
 }

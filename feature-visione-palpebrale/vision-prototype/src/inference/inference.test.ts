@@ -181,7 +181,7 @@ describe('conversione Face Landmarker → geometria N03', () => {
     expect(invalid.geometry.right.valid).toBe(true);
     expect(invalid.geometry.left.valid).toBe(false);
     expect(invalid.geometry.left.invalidityReasons).toContain('out_of_range');
-    expect(invalid.message).toContain('un occhio');
+    expect(invalid.message).toContain('one eye');
   });
 });
 

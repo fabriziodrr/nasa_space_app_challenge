@@ -65,7 +65,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
         await response.body?.cancel();
         if (response.status === 401) throw new AgentError("PROVIDER_UNAVAILABLE", "Chiave ElevenLabs non valida.");
         if (response.status === 429) throw new AgentError("RATE_LIMITED", "Limite del piano ElevenLabs raggiunto.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio ElevenLabs non disponibile.", response.status >= 500);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio ElevenLabs unavailable.", response.status >= 500);
       }
       if (!response.body) throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato assente.");
       const reader = response.body.getReader();

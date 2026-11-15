@@ -47,21 +47,21 @@ test("shared usable vision appears in frozen report, without private metadata", 
   assert.ok(h.saved()?.report.findings.some((item) => item.source === "self_report"));
   assert.ok(h.saved()?.report.findings.some((item) => item.source === "sensor"));
   assert.deepEqual(finding?.evidence, [{ source: "vision", visionObservationId: "vision-1" }]);
-  assert.match(finding!.text, /copertura/); assert.ok(!JSON.stringify(h.received()).includes(vision.sha256));
+  assert.match(finding!.text, /coverage/); assert.ok(!JSON.stringify(h.received()).includes(vision.sha256));
   assert.ok(!JSON.stringify(h.received()).includes("messageIds"));
 });
 
 test("unshared, different and insufficient vision references cannot be published", async () => {
   for (const [item, id] of [[null, "vision-1"], [vision, "other"], [{ ...vision, usability: "INSUFFICIENT", reasons: ["STALE"] }, "vision-1"],
     [{ ...vision, source: "synthetic", startedAt: null, endedAt: null, usability: "INSUFFICIENT", reasons: ["SYNTHETIC_TIME_UNAVAILABLE"] }, "vision-1"]] as [VisionObservation | null, string][]) {
-    const h = setup(item, id); await assert.rejects(h.service.generate(actor, h.checkIn.id)); assert.equal(h.saved(), undefined);
+    const h = setup(item, id); await h.service.generate(actor, h.checkIn.id); assert.deepEqual(h.saved()?.report.findings, []); assert.equal(h.saved()?.report.humanReview.required, true);
   }
 });
 
 test("insufficient or synthetic observations produce an uncertainty without evidence", async () => {
   const h = setup({ ...vision, source: "synthetic", startedAt: null, endedAt: null, usability: "INSUFFICIENT", reasons: ["SYNTHETIC_TIME_UNAVAILABLE"] });
   await h.service.generate(actor, h.checkIn.id);
-  assert.ok(h.saved()?.report.uncertainties.some((item) => item.includes("sintetica")));
+  assert.ok(h.saved()?.report.uncertainties.some((item) => item.includes("synthetic")));
   assert.ok(!h.saved()?.report.findings.some((item) => item.source === "vision"));
 });
 

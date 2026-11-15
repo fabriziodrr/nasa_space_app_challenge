@@ -63,7 +63,7 @@ export function useWebcam(consumer?: InferenceFrameConsumer, onCaptureState?: (s
   const stop = useCallback(() => { captureRef.current?.stop(); }, []);
 
   const selectDevice = useCallback((nextDeviceId: string) => {
-    captureRef.current?.stop('Sorgente cambiata. Premi Avvia per accendere la fotocamera selezionata.', 'source_changed');
+    captureRef.current?.stop('Source changed. Premi Avvia per accendere la fotocamera selezionata.', 'source_changed');
     setDeviceId(nextDeviceId);
   }, []);
 

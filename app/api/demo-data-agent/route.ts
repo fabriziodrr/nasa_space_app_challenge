@@ -20,6 +20,6 @@ export async function POST(request: Request) {
     });
     return Response.json(await response.json(), { status: response.status, headers: { "Cache-Control": "no-store" } });
   } catch {
-    return Response.json({ error: "Servizio dati non disponibile." }, { status: 503 });
+    return Response.json({ error: "Servizio dati unavailable." }, { status: 503 });
   }
 }

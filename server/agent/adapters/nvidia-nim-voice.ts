@@ -34,7 +34,7 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
     if (!response.ok) {
       await response.body?.cancel();
       if (response.status === 429) throw new AgentError("RATE_LIMITED", "Servizio vocale occupato. Riprova.", true);
-      throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio vocale locale non disponibile.", response.status >= 500);
+      throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio vocale locale unavailable.", response.status >= 500);
     }
     return response;
   }
@@ -48,20 +48,20 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
     return withDeadline(async (signal) => {
       const form = new FormData();
       form.set("file", new Blob([Uint8Array.from(input.audio).buffer], { type: "audio/wav" }), "audio.wav");
-      form.set("language", "it-IT"); form.set("response_format", "json");
+      form.set("language", "en-US"); form.set("response_format", "json");
       const response = await this.post(`${this.asrUrl}/v1/audio/transcriptions`, form, signal);
       let data: unknown;
       try { data = await response.json(); } catch { throw new AgentError("INVALID_AI_OUTPUT", "Trascrizione non valida."); }
       const parsed = z.object({ text: z.string().trim().min(1).max(8000) }).safeParse(data);
       if (!parsed.success) throw new AgentError("INVALID_AI_OUTPUT", "Trascrizione non valida.");
-      return TranscriptionResultSchema.parse({ text: parsed.data.text, language: "it" });
+      return TranscriptionResultSchema.parse({ text: parsed.data.text, language: "en" });
     }, AUDIO_LIMITS.providerTimeoutMs, options?.signal);
   }
 
   async synthesize(input: Parameters<VoiceProvider["synthesize"]>[0], options?: ProviderOptions) {
     if (!input.text.trim() || input.text.length > 2000) throw new AgentError("VALIDATION_ERROR", "La lettura supporta risposte fino a 2000 caratteri.");
     return withDeadline(async (signal) => {
-      const form = new FormData(); form.set("text", input.text); form.set("language", "it-IT");
+      const form = new FormData(); form.set("text", input.text); form.set("language", "en-US");
       const response = await this.post(`${this.ttsUrl}/v1/audio/synthesize`, form, signal);
       const declared = Number(response.headers.get("content-length"));
       if (declared > AUDIO_LIMITS.maxBytes) { await response.body?.cancel(); throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato troppo grande."); }

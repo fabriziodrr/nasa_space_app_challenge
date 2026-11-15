@@ -145,7 +145,7 @@ function validateSample(value: unknown): SampleValidation {
     return {
       ok: false,
       reason: 'invalid_eye_observation',
-      message: 'Il campione dell’occhio sinistro non rispetta il contratto.',
+      message: 'Il campione dell’occhio left non rispetta il contratto.',
     };
   }
 
@@ -153,7 +153,7 @@ function validateSample(value: unknown): SampleValidation {
     return {
       ok: false,
       reason: 'invalid_eye_observation',
-      message: 'Il campione dell’occhio destro non rispetta il contratto.',
+      message: 'Il campione dell’occhio right non rispetta il contratto.',
     };
   }
 
@@ -434,7 +434,7 @@ export class TemporalEngine {
   }
 
   /**
-   * Arresta la sessione. Un episodio ancora aperto diventa incompleto con
+   * Stop la sessione. Un episodio ancora aperto diventa incompleto con
    * motivo `stopped` e non viene prolungato fino all'istante della chiamata.
    */
   stop(): void {

@@ -17,7 +17,7 @@ export interface WebcamSnapshot {
 }
 
 export const initialWebcamSnapshot: WebcamSnapshot = {
-  status: 'idle', message: 'La fotocamera è spenta.', width: 0, height: 0, frameCount: 0, device: null,
+  status: 'idle', message: 'The camera is off.', width: 0, height: 0, frameCount: 0, device: null,
 };
 
 function cameraError(error: unknown): string {
@@ -25,18 +25,18 @@ function cameraError(error: unknown): string {
   switch (name) {
     case 'NotAllowedError':
     case 'SecurityError':
-      return 'Accesso alla webcam negato. Consenti la fotocamera nelle autorizzazioni del browser e riprova.';
+      return 'Camera access denied. Allow the camera in browser permissions and retry.';
     case 'NotFoundError':
-      return 'Nessuna fotocamera disponibile. Collega una webcam e riprova.';
+      return 'No camera available. Connect a webcam and retry.';
     case 'NotReadableError':
     case 'AbortError':
-      return 'Impossibile leggere la webcam. Verifica che sia collegata e non sia occupata da un’altra applicazione.';
+      return 'Unable to read the webcam. Check its connection and whether another app is using it.';
     case 'OverconstrainedError':
-      return 'La fotocamera selezionata non è disponibile. Scegli un’altra sorgente e riprova.';
+      return 'Selected camera unavailable. Choose another source and retry.';
     case 'TimeoutError':
-      return 'La webcam non ha avviato l’anteprima in tempo. Arrestala e riprova.';
+      return 'The webcam preview timed out. Stop and retry.';
     default:
-      return 'Impossibile avviare l’anteprima. Verifica la webcam e riprova.';
+      return 'Unable to start preview. Check your webcam and retry.';
   }
 }
 
@@ -44,7 +44,7 @@ function cameraError(error: unknown): string {
 function playVideo(video: HTMLVideoElement, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const cancel = () => finish(new DOMException('Avvio annullato', 'AbortError'));
-    const timer = setTimeout(() => finish(new DOMException('Anteprima non pronta', 'TimeoutError')), 15000);
+    const timer = setTimeout(() => finish(new DOMException('Preview not ready', 'TimeoutError')), 15000);
     const finish = (error?: unknown) => {
       clearTimeout(timer);
       signal.removeEventListener('abort', cancel);
@@ -87,7 +87,7 @@ export class WebcamCapture {
         this.lastUpdateMs = frame.timestampMs;
         this.publish(this.snapshot);
       }
-    }, () => this.fail('Le immagini non possono essere elaborate. La fotocamera è stata arrestata.'));
+    }, () => this.fail('Images could not be processed. The camera was stopped.'));
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     document.addEventListener('freeze', this.onPageHide);
     window.addEventListener('pagehide', this.onPageHide);
@@ -101,14 +101,14 @@ export class WebcamCapture {
     const generation = this.generation;
     this.abort = new AbortController();
     this.lastUpdateMs = -Infinity;
-    this.publish({ ...initialWebcamSnapshot, status: 'requesting', message: 'In attesa dell’autorizzazione alla fotocamera…' });
+    this.publish({ ...initialWebcamSnapshot, status: 'requesting', message: 'Waiting for camera permission…' });
 
     if (!window.isSecureContext) {
       this.fail('Apri l’app su localhost, 127.0.0.1 oppure HTTPS per usare la webcam.');
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      this.fail('Questo browser non rende disponibile l’accesso alla webcam. Usa un browser aggiornato.');
+      this.fail('This browser does not provide webcam access. Use an updated browser.');
       return;
     }
     if (document.visibilityState === 'hidden') { this.onPageHide(); return; }
@@ -128,7 +128,7 @@ export class WebcamCapture {
       this.stream = stream;
       const tracks = stream.getVideoTracks();
       if (!tracks.length || tracks.some((track) => track.readyState === 'ended')) {
-        this.fail('La webcam non fornisce un segnale video disponibile.');
+        this.fail('The webcam is not providing a video signal.');
         return;
       }
       for (const track of tracks) {
@@ -145,17 +145,17 @@ export class WebcamCapture {
       const track = tracks[0];
       let actualDeviceId: string | null = null;
       try { actualDeviceId = track?.getSettings?.().deviceId || null; } catch { /* Alcuni browser non espongono le impostazioni. */ }
-      this.publish({ ...this.snapshot, status: 'starting', message: 'Avvio dell’anteprima…', device: { id: actualDeviceId, label: track?.label || null } });
+      this.publish({ ...this.snapshot, status: 'starting', message: 'Starting preview…', device: { id: actualDeviceId, label: track?.label || null } });
       await playVideo(this.video, this.abort.signal);
       if (this.disposed || generation !== this.generation) return;
-      this.publish({ ...this.snapshot, status: 'active', message: 'Anteprima attiva. Le misure palpebrali non sono ancora disponibili.' });
+      this.publish({ ...this.snapshot, status: 'active', message: 'Preview active. Eyelid measurements are not available yet.' });
       this.pump.start();
     } catch (error) {
       if (!this.disposed && generation === this.generation) this.fail(cameraError(error));
     }
   }
 
-  stop(message = 'La fotocamera è stata arrestata.', interruption: SessionInterruptionReason = 'user_stop'): void {
+  stop(message = 'The camera has stopped.', interruption: SessionInterruptionReason = 'user_stop'): void {
     this.release();
     this.publish({ ...initialWebcamSnapshot, message, interruption });
   }
@@ -196,17 +196,17 @@ export class WebcamCapture {
   }
 
   private onTrackEnded = (): void => {
-    this.fail('Il collegamento con la fotocamera si è interrotto. Verifica il dispositivo e riavvia.', 'device_lost');
+    this.fail('Camera connection lost. Check the device and restart.', 'device_lost');
   };
 
   private onTrackMuted = (): void => {
     if (this.snapshot.status === 'active') {
-      this.fail('Il segnale della fotocamera non è disponibile. Verifica il dispositivo e riavvia.', 'device_lost');
+      this.fail('Camera signal unavailable. Check the device and restart.', 'device_lost');
     }
   };
 
   private onVideoError = (): void => {
-    if (this.isRunning()) this.fail('Errore nella riproduzione video. La fotocamera è stata arrestata.');
+    if (this.isRunning()) this.fail('Video playback error. The camera was stopped.');
   };
 
   private onVisibilityChange = (): void => {
@@ -219,7 +219,7 @@ export class WebcamCapture {
     this.publish({
       ...initialWebcamSnapshot, status: 'suspended',
       interruption: 'page_hidden',
-      message: 'Acquisizione interrotta perché la scheda è stata sospesa o nascosta. Premi Avvia per ripartire.',
+      message: 'Capture stopped because the tab was hidden or suspended. Press Start to resume.',
     });
   };
 }

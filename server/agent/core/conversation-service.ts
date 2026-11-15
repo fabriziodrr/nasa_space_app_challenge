@@ -151,7 +151,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
         || sensors.some((s) => s.astronautId !== actor.astronautId)
         || history.some((c) => c.astronautId !== actor.astronautId || c.status !== "CONFIRMED")
         || (vision && (vision.astronautId !== actor.astronautId || vision.sessionId !== sessionId))) {
-      throw new AgentError("INTERNAL_ERROR", "Contesto della conversazione non disponibile.");
+      throw new AgentError("INTERNAL_ERROR", "Conversation context unavailable.");
     }
     if (vision) {
       if (vision.source === "synthetic" && !vision.reasons.includes("SYNTHETIC_TIME_UNAVAILABLE")) {
@@ -177,7 +177,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
       rawOutput = await withDeadline((providerSignal) => deps.ai.converse(structuredClone(context), { signal: providerSignal }), timeoutMs, signal);
     } catch (error) {
       if (isAgentError(error)) throw error;
-      throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio AI temporaneamente non disponibile.", true);
+      throw new AgentError("PROVIDER_UNAVAILABLE", "AI service temporarily unavailable.", true);
     }
     const output = validatedObservations(rawOutput, context, astronautMessage.id, newId);
     const checkIn = CheckInSchema.parse({
@@ -206,7 +206,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
     async createSession(identity: Identity | null, input: unknown) {
       const actor = astronaut(identity);
       const request = CreateSessionRequestSchema.parse(input);
-      if (request.astronautId !== actor.astronautId) throw new AgentError("NOT_FOUND", "Astronauta non trovato.");
+      if (request.astronautId !== actor.astronautId) throw new AgentError("NOT_FOUND", "Astronaut not found.");
       const saved = await deps.repository.createSession(ConversationSessionSchema.parse({
         id: newId(), astronautId: actor.astronautId, openedAt: now().toISOString(), closedAt: null,
       }));

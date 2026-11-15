@@ -75,7 +75,7 @@ export function createVoiceHttpHandlers(getRuntime: () => AgentRuntime) {
       } while (cursor);
       if (!text) throw new AgentError("NOT_FOUND", "Messaggio non trovato.");
       if (!voice) throw new AgentError("PROVIDER_UNAVAILABLE", "Provider audio server non configurato. Usa la lettura del browser.");
-      const output = await voice.synthesize({ text, language: "it" }, { signal: request.signal });
+      const output = await voice.synthesize({ text, language: "en" }, { signal: request.signal });
       if (output.mimeType !== "audio/mpeg" || !output.audio.length || output.audio.length > AUDIO_LIMITS.maxBytes) {
         throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato non valido.");
       }

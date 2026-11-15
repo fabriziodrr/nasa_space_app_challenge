@@ -29,7 +29,7 @@ export function VoiceComposer({ disabled = false, onSend }: VoiceComposerProps) 
         const combined = [base.current, finalText].filter(Boolean).join(" ");
         setText(combined);
         if (combined.length > 8000) {
-          setError("Il messaggio supera 8000 caratteri: riducilo prima di inviarlo.");
+          setError("Your message exceeds 8,000 characters. Shorten it before sending.");
           speech.stop();
         }
         setInterim(interimText);
@@ -38,7 +38,7 @@ export function VoiceComposer({ disabled = false, onSend }: VoiceComposerProps) 
       onEnd(hadTextOrError) {
         setListening(false);
         setInterim("");
-        if (!hadTextOrError) setError("Non ho rilevato parole. Riprova oppure scrivi il messaggio.");
+        if (!hadTextOrError) setError("No speech detected. Try again or type your message.");
       },
       onError(message) { setError(message); },
     });
@@ -61,7 +61,7 @@ export function VoiceComposer({ disabled = false, onSend }: VoiceComposerProps) 
       await onSend(trimmed, voiceUsed ? "VOICE" : "TEXT");
       if (mounted.current) { setText(""); setVoiceUsed(false); }
     } catch (e) {
-      if (mounted.current) setError(e instanceof Error ? e.message : "Invio non riuscito. Riprova.");
+      if (mounted.current) setError(e instanceof Error ? e.message : "Message could not be sent. Try again.");
     } finally { running.current = false; if (mounted.current) setBusy(false); }
   }
 
@@ -71,22 +71,22 @@ export function VoiceComposer({ disabled = false, onSend }: VoiceComposerProps) 
     base.current = text.trim();
     window.speechSynthesis?.cancel();
     try { input.current?.start(); setListening(true); }
-    catch { setError("Impossibile avviare il microfono. Verifica i permessi o scrivi il messaggio."); }
+    catch { setError("Unable to start the microphone. Check permissions or type your message."); }
   }
 
-  return <section aria-label="Scrivi o detta un messaggio">
-    <p>Puoi dettare in italiano e correggere il testo prima di inviarlo. Il riconoscimento dipende dal browser e può usare un servizio online.</p>
-    <label htmlFor="agent-message">Messaggio</label>
+  return <section aria-label="Type or dictate a message">
+    <p>You can dictate in English and edit before sending. Speech recognition depends on your browser and may use an online service.</p>
+    <label htmlFor="agent-message">Message</label>
     <textarea id="agent-message" rows={4} maxLength={8000} value={text} disabled={disabled || listening || busy}
-      onChange={(event) => { setText(event.target.value); if (!event.target.value) setVoiceUsed(false); }} placeholder="Scrivi oppure usa il microfono" />
-    {interim && <p aria-live="polite">Sto ascoltando: {interim}</p>}
+      onChange={(event) => { setText(event.target.value); if (!event.target.value) setVoiceUsed(false); }} placeholder="Type or use the microphone" />
+    {interim && <p aria-live="polite">Listening: {interim}</p>}
     <div className="voice-actions">
-      {!listening ? <button type="button" onClick={start} disabled={disabled || busy || !supported}>Avvia microfono</button>
-        : <button type="button" onClick={() => input.current?.stop()}>Termina dettatura</button>}
-      <button type="button" onClick={send} disabled={disabled || listening || busy || !text.trim() || text.trim().length > 8000}>{busy ? "Invio…" : "Invia messaggio"}</button>
+      {!listening ? <button type="button" onClick={start} disabled={disabled || busy || !supported}>Start microphone</button>
+        : <button type="button" onClick={() => input.current?.stop()}>Stop dictation</button>}
+      <button type="button" onClick={send} disabled={disabled || listening || busy || !text.trim() || text.trim().length > 8000}>{busy ? "Sending…" : "Send message"}</button>
     </div>
-    {!supported && <p>Riconoscimento vocale non disponibile in questo browser; puoi scrivere il messaggio.</p>}
-    {listening && <p role="status">Microfono attivo. La dettatura termina al massimo dopo due minuti.</p>}
+    {!supported && <p>Speech recognition is unavailable in this browser; you can type your message.</p>}
+    {listening && <p role="status">Microphone active. Dictation ends after a maximum of two minutes.</p>}
     {error && <p role="alert">{error}</p>}
   </section>;
 }

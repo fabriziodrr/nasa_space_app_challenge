@@ -24,7 +24,7 @@ export type CalibrationEyeFailureReason =
   | 'separation_too_small';
 
 export interface CalibrationConfigValues {
-  /** Campioni validi richiesti per ciascun occhio in ciascuna fase. */
+  /** Valid samples richiesti per ciascun occhio in ciascuna fase. */
   readonly requiredSamplesPerEye: number;
   /** Scostamento massimo ammesso dal valore mediano di riferimento. */
   readonly maxReferenceDeviation: number;
@@ -57,7 +57,7 @@ export interface EyeCalibrationReferences {
 }
 
 /**
- * Calibrazione utilizzabile dal motore.
+ * Calibration utilizzabile dal motore.
  *
  * La versione identifica formula e procedura; l'identificativo distingue una
  * specifica raccolta di riferimenti. Il motore temporale usa soltanto `id` per

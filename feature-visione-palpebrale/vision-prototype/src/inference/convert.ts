@@ -130,7 +130,7 @@ export function convertFaceLandmarkerResult(
       timestampMs,
       faceCount,
       geometry: invalidFace(timestampMs, imageWidth, imageHeight, ['not_tracked']),
-      message: 'Nessun volto rilevato.',
+      message: 'No face detected.',
     });
   }
 
@@ -142,7 +142,7 @@ export function convertFaceLandmarkerResult(
       geometry: invalidFace(timestampMs, imageWidth, imageHeight, [
         'ambiguous_face',
       ]),
-      message: 'Più volti nell’inquadratura: osservazione ambigua.',
+      message: 'Multiple faces detected: ambiguous observation.',
     });
   }
 
@@ -154,7 +154,7 @@ export function convertFaceLandmarkerResult(
       timestampMs,
       faceCount: 0,
       geometry: invalidFace(timestampMs, imageWidth, imageHeight, ['not_tracked']),
-      message: 'Nessun volto rilevato.',
+      message: 'No face detected.',
     });
   }
 
@@ -169,7 +169,7 @@ export function convertFaceLandmarkerResult(
       geometry: invalidFace(timestampMs, imageWidth, imageHeight, [
         'landmark_missing',
       ]),
-      message: 'Landmark palpebrali incompleti.',
+      message: 'Incomplete eyelid landmarks.',
     });
   }
 
@@ -191,7 +191,7 @@ export function convertFaceLandmarkerResult(
       timestampMs,
       faceCount,
       geometry,
-      message: 'Landmark palpebrali non ammissibili.',
+      message: 'Invalid eyelid landmarks.',
     });
   }
 
@@ -203,7 +203,7 @@ export function convertFaceLandmarkerResult(
     landmarks: Object.freeze({ left, right }),
     message:
       geometry.left.valid && geometry.right.valid
-        ? 'Volto rilevato.'
-        : 'Volto rilevato; un occhio non è valutabile.',
+        ? 'Face detected.'
+        : 'Face detected; one eye is not usable.',
   });
 }

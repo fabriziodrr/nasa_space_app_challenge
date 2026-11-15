@@ -47,7 +47,7 @@ test("confirmed Python context is frozen and later used by the ground report", a
     assert.ok(report.findings.some((finding) => finding.source === "sensor" && finding.text.includes("5.5")));
     assert.ok(report.findings.some((finding) => finding.source === "sensor" && finding.text.includes("REM_DURATION: 78") && finding.text.includes("simulated_eeg")));
     assert.ok(report.findings.some((finding) => finding.source === "sensor" && finding.text.includes("HEART_RATE_VARIABILITY: 42") && finding.text.includes("nightly")));
-    assert.ok(report.uncertainties.some((item) => item.includes("profilo sintetico collegato")));
+    assert.ok(report.uncertainties.some((item) => item.includes("synthetic profile linked")));
     offline = true;
     await db.prisma.conversationSession.create({ data: { id: "session-offline", astronautId: "astro-1", openedAt: now } });
     await db.prisma.checkIn.create({ data: { id: "check-offline", astronautId: "astro-1", sessionId: "session-offline", revision: 1,

@@ -46,7 +46,7 @@ export class LiveSession {
   private state: LiveSnapshot = {
     contractVersion: CONTRACT_VERSION, phase: 'idle', source: null, calibration: { status: 'idle' },
     engine: null, lastSample: null, interruption: null, error: null,
-    message: 'Avvia l’analisi dopo aver acceso la webcam.', progress: null, outcome: null,
+    message: 'Start analysis after enabling the webcam.', progress: null, outcome: null,
     inference: null, history: [], samples: [], sampleCount: 0, performanceSamples: [],
     performanceCount: 0, exportProfile: null, exportCalibrationConfig: null,
     timeOriginUnixMs: null, chartReduced: false, imageDimensions: null, cameraDevice: null,
@@ -88,7 +88,7 @@ export class LiveSession {
           this.process(measured.value);
         }
       } catch (error) {
-        this.interrupt('error', 'processing_error', error instanceof Error ? error.message : 'Errore durante l’elaborazione.', stage);
+        this.interrupt('error', 'processing_error', error instanceof Error ? error.message : 'Processing error.', stage);
         throw error;
       } finally { frame.release(); }
     };
@@ -107,14 +107,14 @@ export class LiveSession {
     this.profile = null; this.collector.reset(); this.engine = new TemporalEngine(); this.dimensions = null; this.currentDimensions = null;
     this.samples = []; this.history = []; this.performanceSamples = []; this.chartReduced = false;
     this.publish({ phase: 'loading', source: 'webcam', calibration: { status: 'idle' }, interruption: null, error: null, lastSample: null,
-      message: 'Caricamento del modello locale…', progress: null, outcome: null, inference: null, engine: null,
+      message: 'Loading local model…', progress: null, outcome: null, inference: null, engine: null,
       samples: this.samples, sampleCount: 0, history: [], performanceSamples: this.performanceSamples, performanceCount: 0,
       exportProfile: null, exportCalibrationConfig: null, imageDimensions: null, chartReduced: false });
     try {
       await this.adapter.init();
-      if (generation === this.generation) this.publish({ phase: 'preview', message: 'Modello pronto. Inizia la calibrazione.' });
+      if (generation === this.generation) this.publish({ phase: 'preview', message: 'Model ready. Start calibration.' });
     } catch (error) {
-      if (generation === this.generation) this.interrupt('error', 'processing_error', error instanceof Error ? error.message : 'Errore di caricamento del modello.', 'runtime');
+      if (generation === this.generation) this.interrupt('error', 'processing_error', error instanceof Error ? error.message : 'Error di caricamento del modello.', 'runtime');
     }
   }
   startOpen() {
@@ -123,32 +123,32 @@ export class LiveSession {
     const progress = this.collector.getProgress();
     this.publish({ phase: 'calibrating', calibration: toCalibrationState(progress), progress, outcome: null, engine: null, lastSample: null,
       history: [], samples: this.samples, sampleCount: 0, performanceSamples: this.performanceSamples, performanceCount: 0,
-      exportProfile: null, exportCalibrationConfig: null, interruption: null, error: null, message: 'Guarda avanti e tieni gli occhi aperti.' });
+      exportProfile: null, exportCalibrationConfig: null, interruption: null, error: null, message: 'Look forward and keep your eyes open.' });
   }
   startClosed() {
     if (this.state.phase !== 'calibrating' || !this.collector.getProgress().open.complete) return;
     this.collector.beginPhase('closed'); const progress = this.collector.getProgress();
-    this.publish({ calibration: toCalibrationState(progress), progress, message: 'Chiudi entrambi gli occhi senza strizzarli.' });
+    this.publish({ calibration: toCalibrationState(progress), progress, message: 'Close both eyes without squeezing them.' });
   }
   finishCalibration() {
     if (this.state.phase !== 'calibrating' || !this.collector.getProgress().closed.complete) return;
     const outcome = this.collector.finish({ id: `cal-${crypto.randomUUID()}`, capturedAtMs: Date.now() });
     this.profile = outcome.profile; const progress = this.collector.getProgress();
     this.publish({ phase: 'preview', calibration: toCalibrationState(progress, outcome), outcome, progress,
-      message: outcome.success ? 'Calibrazione completata. Puoi avviare la misura.' : 'Calibrazione insufficiente. Ripeti la procedura.' });
+      message: outcome.success ? 'Calibration complete. You can start the measurement.' : 'Insufficient calibration. Repeat the procedure.' });
   }
   startMeasurement() {
     if (!this.profile || this.state.phase !== 'preview' || this.state.calibration.status !== 'ready') return;
     this.engine.start(); this.samples = []; this.history = []; this.performanceSamples = []; this.chartReduced = false; this.lastPublish = -Infinity;
     this.publish({ ...this.measurementSnapshot(), phase: 'measuring', lastSample: null, interruption: null, error: null,
       exportProfile: this.profile, exportCalibrationConfig: this.collector.getConfig(), timeOriginUnixMs: performance.timeOrigin,
-      imageDimensions: this.currentDimensions, cameraDevice: this.cameraDevice, message: 'Misura in corso.' });
+      imageDimensions: this.currentDimensions, cameraDevice: this.cameraDevice, message: 'Measuring.' });
   }
-  stopMeasurement(message = 'Misura arrestata.', reason: SessionInterruptionReason = 'user_stop') {
+  stopMeasurement(message = 'Measurement stopped.', reason: SessionInterruptionReason = 'user_stop') {
     if (this.state.phase !== 'measuring') return;
     this.engine.stop(); this.publish({ ...this.measurementSnapshot(), phase: 'preview', interruption: reason, message });
   }
-  stop(message = 'Analisi arrestata.'): void { this.interrupt('stopped', 'user_stop', message); }
+  stop(message = 'Analysis stopped.'): void { this.interrupt('stopped', 'user_stop', message); }
   handleCaptureState(state: WebcamSnapshot): void {
     if (state.status === 'active' || state.status === 'starting') this.cameraDevice = state.device;
     if (state.status !== 'idle' && this.state.source !== 'webcam') this.publish({ source: 'webcam' });
@@ -167,7 +167,7 @@ export class LiveSession {
       error: stage ? { stage, message } : null, message, progress: null, outcome: null, inference: null });
   }
   exportSnapshot(displayed: LiveSnapshot) {
-    if (!displayed.engine || !displayed.exportProfile || !displayed.exportCalibrationConfig || displayed.timeOriginUnixMs === null) throw new Error('Nessuna misura webcam disponibile per l’esportazione.');
+    if (!displayed.engine || !displayed.exportProfile || !displayed.exportCalibrationConfig || displayed.timeOriginUnixMs === null) throw new Error('No webcam measurement available to export.');
     return createSessionExport({ source: 'webcam', snapshot: displayed.engine, samples: displayed.samples.slice(0, displayed.sampleCount),
       calibrations: [{ profile: displayed.exportProfile, config: displayed.exportCalibrationConfig }], timeOriginUnixMs: displayed.timeOriginUnixMs,
       performanceSamples: displayed.performanceSamples.slice(0, displayed.performanceCount), imageDimensions: displayed.imageDimensions,
@@ -213,7 +213,7 @@ export class LiveSession {
     }
     this.state = { ...this.state, inference: result, progress, calibration, lastSample };
     if (this.state.phase === 'measuring' && this.samples.length >= this.maxSamples) {
-      this.stopMeasurement(`Limite di ${this.maxSamples} campioni raggiunto. La misura è stata arrestata e resta esportabile.`, 'sample_limit'); return;
+      this.stopMeasurement(`The ${this.maxSamples} sample limit was reached. Measurement stopped and remains available for export.`, 'sample_limit'); return;
     }
     if (result.timestampMs - this.lastPublish >= 200) {
       this.lastPublish = result.timestampMs;

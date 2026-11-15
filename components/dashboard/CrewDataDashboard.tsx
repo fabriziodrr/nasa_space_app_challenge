@@ -85,11 +85,11 @@ function VisionReport() {
     event.preventDefault(); setBusy(true); setReport(null); setMessage("");
     try {
       const response = await fetch("/api/demo-data-agent", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ vision_session_id: session }), cache: "no-store" });
-      if (!response.ok) throw new Error(response.status === 401 ? "Token demo non riconosciuto." : "Rapporto non disponibile: verifica sessione e servizi locali.");
+      if (!response.ok) throw new Error(response.status === 401 ? "Demo token not recognized." : "Report unavailable: check the session and local services.");
       const result: VisionDataReport = await response.json();
-      if (result.schema_version !== "data-agent-demo-1") throw new Error("Formato del rapporto non riconosciuto.");
+      if (result.schema_version !== "data-agent-demo-1") throw new Error("Unrecognized report format.");
       setReport(result);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Errore nel caricamento."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Error nel caricamento."); }
     finally { setBusy(false); }
   }
   const eye = report?.vision.observation;

@@ -57,7 +57,7 @@ export class NvidiaConversationProvider implements ConversationAiProvider, Opera
   }
 
   async generateDiary(input: Parameters<DiaryAiProvider["generateDiary"]>[0], options?: ProviderOptions) {
-    return this.generate(input, `Scrivi una breve bozza privata di diario di bordo in italiano, in prima persona, basata esclusivamente su cio che l'astronauta ha dichiarato. Non inventare eventi o emozioni. Non formulare diagnosi. Restituisci solo il campo text.`, DiaryOutputSchema, options);
+    return this.generate(input, `Write a brief private logbook draft in English, in the first person, based only on the astronaut statements. Do not invent events, emotions or diagnoses. Return only the text field.`, DiaryOutputSchema, options);
   }
 
   private async generate<T extends z.ZodType>(context: unknown, prompt: string, outputSchema: T, options?: ProviderOptions): Promise<z.output<T>> {
@@ -100,7 +100,7 @@ export class NvidiaConversationProvider implements ConversationAiProvider, Opera
         if (response.status === 408 || response.status === 504) throw new AgentError("PROVIDER_TIMEOUT", "Il servizio NVIDIA non ha risposto in tempo.", true);
         if (response.status === 202) throw new AgentError("PROVIDER_UNAVAILABLE", "Risposta NVIDIA ancora in attesa. Riprova piu tardi.", true);
         if (response.status === 410) throw new AgentError("PROVIDER_UNAVAILABLE", "Il modello NVIDIA non e piu disponibile. Aggiornare NVIDIA_MODEL sul server.");
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio NVIDIA non disponibile. Verificare chiave e accesso al modello sul server.", response.status >= 500);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio NVIDIA unavailable. Verificare chiave e accesso al modello sul server.", response.status >= 500);
       }
       let raw: unknown;
       try { raw = await response.json(); }

@@ -162,7 +162,7 @@ describe('ciclo della webcam', () => {
     const oldStart = camera.start();
     camera.stop();
     await camera.start();
-    pending.reject(new DOMException('negato', 'NotAllowedError'));
+    pending.reject(new DOMException('denied', 'NotAllowedError'));
     await oldStart;
     expect(snapshots.at(-1)?.status).toBe('active');
     expect(video.srcObject).toBe(stream);
@@ -183,8 +183,8 @@ describe('ciclo della webcam', () => {
   });
 
   it.each([
-    ['NotAllowedError', 'negato'], ['NotFoundError', 'Nessuna fotocamera'],
-    ['NotReadableError', 'Impossibile leggere'], ['OverconstrainedError', 'selezionata non è disponibile'],
+    ['NotAllowedError', 'denied'], ['NotFoundError', 'No camera'],
+    ['NotReadableError', 'Unable to read'], ['OverconstrainedError', 'Selected camera unavailable'],
   ])('mostra un errore recuperabile per %s e permette un nuovo tentativo', async (name, message) => {
     getUserMedia.mockRejectedValueOnce(new DOMException('errore di prova', name));
     const camera = createCapture();
@@ -233,7 +233,7 @@ describe('ciclo della webcam', () => {
     expect(snapshots).toHaveLength(count);
   });
 
-  it('rilascia la webcam quando play fallisce o non si avvia in tempo', async () => {
+  it('rilascia la webcam quando play fallisce o non si avvia timed out', async () => {
     video.play.mockRejectedValueOnce(new Error('riproduzione negata'));
     const camera = createCapture();
     await camera.start();
@@ -245,7 +245,7 @@ describe('ciclo della webcam', () => {
     await flush();
     await vi.advanceTimersByTimeAsync(15000);
     await start;
-    expect(snapshots.at(-1)).toMatchObject({ status: 'error', message: expect.stringContaining('in tempo') });
+    expect(snapshots.at(-1)).toMatchObject({ status: 'error', message: expect.stringContaining('timed out') });
     expect(video.srcObject).toBeNull();
     expect(track.stop).toHaveBeenCalledTimes(2);
   });
@@ -292,7 +292,7 @@ describe('ciclo della webcam', () => {
     win.isSecureContext = true;
     vi.stubGlobal('navigator', {});
     await camera.start();
-    expect(snapshots.at(-1)?.message).toContain('browser aggiornato');
+    expect(snapshots.at(-1)?.message).toContain('updated browser');
     expect(getUserMedia).not.toHaveBeenCalled();
   });
 });

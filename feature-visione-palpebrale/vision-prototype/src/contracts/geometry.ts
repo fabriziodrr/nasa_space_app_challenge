@@ -27,7 +27,7 @@ export type GeometryCoordinateSpace = 'normalized' | 'pixels';
  * p1 = angolo esterno, p2 = punto superiore esterno, p3 = punto superiore
  * interno, p4 = angolo interno, p5 = punto inferiore interno, p6 = punto
  * inferiore esterno. I nomi descrivono la posizione lungo la palpebra, non il
- * lato sinistro o destro dell'immagine.
+ * lato left o right dell'immagine.
  */
 export interface EyelidLandmarks {
   readonly outerCorner: Point2D;

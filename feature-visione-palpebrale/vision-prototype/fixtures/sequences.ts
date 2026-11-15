@@ -24,7 +24,7 @@ const BASE_CONFIG = Object.freeze({
 export const openBaseline = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'open-baseline',
-  description: 'Entrambi gli occhi restano aperti: nessun episodio e copertura piena.',
+  description: 'Both eyes remain open: no episodes and full coverage.',
   config: BASE_CONFIG,
   samples: [
     sample(0, { validity: 'valid', openness: O }, { validity: 'valid', openness: O }),
@@ -92,7 +92,7 @@ export const openBaseline = defineFixture({
 export const shortClosures = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'short-closures',
-  description: 'Due chiusure bilaterali brevi separate da occhi aperti.',
+  description: 'Two brief bilateral closures separated by open eyes.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -177,7 +177,7 @@ export const shortClosures = defineFixture({
 export const prolongedClosure = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'prolonged-closure',
-  description: 'Una chiusura bilaterale completa supera la soglia sperimentale di 500 ms.',
+  description: 'A complete bilateral closure exceeds the experimental 500 ms threshold.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -259,7 +259,7 @@ export const prolongedClosure = defineFixture({
 export const wink = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'wink',
-  description: 'Un occhio si chiude mentre l’altro resta aperto: nessuna chiusura bilaterale.',
+  description: 'One eye closes while the other stays open: no bilateral closure.',
   config: BASE_CONFIG,
   samples: [
     stateSample(0, O, O),
@@ -319,7 +319,7 @@ export const wink = defineFixture({
 export const trackingLoss = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'tracking-loss',
-  description: 'La chiusura è in corso quando entrambi gli occhi diventano non valutabili.',
+  description: 'A closure is ongoing when both eyes become unusable.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -400,7 +400,7 @@ export const trackingLoss = defineFixture({
 export const timeGap = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'time-gap',
-  description: 'Un intervallo di 700 ms supera maxGapMs durante una chiusura.',
+  description: 'A 700 ms interval exceeds maxGapMs during a closure.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -480,7 +480,7 @@ export const timeGap = defineFixture({
 export const nullValidTime = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'null-valid-time',
-  description: 'Nessun campione valutabile: copertura zero e quota di chiusura null.',
+  description: 'No usable samples: zero coverage and null closure fraction.',
   config: BASE_CONFIG,
   samples: [
     stateSample(0, null, null),
@@ -532,7 +532,7 @@ export const nullValidTime = defineFixture({
 export const duplicateAndOutOfOrder = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'duplicate-out-of-order',
-  description: 'Timestamp duplicato e fuori ordine vengono rifiutati senza alterare la misura.',
+  description: 'Duplicate and out-of-order timestamps are rejected without changing the measurement.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -620,7 +620,7 @@ export const duplicateAndOutOfOrder = defineFixture({
 export const stopDuringClosure = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'stop-during-closure',
-  description: 'La sessione viene arrestata mentre entrambi gli occhi sono chiusi.',
+  description: 'The session stops while both eyes are closed.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -699,7 +699,7 @@ export const stopDuringClosure = defineFixture({
 export const calibrationChange = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'calibration-change',
-  description: 'Un cambio di calibrazione interrompe la chiusura e crea un nuovo episodio.',
+  description: 'A calibration change interrupts the closure and starts a new episode.',
   config: BASE_CONFIG,
   samples: [
     openSample(0),
@@ -785,7 +785,7 @@ export const calibrationChange = defineFixture({
 export const hysteresis = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'hysteresis',
-  description: 'Valori intermedi mantengono lo stato finché non attraversano la soglia opposta.',
+  description: 'Intermediate values preserve state until they cross the opposite threshold.',
   config: BASE_CONFIG,
   samples: [
     stateSample(0, 0.2, 0.2),
@@ -869,7 +869,7 @@ export const hysteresis = defineFixture({
 export const rollingWindow = defineFixture({
   fixtureVersion: 'n02-fixture-v1',
   name: 'rolling-window',
-  description: 'Una chiusura iniziata prima della finestra resta tagliata e non completa.',
+  description: 'A closure starting before the window remains clipped and incomplete.',
   config: {
     ...BASE_CONFIG,
     rollingWindowMs: 500,
