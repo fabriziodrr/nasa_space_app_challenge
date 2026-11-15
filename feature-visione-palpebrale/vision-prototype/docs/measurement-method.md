@@ -1,180 +1,177 @@
-# Metodo di misura — N02/N03
+# Measurement Method — N02/N03
 
-Metodo temporale **N02**, confermato in C01 v1, e geometria/calibrazione **N03**,
-13 novembre 2026. I moduli sono in `src/analysis/geometry.ts` e
-`src/analysis/calibration.ts`; i valori sperimentali saranno verificati in N05.
-Il documento descrive formula palpebrale, calibrazione e trasformazione dei
-campioni in durate e quote. Non è una validazione clinica.
+Temporal method **N02**, confirmed in C01 v1, and geometry/calibration **N03**,
+13 November 2026. The modules are in `src/analysis/geometry.ts` and
+`src/analysis/calibration.ts`; experimental values will be verified in N05.
+The document describes the eyelid formula, calibration, and transformation of
+samples into durations and ratios. It is not a clinical validation.
 
-## 1 Punti palpebrali e formula EAR
+## 1 Eyelid points and EAR formula
 
-Per ogni occhio si usano sei punti, nell'ordine del modello di Soukupová e Čech:
+For each eye, six points are used, in the order of the Soukupová and Čech model:
 
-| Nome | Ruolo |
+| Name | Role |
 | --- | --- |
-| `p1` `outerCorner` | angolo esterno |
-| `p2` `upperOuter` | punto superiore esterno |
-| `p3` `upperInner` | punto superiore interno |
-| `p4` `innerCorner` | angolo interno |
-| `p5` `lowerInner` | punto inferiore interno |
-| `p6` `lowerOuter` | punto inferiore esterno |
+| `p1` `outerCorner` | outer corner |
+| `p2` `upperOuter` | upper outer point |
+| `p3` `upperInner` | upper inner point |
+| `p4` `innerCorner` | inner corner |
+| `p5` `lowerInner` | lower inner point |
+| `p6` `lowerOuter` | lower outer point |
 
-La formula, calcolata in pixel, è:
+The formula, calculated in pixels, is:
 
 ```text
 EAR = (d(p2, p6) + d(p3, p5)) / (2 * d(p1, p4))
 ```
 
-`EAR` è un rapporto adimensionale non negativo. In condizioni normali il valore
-aperto è maggiore del valore chiuso; non viene interpretato come percentuale di
-apertura o di stanchezza.
+`EAR` is a non-negative dimensionless ratio. Under normal conditions the open
+value is greater than the closed value; it is not interpreted as an opening
+percentage or fatigue percentage.
 
-Indici usati dall'adattatore N04 per MediaPipe Face Mesh, da verificare ancora
-sul modello reale in T04/N05:
+Indices used by the N04 adapter for MediaPipe Face Mesh, to be verified again
+on the real model in T04/N05:
 
-| Occhio della persona | p1 | p2 | p3 | p4 | p5 | p6 |
+| Person's eye | p1 | p2 | p3 | p4 | p5 | p6 |
 | --- | --- | --- | --- | --- | --- | --- |
-| destro | 33 | 160 | 158 | 133 | 153 | 144 |
-| sinistro | 362 | 385 | 387 | 263 | 373 | 380 |
+| right | 33 | 160 | 158 | 133 | 153 | 144 |
+| left | 362 | 385 | 387 | 263 | 373 | 380 |
 
-La mappatura è esportata in `MEDIAPIPE_FACE_MESH_EYELID_INDICES` e N03 non importa
-MediaPipe.
+The mapping is exported in `MEDIAPIPE_FACE_MESH_EYELID_INDICES` and N03 does not
+import MediaPipe.
 
-## 2 Correzione delle scale dell'immagine
+## 2 Image scale correction
 
-I punti possono arrivare in pixel oppure in coordinate normalizzate. Nel secondo
-caso:
+Points can arrive in pixels or in normalized coordinates. In the latter case:
 
 ```text
 x_px = x_normalizzato * larghezza_immagine
 y_px = y_normalizzato * altezza_immagine
 ```
 
-Tutte le distanze della formula vengono calcolate dopo questa conversione. In
-questo modo un'immagine non quadrata o una risoluzione diversa non altera il
-rapporto. Si assume che i pixel siano quadrati; eventuali scale anomale del
-dispositivo non sono corrette da N03.
+All formula distances are calculated after this conversion. In this way a
+non-square image or a different resolution does not alter the ratio. Square
+pixels are assumed; anomalous device scales are not corrected by N03.
 
-`methodVersion = n03-ear-v1` identifica punti, formula e correzione delle scale.
+`methodVersion = n03-ear-v1` identifies points, formula, and scale correction.
 
-## 3 Ammissibilità geometrica
+## 3 Geometric admissibility
 
-Prima di produrre un rapporto valido, `calculateEyeGeometry` controlla:
+Before producing a valid ratio, `calculateEyeGeometry` checks:
 
-| Controllo | Configurazione iniziale | Motivo se fallisce |
+| Check | Initial configuration | Reason if it fails |
 | --- | --- | --- |
-| Dimensioni immagine finite e positive | obbligatorio | `geometry_invalid` |
-| Punti finiti e presenti | obbligatorio | `landmark_missing` |
-| Punti dentro l'immagine | tolleranza 1 px | `out_of_range` |
-| Larghezza orizzontale sufficiente | `minEyeWidthPx = 8` | `geometry_invalid` |
-| Rapporto non implausibile | `maxEyeAspectRatio = 1.2` | `geometry_invalid` |
+| Finite and positive image dimensions | mandatory | `geometry_invalid` |
+| Finite and present points | mandatory | `landmark_missing` |
+| Points inside the image | tolerance 1 px | `out_of_range` |
+| Sufficient horizontal width | `minEyeWidthPx = 8` | `geometry_invalid` |
+| Non-implausible ratio | `maxEyeAspectRatio = 1.2` | `geometry_invalid` |
 
-Le soglie sono in `DEFAULT_GEOMETRY_CONFIG` e possono essere ridefinite tramite
-`resolveGeometryConfig`, che produce un `configId` con i valori usati. I controlli
-sono solo di plausibilità geometrica: non riconoscono automaticamente occhiali,
-riflessi, occlusione parziale, sguardo, rotazioni del capo o landmark associati
-all'occhio sbagliato. Questi limiti vanno verificati in N05.
+Thresholds are in `DEFAULT_GEOMETRY_CONFIG` and can be redefined via
+`resolveGeometryConfig`, which produces a `configId` with the used values. The
+checks are only geometric plausibility: they do not automatically recognize
+glasses, reflections, partial occlusion, gaze, head rotations, or landmarks
+associated with the wrong eye. These limits must be verified in N05.
 
-## 4 Riferimenti di calibrazione
+## 4 Calibration references
 
-La calibrazione raccoglie campioni per ciascun occhio in due fasi:
+Calibration collects samples for each eye in two phases:
 
-1. **aperto**: l'utente guarda avanti e tiene entrambi gli occhi aperti;
-2. **chiuso**: l'utente chiude entrambi gli occhi senza strizzarli.
+1. **open**: the user looks forward and keeps both eyes open;
+2. **closed**: the user closes both eyes without squeezing them.
 
-Per ogni fase il motore conserva i valori EAR validi e calcola la mediana per
-occhio. Il valore mediano riduce l'effetto di singoli campioni anomali. Un occhio
-non valutabile non contribuisce alla mediana.
+For each phase the engine stores valid EAR values and calculates the median per
+eye. The median value reduces the effect of anomalous individual samples. An
+unevaluable eye does not contribute to the median.
 
-Configurazione iniziale:
+Initial configuration:
 
-| Parametro | Valore | Significato |
+| Parameter | Value | Meaning |
 | --- | --- | --- |
-| `requiredSamplesPerEye` | 8 | campioni validi minimi per occhio e fase |
-| `maxReferenceDeviation` | 0.05 | scostamento massimo dalla mediana |
-| `minimumSeparation` | 0.05 | differenza minima fra aperto e chiuso |
+| `requiredSamplesPerEye` | 8 | minimum valid samples per eye and phase |
+| `maxReferenceDeviation` | 0.05 | maximum deviation from the median |
+| `minimumSeparation` | 0.05 | minimum difference between open and closed |
 
-La calibrazione riesce per un occhio solo se:
+Calibration succeeds for an eye only if:
 
-- ci sono abbastanza campioni validi in entrambe le fasi;
-- lo scostamento massimo dalla mediana non supera `maxReferenceDeviation`;
-- `mediana_aperto - mediana_chiuso >= minimumSeparation`.
+- there are enough valid samples in both phases;
+- the maximum deviation from the median does not exceed `maxReferenceDeviation`;
+- `median_open - median_closed >= minimumSeparation`.
 
-I motivi di fallimento esposti per occhio sono:
+The failure reasons exposed per eye are:
 `not_enough_open_samples`, `not_enough_closed_samples`, `unstable_open`,
-`unstable_closed`, `separation_too_small`. L'esito complessivo riesce solo se
-entrambi gli occhi riescono.
+`unstable_closed`, `separation_too_small`. The overall outcome succeeds only if
+both eyes succeed.
 
-Una calibrazione riuscita produce `CalibrationProfile` con:
+A successful calibration produces a `CalibrationProfile` with:
 
-- `id` e `version`;
-- `methodVersion` effettivamente usato nella raccolta;
+- `id` and `version`;
+- `methodVersion` actually used in collection;
 - `capturedAtMs`;
 - `normalization: 'open-closed-v1'`;
-- riferimenti `open`, `closed` e `minimumSeparation` per occhio.
+- references `open`, `closed` and `minimumSeparation` per eye.
 
-La procedura operativa e i messaggi per T04 sono in
-[docs/calibration.md](calibration.md). Un cambio di `id` interrompe la continuità
-della misura nel motore temporale.
+The operational procedure and messages for T04 are in
+[docs/calibration.md](calibration.md). A change of `id` interrupts measurement
+continuity in the temporal engine.
 
-## 5 Apertura normalizzata
+## 5 Normalized openness
 
-Per ogni occhio e campione geometrico valido:
+For each eye and valid geometric sample:
 
 ```text
 openness = (EAR - riferimento_chiuso) / (riferimento_aperto - riferimento_chiuso)
 ```
 
-Con la normalizzazione `open-closed-v1`:
+With normalization `open-closed-v1`:
 
-- `openness = 0` corrisponde al riferimento chiuso;
-- `openness = 1` corrisponde al riferimento aperto;
-- valori fuori da [0, 1] sono ammessi come rumore e non vengono tagliati dal
-  motore;
-- un occhio non valutabile produce un campione `invalid`, non un valore
-  numerico.
+- `openness = 0` corresponds to the closed reference;
+- `openness = 1` corresponds to the open reference;
+- values outside [0, 1] are admitted as noise and are not clipped by the
+  engine;
+- an unevaluable eye produces an `invalid` sample, not a numeric value.
 
-La funzione `normalizeOpenness` richiede una separazione positiva. Il passaggio
-da `FaceGeometryObservation` a `AnalysisSample` avviene con
-`calibrateFaceGeometry` o `toAnalysisSample`.
+The function `normalizeOpenness` requires a positive separation. The transition
+from `FaceGeometryObservation` to `AnalysisSample` occurs with
+`calibrateFaceGeometry` or `toAnalysisSample`.
 
-## 6 Stati e isteresi
+## 6 States and hysteresis
 
-Per ciascun occhio:
+For each eye:
 
 ```text
 se stato = closed:   openness >= openExit   -> open, altrimenti resta closed
 altrimenti:          openness <= closedEnter -> closed, altrimenti open
 ```
 
-La banda `closedEnter < openness < openExit` evita oscillazioni attorno a una
-singola soglia. Un campione invalido porta l'occhio a `unknown`; non equivale a
-occhio aperto.
+The band `closedEnter < openness < openExit` avoids oscillations around a
+single threshold. An invalid sample puts the eye in `unknown`; it is not
+equivalent to an open eye.
 
-La chiusura bilaterale richiede entrambi gli occhi valutabili e chiusi. Un
-occhiolino produce lo stato `mixed` e non aumenta il tempo chiuso bilaterale.
+Bilateral closure requires both eyes evaluable and closed. A wink produces the
+state `mixed` and does not increase bilateral closed time.
 
-## 7 Attribuzione degli intervalli
+## 7 Interval attribution
 
-Lo stato del campione si applica all'intervallo fino al campione successivo
-(`sample-and-hold`). Per due campioni accettati a `t_i` e `t_{i+1}`:
+The sample state applies to the interval until the next sample
+(`sample-and-hold`). For two accepted samples at `t_i` and `t_{i+1}`:
 
 ```text
 intervallo = t_{i+1} - t_i
 ```
 
-Se l'intervallo supera `maxGapMs` è un gap. Gap e cambi di calibrazione non
-contribuiscono al tempo valido o chiuso. Un campione invalido rende non valido
-l'intervallo successivo; l'intervallo precedente resta attribuito all'ultimo
-stato valido.
+If the interval exceeds `maxGapMs` it is a gap. Gaps and calibration changes do
+not contribute to valid or closed time. An invalid sample invalidates the
+following interval; the previous interval remains attributed to the last valid
+state.
 
-L'ultimo campione non viene prolungato fino all'istante di arresto. Un evento
-ancora aperto a `stop()` diventa incompleto e conserva solo la durata osservata
-fino all'ultimo campione.
+The last sample is not extended until the stop instant. An event still open at
+`stop()` becomes incomplete and retains only the observed duration until the
+last sample.
 
-## 8 Tempo valido e copertura
+## 8 Valid time and coverage
 
-Per la coppia bilaterale:
+For the bilateral pair:
 
 ```text
 validMs = somma degli intervalli senza gap, senza cambio calibrazione,
@@ -183,61 +180,61 @@ validMs = somma degli intervalli senza gap, senza cambio calibrazione,
 coverage = validMs / elapsedMs
 ```
 
-`elapsedMs` comprende gap, transizioni di calibrazione e intervalli con dati
-mancanti. Se `elapsedMs` è zero, `coverage` è `null`. Se il tempo osservato è
-positivo ma non ci sono dati validi, `coverage` è `0`.
+`elapsedMs` includes gaps, calibration transitions, and intervals with missing
+data. If `elapsedMs` is zero, `coverage` is `null`. If observed time is positive
+but there are no valid data, `coverage` is `0`.
 
-Per i singoli occhi si applica la stessa somma usando solo la valutabilità di
-quell'occhio. Il tempo bilaterale valido non è la media dei due occhi.
+For individual eyes the same sum applies using only that eye's evaluability.
+Bilateral valid time is not the average of the two eyes.
 
-## 9 Tempo chiuso e quota di chiusura
+## 9 Closed time and closure ratio
 
 ```text
 closedMs = somma degli intervalli validi con stato bilaterale closed
 closureFraction = closedMs / validMs
 ```
 
-`closureFraction` è la quota temporale di chiusura sperimentale. Vale `null` se
-`validMs` è zero. Non viene mai ricalcolata dalla UI o dall'esportazione: tutti
-i consumatori leggono il valore del motore.
+`closureFraction` is the experimental temporal closure ratio. It is `null` if
+`validMs` is zero. It is never recalculated by the UI or export: all consumers
+read the engine value.
 
-`openMs = validMs - closedMs`. `unknownMs = elapsedMs - validMs` racchiude gap,
-transizioni e dati mancanti; `gapMs` e `calibrationTransitionMs` ne sono
-sottoinsiemi espliciti.
+`openMs = validMs - closedMs`. `unknownMs = elapsedMs - validMs` includes gaps,
+transitions, and missing data; `gapMs` and `calibrationTransitionMs` are
+explicit subsets.
 
-## 10 Episodi
+## 10 Episodes
 
-Un episodio inizia quando l'occhio o la coppia passa a `closed` e termina quando
-si riapre con continuità. È completo solo con causa `reopened`. Perdita del
-tracciamento, gap, cambio calibrazione e arresto producono episodi incompleti.
+An episode begins when the eye or pair transitions to `closed` and ends when it
+reopens continuously. It is complete only with cause `reopened`. Loss of
+tracking, gaps, calibration change, and stop produce incomplete episodes.
 
-- **Chiusura prolungata:** evento completo con durata almeno
+- **Prolonged closure:** complete event with duration at least
   `prolongedClosureMs`.
-- **Massima chiusura completa:** massima durata fra gli eventi completi; `null`
-  se non ce ne sono.
-- **Massima durata osservata:** include anche eventi incompleti o in corso.
+- **Maximum complete closure:** maximum duration among complete events; `null`
+  if there are none.
+- **Maximum observed duration:** includes incomplete or ongoing events.
 
-Nella finestra mobile un evento tagliato dal bordo resta visibile con la durata
-reale e con `completeWithinWindow: false`; non viene contato come chiusura
-completa più breve.
+In the sliding window, an event cut by the edge remains visible with its actual
+duration and `completeWithinWindow: false`; it is not counted as a complete
+closure shorter than that.
 
-## 11 Frequenza di campionamento
+## 11 Sampling frequency
 
-Il motore usa i timestamp, non il numero di campioni. Due sequenze con gli stessi
-istanti di transizione e frequenze diverse producono le stesse durate entro la
-risoluzione del campionamento. I test verificano la stessa sequenza a 10 Hz e
-20 Hz (100 ms e 50 ms), mentre N05 dovrà misurare il limite pratico con la
-pipeline reale.
+The engine uses timestamps, not the number of samples. Two sequences with the
+same transition instants and different frequencies produce the same durations
+within sampling resolution. Tests verify the same sequence at 10 Hz and 20 Hz
+(100 ms and 50 ms), while N05 will have to measure the practical limit with the
+real pipeline.
 
-Eventi più brevi dell'intervallo fra campioni possono non essere osservati. Le
-fixture non attribuiscono a questa eventualità un tempo chiuso certo.
+Events shorter than the interval between samples may not be observed. Fixtures
+do not attribute certain closed time to this eventuality.
 
-## 12 Limiti
+## 12 Limits
 
-- Le soglie iniziali (`closedEnter = 0.25`, `openExit = 0.4`) sono sperimentali.
-- Le soglie geometriche e di calibrazione sono sperimentali e vanno riviste in
+- Initial thresholds (`closedEnter = 0.25`, `openExit = 0.4`) are experimental.
+- Geometric and calibration thresholds are experimental and must be reviewed in
   N05.
-- La normalizzazione dipende dalla qualità dei riferimenti N03.
-- Occhiali, riflessi, rotazioni e perdita del volto richiedono la verifica N05.
-- Le misure descrivono il comportamento osservato e non producono diagnosi,
-  percentuali di stanchezza o giudizi di idoneità.
+- Normalization depends on the quality of N03 references.
+- Glasses, reflections, rotations, and face loss require N05 verification.
+- Measurements describe observed behavior and do not produce diagnoses,
+  fatigue percentages, or suitability judgments.

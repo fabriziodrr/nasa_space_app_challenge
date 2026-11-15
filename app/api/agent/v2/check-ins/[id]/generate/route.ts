@@ -9,11 +9,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { handle } = createConversationHttpHandlers(getAgentRuntime);
   return handle(request, async ({ artifacts, repository }, identity) => {
     if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "Funzione riservata all'astronauta.");
-    if (!artifacts) throw new AgentError("PROVIDER_UNAVAILABLE", "Generazione report non configurata.");
+    if (!artifacts) throw new AgentError("PROVIDER_UNAVAILABLE", "Report generation is not configured.");
     const id = IdSchema.parse((await context.params).id);
     const checkIn = await repository.getCheckIn(identity.astronautId, id);
-    if (!checkIn) throw new AgentError("NOT_FOUND", "Check-in non trovato.");
-    if (checkIn.status !== "CONFIRMED") throw new AgentError("INVALID_STATE", "Conferma prima il check-in.");
+    if (!checkIn) throw new AgentError("NOT_FOUND", "Check-in not found.");
+    if (checkIn.status !== "CONFIRMED") throw new AgentError("INVALID_STATE", "Confirm the check-in first.");
     void artifacts.generate(identity, id).catch(() => {});
     return Response.json({ accepted: true }, { status: 202, headers: { "Cache-Control": "no-store" } });
   });

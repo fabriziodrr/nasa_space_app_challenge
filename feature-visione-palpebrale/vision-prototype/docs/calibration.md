@@ -1,85 +1,86 @@
-# Procedura di calibrazione — N03
+# Calibration Procedure — N03
 
-Implementazione **N03**, integrata con C01 v2. La logica è in
-`src/analysis/calibration.ts`; la formula e i controlli geometrici sono in
-[docs/measurement-method.md](measurement-method.md). La schermata applicativa
-è collegata da T04. Non è una validazione clinica.
+Implementation **N03**, integrated with C01 v2. The logic is in
+`src/analysis/calibration.ts`; the formula and geometric checks are in
+[docs/measurement-method.md](measurement-method.md). The application screen is
+linked from T04. It is not a clinical validation.
 
-## 1 Precondizioni
+## 1 Preconditions
 
-Prima di raccogliere i riferimenti:
+Before collecting references:
 
-- il volto è interamente nell'inquadratura e il tracciamento è stabile;
-- illuminazione sufficiente, senza riflessi forti sugli occhi;
-- l'utente toglie o segnala occhiali che modificano la geometria palpebrale;
-- la webcam è avviata e i timestamp dei campioni sono monotoni;
-- la configurazione geometrica e di calibrazione è quella che verrà conservata
-  nel risultato.
+- the face is fully in frame and tracking is stable;
+- sufficient lighting, without strong reflections on the eyes;
+- the user removes or reports glasses that modify eyelid geometry;
+- the webcam is started and sample timestamps are monotonic;
+- the geometric and calibration configuration is the one that will be stored
+  in the result.
 
-La calibrazione non corregge problemi di posa del capo, occlusione o qualità del
-modello. Se la geometria è inaffidabile, i riferimenti devono essere rifiutati
-invece di essere accettati come misura.
+Calibration does not correct head pose problems, occlusion, or model quality.
+If the geometry is unreliable, references must be rejected instead of being
+accepted as a measurement.
 
-## 2 Sequenza guidata
+## 2 Guided sequence
 
-1. **Preparazione.** Mostrare le istruzioni e verificare che entrambi gli occhi
-   siano valutabili. La UI può usare `getProgress()` per mostrare i conteggi.
-2. **Fase aperto.** Chiamare `beginPhase('open')`; l'utente guarda avanti e tiene
-   gli occhi aperti. Per ogni osservazione geometrica valida chiamare
+1. **Preparation.** Show instructions and verify that both eyes are evaluable.
+   The UI can use `getProgress()` to display counts.
+2. **Open phase.** Call `beginPhase('open')`; the user looks forward and keeps
+   their eyes open. For each valid geometric observation call
    `addSample(observation)`.
-3. **Fase chiuso.** Chiamare `beginPhase('closed')`; l'utente chiude entrambi gli
-   occhi senza strizzarli. Continuare a offrire i campioni.
-4. **Conclusione.** Quando entrambe le fasi sono complete, chiamare
-   `finish({ id, capturedAtMs })` con un identificativo creato
-   dall'applicazione. Conservare l'esito e il profilo restituiti.
+3. **Closed phase.** Call `beginPhase('closed')`; the user closes both eyes
+   without squinting. Continue offering samples.
+4. **Conclusion.** When both phases are complete, call
+   `finish({ id, capturedAtMs })` with an identifier created by the
+   application. Store the result and the returned profile.
 
-L'API non usa orologio, DOM o rete. La UI crea identificativo e timestamp e
-decide quando avanzare, così il replay e i test restano deterministici.
+The API does not use clock, DOM, or network. The UI creates identifier and
+timestamp and decides when to advance, so replay and tests remain deterministic.
 
-## 3 Raccolta e avanzamento
+## 3 Collection and advancement
 
-`CalibrationCollector` mantiene campioni separati per occhio e fase. Un occhio
-non valutabile viene ignorato: non produce un valore `0` e non contribuisce alla
-mediana. Ogni occhio raccoglie al massimo il numero richiesto di campioni per
-fase: se l'altro occhio resta non valutabile, la raccolta non cresce senza limite.
+`CalibrationCollector` maintains samples separately per eye and phase. An
+unevaluable eye is ignored: it does not produce a `0` value and does not
+contribute to the median. Each eye collects at most the requested number of
+samples per phase: if the other eye remains unevaluable, collection does not
+grow without limit.
 
-Configurazione iniziale:
+Initial configuration:
 
-| Parametro | Valore | Effetto |
+| Parameter | Value | Effect |
 | --- | --- | --- |
-| `requiredSamplesPerEye` | 8 | campioni validi richiesti per occhio in ogni fase |
-| `maxReferenceDeviation` | 0.05 | massimo scostamento dalla mediana |
-| `minimumSeparation` | 0.05 | minima differenza aperto − chiuso |
+| `requiredSamplesPerEye` | 8 | valid samples required per eye in each phase |
+| `maxReferenceDeviation` | 0.05 | maximum deviation from the median |
+| `minimumSeparation` | 0.05 | minimum difference open − closed |
 
-`getProgress()` restituisce:
+`getProgress()` returns:
 
-- `status`: `idle`, `collecting`, `ready`, `completed` o `failed`;
-- `activePhase`: `open`, `closed` o `null`;
-- `open` e `closed`: campioni per occhio, `requiredPerEye`, `complete` e
-  `fraction` (0–1, limitata al minimo fra i due occhi).
+- `status`: `idle`, `collecting`, `ready`, `completed` or `failed`;
+- `activePhase`: `open`, `closed` or `null`;
+- `open` and `closed`: samples per eye, `requiredPerEye`, `complete` and
+  `fraction` (0–1, limited to the minimum between the two eyes).
 
-`fraction` serve solo all'avanzamento visivo. La calibrazione è completa quando
-entrambe le fasi hanno abbastanza campioni validi per entrambi gli occhi.
+`fraction` is only for visual advancement. Calibration is complete when both
+phases have enough valid samples for both eyes.
 
-## 4 Esito e motivi di fallimento
+## 4 Outcome and failure reasons
 
-`finish()` produce un `CalibrationOutcome` anche quando fallisce. In caso di
-fallimento `profile` è `null`, ma sono disponibili campioni, mediane,
-scostamenti e motivi per occhio.
+`finish()` produces a `CalibrationOutcome` even when it fails. In case of
+failure `profile` is `null`, but samples, medians, deviations, and reasons per
+eye are available.
 
-| Motivo | Significato | Azione suggerita per T04 |
+| Reason | Meaning | Suggested action for T04 |
 | --- | --- | --- |
-| `not_enough_open_samples` | meno campioni aperti del richiesto per quell'occhio | ripetere la fase aperto con il volto più stabile |
-| `not_enough_closed_samples` | meno campioni chiusi del richiesto | ripetere la fase chiuso, evitando di strizzare gli occhi |
-| `unstable_open` | troppa variabilità nella fase aperto | migliorare illuminazione o posa e ripetere |
-| `unstable_closed` | troppa variabilità nella fase chiuso | ripetere la chiusura senza movimento |
-| `separation_too_small` | aperto e chiuso sono troppo simili | verificare che gli occhi si chiudano davvero e ripetere |
+| `not_enough_open_samples` | fewer open samples than required for that eye | repeat the open phase with a more stable face |
+| `not_enough_closed_samples` | fewer closed samples than required | repeat the closed phase, avoiding squinting |
+| `unstable_open` | too much variability in the open phase | improve lighting or pose and repeat |
+| `unstable_closed` | too much variability in the closed phase | repeat closure without movement |
+| `separation_too_small` | open and closed are too similar | verify that eyes actually close and repeat |
 
-L'esito complessivo riesce solo se entrambi gli occhi hanno riferimenti validi.
-Se un solo occhio fallisce, la UI deve mostrare il motivo per quel lato e non
-avviare una misura bilaterale con un profilo incompleto.
+The overall outcome succeeds only if both eyes have valid references. If only
+one eye fails, the UI must show the reason for that side and not start a
+bilateral measurement with an incomplete profile.
 
-Una calibrazione riuscita contiene:
+A successful calibration contains:
 
 ```ts
 interface CalibrationProfile {
@@ -95,11 +96,11 @@ interface CalibrationProfile {
 }
 ```
 
-Il profilo va conservato con la sessione e con l'esportazione. Il motore
-temporale usa `id` per riconoscere un cambio di calibrazione: la misura si
-interrompe e gli episodi in corso diventano incompleti.
+The profile must be stored with the session and with the export. The temporal
+engine uses `id` to recognize a calibration change: measurement stops and
+ongoing episodes become incomplete.
 
-## 5 Esempio d'uso
+## 5 Usage example
 
 ```ts
 import {
@@ -127,45 +128,46 @@ if (outcome.success && outcome.profile !== null) {
 }
 ```
 
-`start()` è una scorciatoia per `reset()` seguito da `beginPhase('open')`.
-`reset()` cancella campioni, avanzamento ed esito. Dopo un esito concluso,
-`beginPhase()` riparte con una raccolta nuova.
+`start()` is a shortcut for `reset()` followed by `beginPhase('open')`.
+`reset()` clears samples, progress, and outcome. After a completed outcome,
+`beginPhase()` restarts with a new collection.
 
-Per collegare l'esito allo stato applicativo C01 usare
-`toCalibrationState(collector.getProgress(), outcome)`. Il `ready` tecnico della
-raccolta non equivale a un profilo valido: serve `finish()` riuscito. I motivi
-dettagliati N03 sono conservati nell'esito e tradotti nei codici applicativi C01.
-`methodVersion` viene raccolto dalle osservazioni e conservato nel profilo;
-un cambio di metodo richiede `reset()` e una nuova calibrazione. Il modulo
-rifiuta la normalizzazione di osservazioni con un metodo diverso dal profilo.
+To link the outcome to C01 application state use
+`toCalibrationState(collector.getProgress(), outcome)`. The technical `ready`
+of the collector is not equivalent to a valid profile: a successful `finish()`
+is required. Detailed N03 reasons are stored in the outcome and translated
+into C01 application codes. `methodVersion` is collected from observations and
+stored in the profile; a method change requires `reset()` and a new
+calibration. The module rejects normalization of observations with a method
+different from the profile.
 
-## 6 Errori d'uso
+## 6 Usage errors
 
-`CalibrationStateError` viene lanciato se:
+`CalibrationStateError` is thrown if:
 
-- si chiama `addSample()` senza una fase attiva o dopo la conclusione;
-- si chiama `finish()` con `id` vuoto o `capturedAtMs` non valido;
-- si passa una fase non riconosciuta.
-- si mescolano metodi geometrici durante la raccolta o si tenta di normalizzare
-  con un metodo diverso da quello conservato nel profilo.
+- `addSample()` is called without an active phase or after conclusion;
+- `finish()` is called with empty `id` or invalid `capturedAtMs`;
+- an unrecognized phase is passed.
+- geometric methods are mixed during collection or normalization is attempted
+  with a method different from the one stored in the profile.
 
-Questi sono errori di programmazione della UI, distinti dai fallimenti di
-qualità, che sono restituiti in `CalibrationOutcome.reasons`.
+These are UI programming errors, distinct from quality failures, which are
+returned in `CalibrationOutcome.reasons`.
 
-## 7 Dati da conservare
+## 7 Data to store
 
-Per riprodurre la normalizzazione servono:
+To reproduce normalization the following are needed:
 
-- `CalibrationProfile` completo;
-- configurazione geometrica (`configId` e valori);
-- configurazione di calibrazione (`configId` e valori);
-- `methodVersion` della geometria;
-- timestamp e identificativo della raccolta.
+- complete `CalibrationProfile`;
+- geometric configuration (`configId` and values);
+- calibration configuration (`configId` and values);
+- `methodVersion` of the geometry;
+- collection timestamp and identifier.
 
-## 8 Limiti
+## 8 Limits
 
-- La procedura assume pixel quadrati e punti MediaPipe correttamente associati.
-- Non rileva occhiali, riflessi, occlusione parziale o sguardo deviato.
-- Le soglie iniziali sono sperimentali e vanno verificate in N05.
-- Una calibrazione riuscita attesta la coerenza geometrica dei riferimenti, non
-  l'accuratezza clinica della misura.
+- The procedure assumes square pixels and correctly associated MediaPipe points.
+- It does not detect glasses, reflections, partial occlusion, or deviated gaze.
+- Initial thresholds are experimental and must be verified in N05.
+- A successful calibration attests to the geometric consistency of references,
+  not the clinical accuracy of the measurement.

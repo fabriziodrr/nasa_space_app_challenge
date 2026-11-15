@@ -1,54 +1,54 @@
-# Contratto di integrazione agent e backend dati — versione proposta 1
+# Agent and data backend integration contract — proposed version 1
 
-Questo documento fissa le decisioni per l'integrazione con il backend Python di Emanuel e la dashboard. È un contratto per la prossima implementazione: gli endpoint e gli schemi attuali non sono ancora tutti conformi. Le API demo esistenti restano descritte in [DATA_BACKEND.md](../DATA_BACKEND.md).
+This document fixes the decisions for integration with Emanuel's Python backend and the dashboard. It is a contract for the next implementation: current endpoints and schemas are not yet all compliant. Existing demo APIs are described in [DATA_BACKEND.md](../DATA_BACKEND.md).
 
-## Identità e provenienza
+## Identity and provenance
 
-- `astronautId` dell'agent e `subject_id` Python identificano la stessa persona mediante una mappatura esplicita configurata dal server e autorizzata. Il modello e il browser non decidono la mappatura. Nella sola demo si può configurare esplicitamente `astro-1 → sleep-demo-14d`, marcandola `demo_only_unverified`: i dati non diventano così una storia personale verificata.
-- Identità, modalità sintetica e ambito autorizzato sono fissati dal server per ogni richiesta. Il backend Python attuale è per uso locale fidato e non garantisce autenticazione multiutente: prima dell'uso con dati personali o accesso da Terra servono autenticazione e autorizzazione effettive.
-- Ogni dato conserva ID originale, fonte, `observed_at` UTC, qualità e indicazione `synthetic`. Dati mancanti, non validi, futuri o fuori finestra restano distinti: non sostituirli con zero o valori simulati. I dati sintetici restano etichettati come tali.
+- The agent's `astronautId` and Python's `subject_id` identify the same person through an explicit mapping configured by the server and authorized. The model and the browser do not decide the mapping. In demo only, `astro-1 → sleep-demo-14d` can be configured explicitly, marked `demo_only_unverified`: data does not thereby become a verified personal history.
+- Identity, synthetic mode, and authorized scope are fixed by the server for each request. The current Python backend is for local trusted use and does not guarantee multi-user authentication: before use with personal data or access from Earth, effective authentication and authorization are required.
+- Every datum retains original ID, source, `observed_at` UTC, quality, and `synthetic` indication. Missing, invalid, future, or out-of-window data remain distinct: do not replace them with zero or simulated values. Synthetic data remains labeled as such.
 
-## Check-in e scale
+## Check-in and scales
 
-| Campo agent | Contratto comune | Origine |
+| Agent field | Common contract | Origin |
 | --- | --- | --- |
-| `SLEEP_HOURS` | Numero 0–24, ore dichiarate | `self_report` |
-| `SLEEP_QUALITY` | Intero 1–10: 1 molto scarsa, 10 molto buona | `self_report` |
-| `FATIGUE` | **Intero 1–10: 1 minima, 10 massima stanchezza riferita** | `self_report` |
-| `PHYSICAL_NOTES` | Testo riferito dall'astronauta | `self_report` |
+| `SLEEP_HOURS` | Number 0–24, declared hours | `self_report` |
+| `SLEEP_QUALITY` | Integer 1–10: 1 very poor, 10 very good | `self_report` |
+| `FATIGUE` | **Integer 1–10: 1 minimum, 10 maximum reported fatigue** | `self_report` |
+| `PHYSICAL_NOTES` | Text reported by the astronaut | `self_report` |
 
-`fatigue_rating` Python e `FATIGUE` agent usano 1–10 senza trasformazioni. Anche la qualità del sonno e l'umore sono su 1–10. `alertness` è una misura distinta e non viene convertita in stanchezza. Una frase ambigua non diventa un numero inventato. Il feedback Python costituisce dichiarazione confermata solo se `basis=self_report`, `user_confirmed=true` e `quality=valid`; l'inferenza del modello non è una dichiarazione della persona.
+Python's `fatigue_rating` and agent's `FATIGUE` use 1–10 without transformations. Sleep quality and mood are also on 1–10. `alertness` is a distinct measure and is not converted into fatigue. An ambiguous sentence does not become an invented number. Python feedback constitutes a confirmed statement only if `basis=self_report`, `user_confirmed=true`, and `quality=valid`; model inference is not a statement by the person.
 
-Le osservazioni nuove dell'agent includono `scaleMax: 10`; quelle precedenti senza metadato sono lette con `scaleMax: null` e restano di scala non specificata. Le correzioni di valori richiedono `scaleMax: 10`. Il backend Python richiede `scale_max: 10` per nuove autovalutazioni di qualità del sonno e umore e `mood_scale_max: 10` per l'umore nel feedback; i record precedenti senza metadato sono restituiti con scala nulla. Gli utenti delle API devono aggiornare client e validazioni: questa modifica introduce campi e intervalli nuovi nei contratti esistenti. I dati storici non vengono convertiti. La regola demo per le nuove osservazioni usa stanchezza almeno 8/10 e non applica soglie alle scale ignote: è una scelta illustrativa, non un criterio clinico.
+New agent observations include `scaleMax: 10`; previous ones without metadata are read with `scaleMax: null` and remain of unspecified scale. Value corrections require `scaleMax: 10`. The Python backend requires `scale_max: 10` for new sleep quality and mood self-assessments and `mood_scale_max: 10` for mood in feedback; previous records without metadata are returned with null scale. API users must update clients and validations: this change introduces new fields and ranges in existing contracts. Historical data is not converted. The demo rule for new observations uses fatigue at least 8/10 and applies no thresholds to unknown scales: it is an illustrative choice, not a clinical criterion.
 
-## Lettura del backend e adattamento
+## Backend reading and adaptation
 
-Il runtime demo usa `PythonSensorProvider` per leggere `GET /v1/subjects/{subject_id}/agent-context?synthetic=true` sul backend locale `127.0.0.1:8000`, senza leggere direttamente il database Python. La mappatura server predefinita è `astro-1 → sleep-demo-14d` e resta **non verificata**. `AGENT_DATA_SUBJECT_ID` consente di cambiare il soggetto sintetico demo; solo `astro-1` è abilitato. Il contesto espone `snapshot_id`, `as_of`, `truncated` e `sleep_context`; il backend non espone uno storico immutabile degli snapshot.
+The demo runtime uses `PythonSensorProvider` to read `GET /v1/subjects/{subject_id}/agent-context?synthetic=true` on the local backend `127.0.0.1:8000`, without reading the Python database directly. The default server mapping is `astro-1 → sleep-demo-14d` and remains **unverified**. `AGENT_DATA_SUBJECT_ID` allows changing the synthetic demo subject; only `astro-1` is enabled. The context exposes `snapshot_id`, `as_of`, `truncated`, and `sleep_context`; the backend does not expose an immutable snapshot history.
 
-| Dato Python | Dato agent | Regola |
+| Python datum | Agent datum | Rule |
 | --- | --- | --- |
-| `sleep_context.latest_measurement.sleep_hours` | `SLEEP_DURATION`, unità `h` | Solo misura `quality=valid`, con ID, fonte, periodo, timestamp e flag sintetico preservati. |
-| `sleep_context.latest_measurement.awakenings_count` | `SLEEP_INTERRUPTION_COUNT`, unità `count` | Solo se presente e valido; non inventare il numero di risvegli. |
-| Frequenza cardiaca | `RESTING_HEART_RATE`, `bpm` | Il contesto Python attuale non la fornisce: assente, senza usare un valore demo come se provenisse dal backend. |
-| `latest_confirmed_feedback.fatigue_rating` | Feedback storico 1–10 | Fonte distinta dalla dichiarazione del check-in corrente; non aggiungerlo automaticamente alle osservazioni condivise. |
+| `sleep_context.latest_measurement.sleep_hours` | `SLEEP_DURATION`, unit `h` | Only measure `quality=valid`, with ID, source, period, timestamp, and synthetic flag preserved. |
+| `sleep_context.latest_measurement.awakenings_count` | `SLEEP_INTERRUPTION_COUNT`, unit `count` | Only if present and valid; do not invent the number of awakenings. |
+| Heart rate | `RESTING_HEART_RATE`, `bpm` | The current Python context does not provide it: absent, without using a demo value as if it came from the backend. |
+| `latest_confirmed_feedback.fatigue_rating` | Historical feedback 1–10 | Source distinct from the current check-in declaration; do not automatically add it to shared observations. |
 
-Le letture conservano metadati `provenance`, compresi periodo, metodo, soggetto demo, ID snapshot e stato. Le misure disponibili sono `DEGRADED` perché l'identità non è verificata; il report le presenta separatamente e non possono motivare proposte né deduzioni che le attribuiscono all'astronauta. Il sensore non disponibile ha valore `null` e un motivo esplicito (`MISSING`, `STALE`, `INVALID`, `UNAVAILABLE`). La misura è utilizzabile solo se la fine del periodo ricade nelle 24 ore precedenti e `observed_at` non è futuro rispetto alla richiesta: `as_of` non prova che il dato sia recente. Se `truncated=true`, il limite è visibile nel report. Timeout, risposta errata o servizio non disponibile non attivano fallback silenziosi a letture fittizie.
+Readings preserve `provenance` metadata, including period, method, demo subject, snapshot ID, and status. Available measures are `DEGRADED` because identity is not verified; the report presents them separately and they cannot motivate proposals or deductions attributing them to the astronaut. The unavailable sensor has value `null` and an explicit reason (`MISSING`, `STALE`, `INVALID`, `UNAVAILABLE`). The measure is usable only if the end of the period falls within the 24 hours preceding and `observed_at` is not future relative to the request: `as_of` does not prove that the datum is recent. If `truncated=true`, the limit is visible in the report. Timeout, error response, or unavailable service do not trigger silent fallbacks to fictitious readings.
 
-Per le prove indipendenti dal backend impostare `AGENT_SENSOR_PROVIDER=mock` e riavviare Next; l'impostazione predefinita è `python`. Per il backend, avviare il servizio Python come in [DATA_BACKEND.md](../DATA_BACKEND.md) e caricare dati sintetici. Gli esempi storici possono risultare `STALE`: non vengono presentati come misure correnti. I metadati aggiuntivi sulle letture estendono il contratto esistente e richiedono che i client con validazione rigida siano aggiornati.
+For backend-independent proofs set `AGENT_SENSOR_PROVIDER=mock` and restart Next; the default is `python`. For the backend, start the Python service as in [DATA_BACKEND.md](../DATA_BACKEND.md) and load synthetic data. Historical examples may result `STALE`: they are not presented as current measures. Additional metadata on readings extends the existing contract and requires clients with strict validation to be updated.
 
-Alla conferma del check-in, l'agent acquisisce una volta il contesto autorizzato e congela valori e metadati, ID snapshot Python, momento di acquisizione, misura webcam condivisa e versione della schedule. Generazione e retry usano quel contesto congelato; l'ID dello snapshot Python identifica il risultato ma non ne garantisce il recupero storico. La misura webcam selezionata per la conversazione è condivisibile con Terra solo con il consenso distinto alla conferma; selezionata non significa automaticamente condivisa.
+At check-in confirmation, the agent acquires the authorized context once and freezes values and metadata, Python snapshot ID, acquisition time, shared webcam measure, and schedule version. Generation and retry use that frozen context; the Python snapshot ID identifies the result but does not guarantee its historical retrieval. The webcam measure selected for the conversation is shareable with Earth only with distinct consent at confirmation; selected does not mean automatically shared.
 
-## Report e schedule
+## Reports and schedule
 
-Il rapporto deterministico Python descrive le fonti disponibili. Il report operativo dell'agent per Terra usa soltanto il contesto congelato e autorizzato, conserva le evidenze e distingue dichiarazioni, sensori, visione e deduzioni. Visione sintetica o insufficiente non è evidenza operativa; la visione non determina da sola sonno, stanchezza o diagnosi. Il diario resta privato.
+The deterministic Python report describes available sources. The agent's operational report for Earth uses only the frozen and authorized context, preserves evidence, and distinguishes statements, sensors, vision, and inferences. Synthetic or insufficient vision is not operational evidence; vision alone does not determine sleep, fatigue, or diagnosis. The diary remains private.
 
-La schedule versionata in Prisma è l'autorità condivisa **della demo**: l'agent la usa direttamente e la dashboard può leggerla o aggiornarla usando le API v2 e le credenziali autorizzate. Terra può sostituirla con controllo atomico della versione, oppure approvare una proposta con deduplicazione durevole. Nessun endpoint schedule è presente nel backend Python attuale; la proprietà del programma oltre la demo resta da concordare con il team. Solo `APPLIED` significa proposta applicata; un rifiuto o una proposta obsoleta non modifica il programma. La selezione della vista nella dashboard non sostituisce l'autorizzazione di Terra.
+The versioned schedule in Prisma is the shared authority **of the demo**: the agent uses it directly and the dashboard can read or update it using v2 APIs and authorized credentials. Earth can replace it with atomic version control, or approve a proposal with durable deduplication. No schedule endpoint is present in the current Python backend; program ownership beyond the demo remains to be agreed with the team. Only `APPLIED` means proposal applied; a rejection or an obsolete proposal does not modify the program. Dashboard view selection does not replace Earth authorization.
 
-## Sequenza di implementazione e verifica
+## Implementation sequence and verification
 
-1. Aggiornare i client alle scale 1–10 e ai metadati di scala; preservare le letture storiche non identificabili senza convertirle.
-2. Definire schema eseguibile dell'adattatore Python/TypeScript e configurazione server della mappatura demo, mantenendo esplicita l'identità non verificata.
-3. Implementare il provider di lettura, congelare il contesto e testare dati mancanti, invalidi, vecchi, sintetici, fuori ambito e backend non raggiungibile.
-4. Generare report e proposta usando le fonti congelate e autorizzate; verificare separazione fra privato e condiviso e comportamento senza dati sufficienti.
-5. Integrare la dashboard con report, proposta e decisione di Terra; definire e collegare il provider della schedule condivisa prima di dichiarare completata la sincronizzazione.
-6. Collaudare voce, webcam, backend, report, decisione e aggiornamento del programma. La demo attuale può essere testata separatamente senza assumere che i dati sintetici rappresentino la stessa persona reale.
+1. Update clients to scales 1–10 and scale metadata; preserve historical unidentifiable readings without converting them.
+2. Define executable Python/TypeScript adapter schema and server configuration of demo mapping, keeping identity unverified explicit.
+3. Implement reading provider, freeze context, and test missing, invalid, old, synthetic, out-of-scope, and unreachable backend data.
+4. Generate report and proposal using frozen and authorized sources; verify separation between private and shared and behavior without sufficient data.
+5. Integrate dashboard with report, proposal, and Earth decision; define and connect the shared schedule provider before declaring synchronization complete.
+6. Test voice, webcam, backend, report, decision, and schedule update. The current demo can be tested separately without assuming that synthetic data represents the same real person.

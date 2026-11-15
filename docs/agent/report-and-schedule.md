@@ -1,48 +1,48 @@
-# Report, proposta e decisione di Terra
+# Report, proposal and decision for Terra
 
-Il flusso è disponibile nel runtime demo con provider `mock` oppure NVIDIA/Nemotron. Per impostazione predefinita l'agent legge i sensori sintetici dal backend Python attraverso l'adattatore descritto nel [contratto dati](./contratto-backend-dati.md); il legame delle identità resta demo e non verificato. Non vengono scritti dati nel backend Python.
+The flow is available in the demo runtime with the `mock` provider or NVIDIA/Nemotron. By default, the agent reads synthetic sensors from the Python backend through the adapter described in the [data contract](./contratto-backend-dati.md); identity binding remains demo and unverified. No data is written to the Python backend.
 
-## Comportamento
+## Behavior
 
-1. L'astronauta parla o scrive, verifica il check-in e sceglie cosa condividere, inclusa l'eventuale osservazione webcam.
-2. Alla conferma vengono congelati sensori, osservazione visiva autorizzata e programma con la sua versione. I cambiamenti successivi non riscrivono il contesto della valutazione.
-3. L'agent genera un report per Terra: dichiarazioni condivise, letture dei sensori con provenienza, discrepanze, incertezze e necessità di revisione umana. Le evidenze rimandano agli ID delle fonti autorizzate.
-4. Se motivata, genera una proposta `PENDING_REVIEW`; altrimenti fornisce `noChangeReason`. Il programma rimane invariato. Una proposta che non supera il validatore viene scartata: il report resta disponibile e richiede revisione umana.
-5. Solo Terra può approvare o rifiutare. Solo `APPLIED` significa che il programma è stato aggiornato. Una decisione ripetuta con la stessa chiave e lo stesso payload non applica due volte la variazione.
+1. The astronaut speaks or writes, verifies check-in, and chooses what to share, including any webcam observation.
+2. Upon confirmation, sensors, authorized visual observation, and the program with its version are frozen. Subsequent changes do not rewrite the evaluation context.
+3. The agent generates a report for Terra: shared statements, sensor readings with provenance, discrepancies, uncertainties, and need for human review. Evidence refers to IDs of authorized sources.
+4. If justified, it generates a `PENDING_REVIEW` proposal; otherwise it provides `noChangeReason`. The program remains unchanged. A proposal that does not pass the validator is discarded: the report remains available and requires human review.
+5. Only Terra can approve or reject. Only `APPLIED` means the program has been updated. A repeated decision with the same key and same payload does not apply the change twice.
 
-Il diario rimane privato. La webcam misura le chiusure delle palpebre nell'intervallo osservato: non misura ore di sonno e non dimostra da sola fatica o una diagnosi. Una misura sintetica o insufficiente è descritta nelle incertezze, non usata come evidenza di una proposta.
+The diary remains private. The webcam measures eyelid closures in the observed interval: it does not measure sleep hours and does not by itself prove fatigue or a diagnosis. A synthetic or insufficient measure is described in uncertainties, not used as evidence for a proposal.
 
-## Programma e limiti della demo
+## Program and demo limits
 
-`DemoProgramProvider` salva il programma in Prisma e lo versiona. I programmi già presenti vengono conservati. Per una data senza programma crea una giornata illustrativa in UTC, dalle 06:00 alle 06:00 successive, con pasti, due blocchi di esercizio, collegamento con Terra e opportunità di sonno protetti. Due attività di missione sono spostabili entro finestre esplicite.
+`DemoProgramProvider` saves the program in Prisma and versions it. Existing programs are preserved. For a date without a program, it creates an illustrative day in UTC, from 06:00 to the following 06:00, with meals, two exercise blocks, connection with Terra, and protected sleep opportunities. Two mission tasks are movable within explicit windows.
 
-Il server consente soltanto una pausa positiva fino a 20 minuti prima di una singola attività futura di missione flessibile, spostata della stessa durata. Verifica finestre, durata, dipendenze, assenza di sovrapposizioni e attività bloccate. Richiede evidenze condivise sul riposo o sulla stanchezza: la visione da sola non basta. All'applicazione ricontrolla approvazione persistita, comando autorizzato, versione e tempo corrente; una finestra già iniziata non viene applicata.
+The server allows only a positive pause of up to 20 minutes before a single future flexible mission task, moved by the same duration. It verifies windows, duration, dependencies, absence of overlaps, and blocked tasks. It requires shared evidence on rest or fatigue: vision alone is not enough. Upon application, it rechecks persisted approval, authorized command, version, and current time; a window already started is not applied.
 
-Nel provider **mock** la regola riproducibile è: stanchezza riferita almeno 8/10 e sonno al massimo 6 ore, con fonti coerenti. La durata può essere riferita oppure provenire da un sensore di qualità `GOOD`. Una divergenza di almeno un'ora fra sensore e dichiarazione richiede chiarimento. Queste soglie e la pausa di 20 minuti sono scelte del prototipo, non regole cliniche o NASA. Nemotron valuta il contesto con le stesse restrizioni sulle modifiche, senza garantire una proposta a ogni check-in.
+In the **mock** provider, the reproducible rule is: reported fatigue of at least 8/10 and sleep of at most 6 hours, with consistent sources. Duration may be reported or come from a `GOOD` quality sensor. A divergence of at least one hour between sensor and statement requires clarification. These thresholds and the 20-minute pause are prototype choices, not clinical or NASA rules. Nemotron evaluates the context with the same modification constraints, without guaranteeing a proposal at every check-in.
 
-### Riferimenti NASA e loro uso
+### NASA references and their use
 
-- [NASA, Medical Operations](https://www.nasa.gov/reference/6-0-medical-operations/): la pianificazione deve considerare ritmi circadiani, lavoro/riposo e carico delle attività.
-- [NASA, giornata di lavoro sulla ISS](https://www.nasa.gov/missions/station/more-hands-make-light-work-crew-dragon-duo-increases-science-tempo-on-space-station/): descrive un esempio di giornata con esercizio obbligatorio e opportunità di sonno di 8,5 ore.
-- [NASA, miglioramento del sonno degli astronauti](https://www.nasa.gov/missions/station/seven-ways-astronauts-improve-sleep-may-help-you-snooze-better-on-earth/): spiega l'uso di orari del sonno pianificati.
+- [NASA, Medical Operations](https://www.nasa.gov/reference/6-0-medical-operations/): planning must consider circadian rhythms, work/rest, and task load.
+- [NASA, ISS workday](https://www.nasa.gov/missions/station/more-hands-make-light-work-crew-dragon-duo-increases-science-tempo-on-space-station/): describes an example day with mandatory exercise and 8.5-hour sleep opportunity.
+- [NASA, improving astronaut sleep](https://www.nasa.gov/missions/station/seven-ways-astronauts-improve-sleep-may-help-you-snooze-better-on-earth/): explains the use of scheduled sleep times.
 
-Queste fonti orientano le categorie protette. Gli orari esatti e il contenuto delle attività demo sono nostri esempi; non rappresentano una schedule ufficiale né un protocollo certificato.
+These sources guide the protected categories. Exact times and demo activity content are our examples; they do not represent an official schedule or a certified protocol.
 
-## API per Emanuel e Fabrizio
+## API for Emanuel and Fabrizio
 
-Autenticazione `Authorization: Bearer <token>`. In demo usare `AGENT_DEMO_TOKEN` per l'astronauta e `AGENT_GROUND_TOKEN` distinto per Terra; entrambi definiti sul server. Ruoli e ambito non vengono letti dal body. Le credenziali del backend reale richiederanno un `IdentityProvider` dedicato.
+Authentication `Authorization: Bearer <token>`. In demo use `AGENT_DEMO_TOKEN` for the astronaut and `AGENT_GROUND_TOKEN` distinct for Terra; both defined on the server. Roles and scope are not read from the body. Real backend credentials will require a dedicated `IdentityProvider`.
 
-| Metodo e percorso | Uso |
+| Method and path | Use |
 | --- | --- |
-| `GET /api/agent/v2/reports?astronautId=astro-1` | Report condivisi, anche con evidenze webcam |
-| `GET /api/agent/v2/proposals?astronautId=astro-1` | Proposte e stato; `cursor` e `limit` opzionali |
-| `GET /api/agent/v2/schedule?astronautId=astro-1&date=2026-11-14` | Programma persistente della data richiesta |
-| `PUT /api/agent/v2/schedule` | Terra imposta il programma condiviso tramite controllo di versione |
-| `POST /api/agent/v2/proposals/:id/decision` | Decisione di Terra |
+| `GET /api/agent/v2/reports?astronautId=astro-1` | Shared reports, including webcam evidence |
+| `GET /api/agent/v2/proposals?astronautId=astro-1` | Proposals and status; `cursor` and `limit` optional |
+| `GET /api/agent/v2/schedule?astronautId=astro-1&date=2026-11-14` | Persistent schedule for the requested date |
+| `PUT /api/agent/v2/schedule` | Terra sets the shared schedule via version control |
+| `POST /api/agent/v2/proposals/:id/decision` | Terra's decision |
 
-Le risposte positive contengono `{ data, meta: { contractVersion: "2.0.0", requestId } }`, con `Cache-Control: no-store`. Schemi e tipi importabili dal frontend: `server/agent/contracts/index.ts`, inclusi `ProposalListV2ResponseSchema`, `DecisionV2ResponseSchema` e `ScheduleV2ResponseSchema`.
+Positive responses contain `{ data, meta: { contractVersion: "2.0.0", requestId } }`, with `Cache-Control: no-store`. Schemas and types importable from the frontend: `server/agent/contracts/index.ts`, including `ProposalListV2ResponseSchema`, `DecisionV2ResponseSchema` and `ScheduleV2ResponseSchema`.
 
-Esempio decisione:
+Example decision:
 
 ```http
 POST /api/agent/v2/proposals/<proposal-id>/decision
@@ -53,11 +53,11 @@ Idempotency-Key: decisione-univoca-1
 { "decision": "APPROVE", "comment": "Compatibile con le attività previste." }
 ```
 
-Per rifiutare usare `REJECT`. `comment` è obbligatorio ma può essere `null`. La risposta contiene `{ decision, proposal, schedule }`: `schedule` è valorizzato soltanto per `APPLIED`. `REJECTED` non cambia il programma; una versione superata produce `409 VERSION_CONFLICT` e `STALE`. Un'approvazione con applicazione fallita restituisce lo stato `APPLY_FAILED`, senza presentarla come applicata. Un timeout non giustifica una seconda richiesta con una chiave diversa: ripetere la richiesta originale.
+To reject use `REJECT`. `comment` is mandatory but can be `null`. The response contains `{ decision, proposal, schedule }`: `schedule` is populated only for `APPLIED`. `REJECTED` does not change the schedule; an outdated version produces `409 VERSION_CONFLICT` and `STALE`. An approval with failed application returns status `APPLY_FAILED`, without presenting it as applied. A timeout does not justify a second request with a different key: repeat the original request.
 
-### Impostare la schedule da Terra
+### Setting the schedule from Terra
 
-Il programma della demo ha una sola fonte autorevole: `DemoProgramProvider` e il database Prisma dell'agent. Dashboard e altri componenti lo leggono mediante `GET /api/agent/v2/schedule`, con identità autorizzata. Il backend Python dei sensori non è un secondo archivio della schedule. Per modificarla, Terra recupera lo snapshot e invia quello aggiornato:
+The demo program has a single authoritative source: `DemoProgramProvider` and the agent's Prisma database. Dashboard and other components read it via `GET /api/agent/v2/schedule`, with authorized identity. The Python sensor backend is not a second schedule store. To modify it, Terra retrieves the snapshot and sends the updated one:
 
 ```http
 PUT /api/agent/v2/schedule
@@ -67,15 +67,15 @@ Content-Type: application/json
 { "expectedVersion": 1, "schedule": { ...snapshot_aggiornato_con_version_1 } }
 ```
 
-Il corpo illustrato richiede l'oggetto completo restituito dal GET, con `id`, `astronautId`, `date` e `version` invariati; lo schema eseguibile è `UpdateScheduleRequestSchema`. Il server valida attività, confini della giornata, sovrapposizioni e dipendenze e incrementa la versione in modo atomico. Un astronauta riceve `403`; una versione obsoleta riceve `409 VERSION_CONFLICT` con `currentVersion`: ricaricare e rivedere il programma prima di riprovare. Un `PUT` ripetuto dopo il successo con la vecchia versione riceve quindi `409`; dopo un timeout ricaricare la schedule per verificare l'esito. Una proposta precedente diventa `STALE` al tentativo di decisione se la versione è cambiata.
+The illustrated body requires the full object returned by GET, with `id`, `astronautId`, `date` and `version` unchanged; the executable schema is `UpdateScheduleRequestSchema`. The server validates activities, day boundaries, overlaps, and dependencies and increments the version atomically. An astronaut receives `403`; an outdated version receives `409 VERSION_CONFLICT` with `currentVersion`: reload and review the schedule before retrying. A repeated `PUT` after success with the old version therefore receives `409`; after a timeout, reload the schedule to verify the outcome. A previous proposal becomes `STALE` upon decision attempt if the version has changed.
 
-Questa API permette a Fabrizio di collegare la dashboard; la schermata di modifica non è ancora presente. La schedule resta una simulazione locale: la proprietà del programma reale e il sistema di autenticazione definitivo devono essere concordati con il team.
+This API allows Fabrizio to connect the dashboard; the edit screen is not yet present. The schedule remains a local simulation: real program ownership and the final authentication system must be agreed with the team.
 
-La conferma con scelta webcam usa `POST /api/agent/v2/check-ins/:id/confirm`; i messaggi continuano a usare le API di sessione esistenti. Per il dettaglio di conferma e consenso vedere [I1](./i1-vision-import.md) e lo schema `ConfirmCheckInWithVisionRequestSchema`.
+Confirmation with webcam choice uses `POST /api/agent/v2/check-ins/:id/confirm`; messages continue to use existing session APIs. For confirmation and consent details see [I1](./i1-vision-import.md) and schema `ConfirmCheckInWithVisionRequestSchema`.
 
-## Setup e verifica
+## Setup and verification
 
-Con il server fermo, dopo aver aggiornato il codice:
+With the server stopped, after updating the code:
 
 ```powershell
 npm.cmd run db:generate
@@ -86,12 +86,12 @@ npm.cmd run lint
 npm.cmd run dev
 ```
 
-Lo schema aggiunge il campo opzionale `CheckInContextSnapshot.scheduleJson`. Non serve azzerare il database. Per check-in vecchi senza programma congelato, una nuova proposta richiede un nuovo check-in.
+The schema adds the optional field `CheckInContextSnapshot.scheduleJson`. No need to reset the database. For old check-ins without frozen program, a new proposal requires a new check-in.
 
-Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock`, `AGENT_SENSOR_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 3 su 10. Stanchezza 8 su 10.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
+To try manually without external APIs set `AGENT_AI_PROVIDER=mock`, `AGENT_SENSOR_PROVIDER=mock` and `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, restart the server and open `/voice-demo`. Write "I slept 4.5 hours. Sleep quality 3 out of 10. Fatigue 8 out of 10.", share observations and confirm. The proposal requires an eligible future task: after the last flexible task it is correct to get a no-change reason. The current demo does not include a new decision screen: use the APIs above.
 
-Gli scenari riproducibili senza dipendere dall'ora reale sono in `tests/agent/planning-flow.test.ts`: database temporanei, orologio fissato prima delle attività, sonno scarso con proposta, riposo adeguato senza proposta, dati insufficienti, approvazione idempotente, rifiuto, permessi e versione obsoleta. `tests/agent/artifacts.test.ts` verifica inoltre che una raccomandazione non valida non elimini il report.
+Reproducible scenarios without depending on real time are in `tests/agent/planning-flow.test.ts`: temporary databases, fixed clock before tasks, poor sleep with proposal, adequate rest without proposal, insufficient data, idempotent approval, rejection, permissions, and outdated version. `tests/agent/artifacts.test.ts` also verifies that an invalid recommendation does not delete the report.
 
-## Collegamento successivo
+## Next connection
 
-Con Emanuel resta da verificare l'identità comune e concordare il sistema che possiederà la schedule oltre la demo; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può consumare i contratti sopra per mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. Il collegamento attuale al backend Python è in sola lettura.
+With Emanuel, common identity remains to be verified and the system that will own the schedule beyond the demo must be agreed; the real provider must maintain version comparison, idempotency, and application receipt. Fabrizio's dashboard can consume the contracts above to show reports, reason, before/after difference, and buttons reserved for Terra. The current link to the Python backend is read-only.

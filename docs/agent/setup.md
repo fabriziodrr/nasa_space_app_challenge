@@ -1,19 +1,19 @@
-# Setup e avvio del modulo agent (N1)
+# Setup and startup of the agent module (N1)
 
-Questa guida descrive il bootstrap storico del modulo agent. Per l'avvio integrato corrente di dashboard, backend e visione vedere il [README principale](../../README.md). I contratti e gli accordi di integrazione sono in [contracts-v1.md](./contracts-v1.md).
+This guide describes the historical bootstrap of the agent module. For the current integrated startup of dashboard, backend, and vision, see the [main README](../../README.md). Integration contracts and agreements are in [contracts-v1.md](./contracts-v1.md).
 
-## Prerequisiti
+## Prerequisites
 
-- Node.js e `npm`.
-- Un file `.env` con `DATABASE_URL`. Il default locale e `file:./dev.db` (il file viene creato dentro `prisma/`). Copiare `.env.example` in `.env`:
+- Node.js and `npm`.
+- A `.env` file with `DATABASE_URL`. The local default is `file:./dev.db` (the file is created inside `prisma/`). Copy `.env.example` to `.env`:
 
 ```sh
 cp .env.example .env
 ```
 
-Su PowerShell usare `npm.cmd` al posto di `npm` se la policy blocca `npm.ps1`.
+On PowerShell, use `npm.cmd` instead of `npm` if the policy blocks `npm.ps1`.
 
-## Inizializzazione del database
+## Database initialization
 
 ```sh
 npm run db:generate   # genera il client Prisma dallo schema
@@ -21,34 +21,34 @@ npm run db:push       # crea/aggiorna le tabelle SQLite
 npm run db:seed       # carica identita demo e programma iniziale
 ```
 
-`db:seed` riparte sempre da zero: svuota tutte le tabelle dell'agent e ricrea identita demo e programma. E il comando di **reset** dei dati dimostrativi: rieseguirlo ogni volta che serve uno stato pulito.
+`db:seed` always starts from scratch: it empties all agent tables and recreates demo identities and program. It is the **reset** command for demo data: run it whenever a clean state is needed.
 
-### Dati caricati dal seed
+### Data loaded by seed
 
-- Identita demo `astro-1` (ruolo `ASTRONAUT`) e `ground-1` (ruolo `GROUND_CONTROL`, scope `["astro-1"]`), usate solo dall'`SimulatedIdentityProvider`.
-- Programma `schedule-1` per `astro-1`, giorno `2026-11-14`, versione `1`, con il collegamento Terra (bloccato) e l'inventario campioni (spostabile), come in `docs/agent/examples/normal.json`.
+- Demo identities `astro-1` (role `ASTRONAUT`) and `ground-1` (role `GROUND_CONTROL`, scope `["astro-1"]`), used only by `SimulatedIdentityProvider`.
+- Program `schedule-1` for `astro-1`, day `2026-11-14`, version `1`, with the Earth link (locked) and sample inventory (movable), as in `docs/agent/examples/normal.json`.
 
-## Scenari simulati
+## Simulated scenarios
 
-I sensori sono deterministi e riproducibili; la scelta dello scenario e interna alla demo, non un campo delle API di produzione.
+Sensors are deterministic and reproducible; scenario choice is internal to the demo, not a field of production APIs.
 
-| Scenario | Sensori: ore / risvegli / bpm | Dichiarazione: ore / qualita / stanchezza |
+| Scenario | Sensors: hours / awakenings / bpm | Declaration: hours / quality / fatigue |
 | --- | --- | --- |
 | `RESTED` | 8 / 1 / 60 | 8 / 4 / 1 |
 | `POOR_SLEEP` | 4.8 / 6 / 72 | 4.5 / 2 / 4 |
 | `CONFLICTING_DATA` | 8 / 1 / 60 | 4 / 2 / 4 |
 
-Definizioni in `server/agent/simulator/scenarios.ts`; provider simulati in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`).
+Definitions in `server/agent/simulator/scenarios.ts`; simulated providers in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`).
 
-## Avvio
+## Startup
 
 ```sh
 npm run dev
 ```
 
-La demo conversazionale e disponibile su `/voice-demo`; per il flusso integrato avviare anche backend dati e prototipo di visione seguendo il README principale.
+The conversational demo is available at `/voice-demo`; for the integrated flow, also start the data backend and vision prototype following the main README.
 
-## Verifiche
+## Verifications
 
 ```sh
 npm run test:agent   # contratti + repository + provider + servizi
@@ -56,4 +56,4 @@ npm run typecheck
 npm run lint
 ```
 
-I test creano un database SQLite temporaneo per file ed eseguono `prisma db push` al loro interno, senza toccare `dev.db`.
+Tests create a temporary per-file SQLite database and run `prisma db push` internally, without touching `dev.db`.

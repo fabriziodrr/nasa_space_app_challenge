@@ -10,7 +10,7 @@ const percent = (value: number | null) => value === null ? 'Unavailable' : `${(v
 const ms = (value: number | null) => value === null ? 'Unavailable' : `${value.toFixed(0)} ms`;
 const states = { unknown: 'Unusable', open: 'Open', closed: 'Closed' };
 function reasons(eye: EyeObservation | undefined) {
-  return eye?.validity === 'invalid' ? eye.reasons.join(', ') : 'Nessuno';
+  return eye?.validity === 'invalid' ? eye.reasons.join(', ') : 'None';
 }
 
 export function SyntheticReplay() {
@@ -37,7 +37,7 @@ export function SyntheticReplay() {
     return () => window.clearTimeout(timer);
   }, [playing, replay, index]);
 
-  if (!fixture || !replay) return <section className="camera-panel">Nessuno scenario sintetico disponibile.</section>;
+  if (!fixture || !replay) return <section className="camera-panel">No synthetic scenario is available.</section>;
   const step = replay.steps[index];
   const snapshot = finished ? replay.final : step?.snapshot;
   const points = replay.steps.slice(0, index + 1);
@@ -76,8 +76,8 @@ export function SyntheticReplay() {
         </article>)}
       </div>
       <h3>Openness timeline</h3>
-      <p className="field-hint">Verde: left · Blu: right · Fasce grigie: intervalli non valutabili. Scala grafica limitata a 0–1; i valori numerici restano originali.</p>
-      <svg className="replay-chart" viewBox="0 0 800 200" role="img" aria-label="Grafico temporale dell'apertura dei due occhi e degli intervalli non valutabili">
+      <p className="field-hint">Green: left · Blue: right · Gray bands: unusable intervals. Chart scale is limited to 0–1; numerical values are unchanged.</p>
+      <svg className="replay-chart" viewBox="0 0 800 200" role="img" aria-label="Timeline of eye openness and unusable intervals">
         <line x1="40" y1="40" x2="760" y2="40" stroke="#ccd8d1" /><line x1="40" y1="160" x2="760" y2="160" stroke="#ccd8d1" />
         <text x="8" y="45">1</text><text x="8" y="165">0</text>
         {points.slice(1).map((point, i) => {
@@ -100,7 +100,7 @@ export function SyntheticReplay() {
       <dl className="capture-details">
         <div><dt>Observed time</dt><dd>{ms(snapshot.session.elapsedMs)}</dd></div>
         <div><dt>Valid bilateral time</dt><dd>{ms(snapshot.session.validMs)}</dd></div>
-        <div><dt>Copertura</dt><dd>{percent(snapshot.session.coverage)}</dd></div>
+        <div><dt>Coverage</dt><dd>{percent(snapshot.session.coverage)}</dd></div>
         <div><dt>Experimental closure time fraction</dt><dd>{percent(snapshot.session.closureFraction)}</dd></div>
         <div><dt>Complete / incomplete bilateral closures</dt><dd>{snapshot.session.closures.completeCount} / {snapshot.session.closures.incompleteCount}</dd></div>
         <div><dt>Longest complete closure</dt><dd>{ms(snapshot.session.closures.longestCompleteMs)}</dd></div>

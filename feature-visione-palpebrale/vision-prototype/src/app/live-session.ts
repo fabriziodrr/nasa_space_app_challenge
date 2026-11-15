@@ -74,7 +74,7 @@ export class LiveSession {
     this.maxSamples = options.maxSamples ?? DEFAULT_MAX_SESSION_SAMPLES;
     this.maxChartPoints = options.maxChartPoints ?? DEFAULT_MAX_CHART_POINTS;
     if (!Number.isInteger(this.maxSamples) || this.maxSamples < 1 || this.maxSamples > DEFAULT_MAX_SESSION_SAMPLES
-      || !Number.isInteger(this.maxChartPoints) || this.maxChartPoints < 2 || this.maxChartPoints > DEFAULT_MAX_CHART_POINTS) throw new Error('Limiti di sessione non validi.');
+      || !Number.isInteger(this.maxChartPoints) || this.maxChartPoints < 2 || this.maxChartPoints > DEFAULT_MAX_CHART_POINTS) throw new Error('Invalid session limits.');
     this.state = { ...this.state, sampleLimit: this.maxSamples, chartLimit: this.maxChartPoints };
     this.now = options.now ?? (() => performance.now());
     this.consume = (frame, signal) => {
@@ -114,7 +114,7 @@ export class LiveSession {
       await this.adapter.init();
       if (generation === this.generation) this.publish({ phase: 'preview', message: 'Model ready. Start calibration.' });
     } catch (error) {
-      if (generation === this.generation) this.interrupt('error', 'processing_error', error instanceof Error ? error.message : 'Error di caricamento del modello.', 'runtime');
+      if (generation === this.generation) this.interrupt('error', 'processing_error', error instanceof Error ? error.message : 'Model loading error.', 'runtime');
     }
   }
   startOpen() {
@@ -191,7 +191,7 @@ export class LiveSession {
   }
   private process(result: FaceInferenceResult) {
     const dimensions = `${result.geometry.imageWidth}x${result.geometry.imageHeight}`;
-    if (this.dimensions && this.dimensions !== dimensions) { this.interrupt('stopped', 'calibration_invalidated', 'Risoluzione cambiata: riavvia l’analisi e ripeti la calibrazione.'); return; }
+    if (this.dimensions && this.dimensions !== dimensions) { this.interrupt('stopped', 'calibration_invalidated', 'Resolution changed: restart analysis and repeat calibration.'); return; }
     this.dimensions = dimensions; this.currentDimensions = { width: result.geometry.imageWidth, height: result.geometry.imageHeight };
     let progress = this.state.progress;
     let calibration = this.state.calibration;

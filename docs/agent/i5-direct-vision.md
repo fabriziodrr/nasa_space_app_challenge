@@ -1,25 +1,25 @@
-# I5 — Invio diretto della misura palpebrale
+# I5 — Direct sending of eyelid measurement
 
-La demo dell'agent incorpora il prototipo palpebrale in un iframe. Una volta arrestata la misura, il prototipo invia automaticamente il riepilogo alla pagina ospite, che lo registra e lo seleziona per la sessione corrente. La condivisione con Terra è una scelta distinta, alla conferma del check-in.
+The agent demo incorporates the eyelid prototype in an iframe. Once measurement is stopped, the prototype automatically sends the summary to the host page, which records it and selects it for the current session. Sharing with Terra is a separate choice, at check-in confirmation.
 
-## Avvio locale
+## Local startup
 
-1. Dalla root agent avviare `npm run dev` e aprire `http://localhost:3000/voice-demo`.
-2. Dalla cartella `feature-visione-palpebrale/vision-prototype` avviare `npm run dev`. Il prototipo usa `http://127.0.0.1:5173`.
-3. Avviare una sessione nella demo, aprire **Visione palpebrale**, consentire la fotocamera, calibrare, avviare e arrestare la misura. Verificare il messaggio di conferma; in caso di errore si può ripetere l'invio.
+1. From the agent root run `npm run dev` and open `http://localhost:3000/voice-demo`.
+2. From the `feature-visione-palpebrale/vision-prototype` folder run `npm run dev`. The prototype uses `http://127.0.0.1:5173`.
+3. Start a session in the demo, open **Visione palpebrale**, allow the camera, calibrate, start and stop the measurement. Verify the confirmation message; in case of error, sending can be repeated.
 
-L'invio diretto riguarda la misura webcam. L'accesso alla fotocamera richiede un contesto sicuro e il permesso dell'utente. La chiusura del riquadro o la conferma del check-in rimuovono l'iframe, rilasciando le risorse del prototipo. La pagina palpebrale continua a interrompere la cattura quando viene nascosta o cambia dispositivo.
+Direct sending concerns the webcam measurement. Camera access requires a secure context and user permission. Closing the panel or confirming check-in removes the iframe, releasing the prototype resources. The eyelid page continues to interrupt capture when hidden or when the device changes.
 
-## Origini e integrazione nell'host
+## Origins and host integration
 
-Le impostazioni predefinite sono `NEXT_PUBLIC_VISION_ORIGIN=http://127.0.0.1:5173` nell'agent e `VITE_AGENT_ORIGIN=http://localhost:3000` nel prototipo. Devono corrispondere alle origini effettivamente usate nel browser: `localhost` e `127.0.0.1` sono origini distinte. Specificare solo schema, host e porta, senza percorso, credenziali o parametri. HTTP è accettato soltanto per loopback; per origini remote usare HTTPS. Riavviare i server dopo una modifica delle variabili; per la produzione ricostruire le applicazioni. Sono variabili pubbliche e non devono contenere segreti.
+The defaults are `NEXT_PUBLIC_VISION_ORIGIN=http://127.0.0.1:5173` in the agent and `VITE_AGENT_ORIGIN=http://localhost:3000` in the prototype. They must match the origins actually used in the browser: `localhost` and `127.0.0.1` are distinct origins. Specify only scheme, host, and port, without path, credentials, or parameters. HTTP is accepted only for loopback; for remote origins use HTTPS. Restart the servers after changing variables; for production, rebuild the applications. They are public variables and must not contain secrets.
 
-L'host valida esattamente origine e finestra dell'iframe e non invia al prototipo né il token né l'ID della sessione. Il prototipo accetta soltanto la risposta del genitore configurato e verifica origine, finestra e identificativo della richiesta; la configurazione viene confrontata con il referrer dell'iframe. Un host diverso non riceve automaticamente i dati. Il protocollo `crewready-vision-agent-v1` trasporta il JSON della misura, senza immagini o video; l'host lo associa alla propria sessione autenticata e usa l'endpoint I1. Non serve abilitare CORS tra Vite e Next perché è la pagina agent a chiamare la propria API.
+The host validates exactly the iframe origin and window and does not send either the token or the session ID to the prototype. The prototype accepts only the response from the configured parent and verifies origin, window, and request identifier; the configuration is compared with the iframe referrer. A different host does not automatically receive the data. The `crewready-vision-agent-v1` protocol transports the measurement JSON, without images or video; the host associates it with its own authenticated session and uses the I1 endpoint. CORS between Vite and Next does not need to be enabled because it is the agent page that calls its own API.
 
-L'invio parte automaticamente al termine della misura e mantiene un identificativo stabile e la stessa istantanea nei retry. Se non riceve una conferma entro 15 secondi, il prototipo consente di riprovare oppure annullare l'invio in sospeso. L'annullamento elimina il tentativo locale, ma non può annullare una richiesta già arrivata al server: la misura potrebbe comunque comparire nell'host. Il server deduplica con l'identificativo della richiesta. L'host deve permettere l'uso della fotocamera nell'iframe e configurare eventuali policy CSP per le proprie origini.
+Sending starts automatically at the end of the measurement and maintains a stable identifier and the same snapshot in retries. If it does not receive a confirmation within 15 seconds, the prototype allows retrying or canceling the pending send. Cancellation removes the local attempt, but cannot cancel a request already arrived at the server: the measurement might still appear in the host. The server deduplicates with the request identifier. The host must allow camera use in the iframe and configure any CSP policies for its own origins.
 
-## Verifiche e stato del codice
+## Checks and code status
 
-I test del bridge coprono verifica delle origini e delle finestre, rifiuto di messaggi estranei, limite dimensionale, timeout e riutilizzo dello stesso ID e contenuto. La prova pratica di webcam, microfono, cambio dispositivo, sospensione e recupero rete rimane in I6; non è una validazione dell'accuratezza della misura.
+The bridge tests cover origin and window verification, rejection of foreign messages, size limit, timeout, and reuse of the same ID and content. The practical webcam, microphone, device change, suspension, and network recovery test remains in I6; it is not a validation of measurement accuracy.
 
-Il prototipo è incluso direttamente nella repo principale in `feature-visione-palpebrale/`, insieme al modello e agli asset WASM: il normale clone/pull è sufficiente, senza accesso a una seconda repository. I sorgenti provengono dalla revisione `9803a5f41eff521db5d1305af82323da11332eb5`, comprensiva delle modifiche I5 e di quelle locali preesistenti. Il parser copiato nel backend coincide con i corrispondenti 20 sorgenti TypeScript. Installazione delle dipendenze e avvio sono descritti nel [README principale](../../README.md#visione-palpebrale-inclusa).
+The prototype is included directly in the main repo in `feature-visione-palpebrale/`, together with the model and WASM assets: a normal clone/pull is sufficient, without access to a second repository. The sources come from revision `9803a5f41eff521db5d1305af82323da11332eb5`, including I5 changes and pre-existing local changes. The parser copied into the backend matches the corresponding 20 TypeScript sources. Dependency installation and startup are described in the [main README](../../README.md#visione-palpebrale-inclusa).

@@ -44,7 +44,7 @@ export function createProposalHttpHandlers(getRuntime: () => AgentRuntime) {
       return reply(ScheduleV2ResponseSchema, await schedule.getDay(input.astronautId, input.date), requestId);
     }),
     updateSchedule: (request: Request) => handle(request, async ({ schedule }, identity, requestId) => {
-      if (identity.role !== "GROUND_CONTROL") throw new AgentError("FORBIDDEN", "Solo Terra può impostare il programma.");
+      if (identity.role !== "GROUND_CONTROL") throw new AgentError("FORBIDDEN", "Only ground control can set the schedule.");
       const input = UpdateScheduleRequestSchema.parse(await readJson(request));
       authorize(identity, input.schedule.astronautId);
       return reply(ScheduleV2ResponseSchema, await schedule.replaceDay(input.schedule.astronautId, input.expectedVersion, input.schedule), requestId);

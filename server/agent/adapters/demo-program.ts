@@ -74,14 +74,14 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
     if (next.astronautId !== astronautId || next.version !== expectedVersion) throw new AgentError("VALIDATION_ERROR", "Programma o versione non coerenti.");
     const current = await this.getDay(astronautId, next.date);
     if (current.id !== next.id) throw new AgentError("NOT_FOUND", "Programma non trovato.");
-    if (current.version !== expectedVersion) throw new AgentError("VERSION_CONFLICT", "Il programma è cambiato.", false, current.version);
+    if (current.version !== expectedVersion) throw new AgentError("VERSION_CONFLICT", "The schedule has changed.", false, current.version);
     const start = Date.parse(next.dayStartsAt), end = Date.parse(next.dayEndsAt);
     const invalid = next.activities.some((activity, i) => Date.parse(activity.startsAt) < start || Date.parse(activity.endsAt) > end
       || activity.dependsOn.some((id) => {
         const dependency = next.activities.find((item) => item.id === id);
         return !dependency || Date.parse(dependency.endsAt) > Date.parse(activity.startsAt);
       }) || next.activities.slice(i + 1).some((other) => activitiesOverlap(activity, other)));
-    if (invalid || hasDependencyCycle(next.activities)) throw new AgentError("VALIDATION_ERROR", "Il programma contiene attività fuori giornata, sovrapposte o dipendenze non valide.");
+    if (invalid || hasDependencyCycle(next.activities)) throw new AgentError("VALIDATION_ERROR", "The schedule contains activities outside the day, overlapping activities or invalid dependencies.");
     const result = await this.db.$transaction(async (tx) => {
       const peers = await tx.scheduleSnapshot.findMany({ where: { astronautId: { not: astronautId },
         dayStartsAt: { lt: new Date(next.dayEndsAt) }, dayEndsAt: { gt: new Date(next.dayStartsAt) } } });
@@ -94,7 +94,7 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
     });
     if (result.count !== 1) {
       const latest = await this.getById(current.id);
-      throw new AgentError("VERSION_CONFLICT", "Il programma è cambiato.", false, latest?.version ?? expectedVersion);
+      throw new AgentError("VERSION_CONFLICT", "The schedule has changed.", false, latest?.version ?? expectedVersion);
     }
     return { ...next, version: expectedVersion + 1 };
   }

@@ -1,14 +1,14 @@
 import type { LivePoint } from '../app/live-session';
 
 export function LiveChart({ points }: { points: readonly LivePoint[] }) {
-  if (points.length < 2) return <p>In attesa di intervalli osservati.</p>;
+  if (points.length < 2) return <p>Waiting for observed intervals.</p>;
   const first = points[0]!.timestampMs;
   const duration = Math.max(1, points[points.length - 1]!.timestampMs - first);
   const x = (time: number) => 40 + (time - first) / duration * 720;
   const y = (value: number) => 160 - Math.max(0, Math.min(1, value)) * 120;
   return <>
-    <p className="field-hint">Sinistro verde, right blu; grigio: dati non valutabili o intervalli mancanti. Scala grafica 0–1.</p>
-    <svg className="replay-chart" viewBox="0 0 800 200" role="img" aria-label="Apertura degli occhi e intervalli non valutabili nella misura webcam">
+    <p className="field-hint">Left: green; right: blue; gray: unusable data or missing intervals. Chart scale: 0–1.</p>
+    <svg className="replay-chart" viewBox="0 0 800 200" role="img" aria-label="Eye openness and unusable intervals during webcam observation">
       <line x1="40" y1="40" x2="760" y2="40" stroke="#ccd8d1" /><line x1="40" y1="160" x2="760" y2="160" stroke="#ccd8d1" />
       <text x="8" y="45">1</text><text x="8" y="165">0</text>
       {points.slice(1).map((point, index) => {

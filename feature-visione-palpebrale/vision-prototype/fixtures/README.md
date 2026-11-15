@@ -1,14 +1,14 @@
 # Fixture N01/N02
 
-Le sequenze sono definite in `sequences.ts` e sono tipizzate con
-`ReplayFixture`. Ogni fixture dichiara:
+The sequences are defined in `sequences.ts` and are typed with
+`ReplayFixture`. Each fixture declares:
 
-- `config`: parametri usati dal motore;
-- `samples`: campioni già calibrati, con timestamp in millisecondi;
-- `stopAfterSamples`: se la sessione viene arrestata al termine;
-- `expected`: sottoinsieme dell'istantanea finale verificato dai test.
+- `config`: parameters used by the engine;
+- `samples`: already calibrated samples, with timestamps in milliseconds;
+- `stopAfterSamples`: whether the session is stopped at the end;
+- `expected`: subset of the final snapshot verified by tests.
 
-Per riprodurne una senza webcam:
+To replay one without a webcam:
 
 ```ts
 import { replayFixture } from '../src/analysis/replay';
@@ -17,14 +17,14 @@ import { shortClosures } from '../fixtures';
 const { snapshot } = replayFixture(shortClosures);
 ```
 
-I test in `tests/analysis/fixtures.test.ts` confrontano `expected` con
-`snapshot`; nessun test usa DOM, React, rete o timestamp di sistema.
+The tests in `tests/analysis/fixtures.test.ts` compare `expected` with
+`snapshot`; no test uses DOM, React, network, or system timestamps.
 
-## Configurazione comune
+## Common Configuration
 
-Salvo diversa indicazione:
+Unless otherwise indicated:
 
-| Parametro | Valore |
+| Parameter | Value |
 | --- | --- |
 | `closedEnter` | 0.25 |
 | `openExit` | 0.4 |
@@ -32,36 +32,36 @@ Salvo diversa indicazione:
 | `rollingWindowMs` | 10000 |
 | `prolongedClosureMs` | 500 |
 
-Valori aperti usati nelle sequenze: `0.9`; chiusi: `0.1`; banda di isteresi:
-`0.3` e `0.35`.
+Open values used in sequences: `0.9`; closed: `0.1`; hysteresis band:
+`0.3` and `0.35`.
 
-## Casi e risultati attesi
+## Cases and Expected Results
 
-Tempi in millisecondi. `valid` e `closed` sono bilaterali salvo notazione.
+Times in milliseconds. `valid` and `closed` are bilateral unless otherwise noted.
 
-| Fixture | Scenario | Risultato atteso principale |
+| Fixture | Scenario | Main expected result |
 | --- | --- | --- |
-| `open-baseline` | Entrambi gli occhi aperti per 400 ms | `valid = 400`, `closed = 0`, `coverage = 1`, nessun evento |
-| `short-closures` | Due chiusure bilaterali brevi | `elapsed = 700`, `valid = 700`, `closed = 300`, 2 eventi completi da 200 e 100 ms |
-| `prolonged-closure` | Una chiusura di 800 ms | `closed = 800`, 1 evento completo prolungato, massima completa 800 |
-| `wink` | Un occhio chiuso per 200 ms, l'altro aperto | Chiusura bilaterale `0`; evento sinistro completo da 200 ms |
-| `tracking-loss` | Occhi non valutabili durante la chiusura | `valid = 500`, `closed = 200`, 1 evento incompleto `tracking_lost` da 200 ms |
-| `time-gap` | Intervallo di 700 ms oltre `maxGapMs` | `gap = 700`, `valid = 400`, `closed = 100`, evento incompleto `gap` da 100 ms |
-| `null-valid-time` | Tutti i campioni invalidi | `valid = 0`, `coverage = 0`, `closureFraction = null`, nessun evento |
-| `duplicate-out-of-order` | Timestamp duplicato e fuori ordine | 4 accettati, 2 rifiutati; la misura resta `valid = 300`, `closed = 100` |
-| `stop-during-closure` | Arresto mentre entrambi gli occhi sono chiusi | Stato `stopped`; chiusura incompleta `stopped` da 100 ms, non prolungata |
-| `calibration-change` | Cambio da `cal-a` a `cal-b` durante la chiusura | Transizione 100 ms; 1 evento incompleto `calibration_changed` e 1 completo da 200 ms |
-| `hysteresis` | Valori intermedi nella banda | Nessuna oscillazione; eventi completi da 300 e 100 ms, `closed = 400` |
-| `rolling-window` | Finestra mobile di 500 ms su chiusura iniziata prima | Sessione: evento completo da 600 ms. Finestra `[500, 1000]`: sovrapposizione 200 ms, `completeWithinWindow = false`, nessuna chiusura completa |
+| `open-baseline` | Both eyes open for 400 ms | `valid = 400`, `closed = 0`, `coverage = 1`, no events |
+| `short-closures` | Two short bilateral closures | `elapsed = 700`, `valid = 700`, `closed = 300`, 2 complete events of 200 and 100 ms |
+| `prolonged-closure` | One closure of 800 ms | `closed = 800`, 1 complete prolonged event, maximum complete 800 |
+| `wink` | One eye closed for 200 ms, the other open | Bilateral closure `0`; left complete event of 200 ms |
+| `tracking-loss` | Eyes not evaluable during closure | `valid = 500`, `closed = 200`, 1 incomplete `tracking_lost` event of 200 ms |
+| `time-gap` | Gap of 700 ms beyond `maxGapMs` | `gap = 700`, `valid = 400`, `closed = 100`, incomplete `gap` event of 100 ms |
+| `null-valid-time` | All samples invalid | `valid = 0`, `coverage = 0`, `closureFraction = null`, no events |
+| `duplicate-out-of-order` | Duplicate and out-of-order timestamp | 4 accepted, 2 rejected; measurement remains `valid = 300`, `closed = 100` |
+| `stop-during-closure` | Stop while both eyes are closed | State `stopped`; incomplete `stopped` closure of 100 ms, not prolonged |
+| `calibration-change` | Change from `cal-a` to `cal-b` during closure | Transition 100 ms; 1 incomplete `calibration_changed` event and 1 complete event of 200 ms |
+| `hysteresis` | Intermediate values in the band | No oscillation; complete events of 300 and 100 ms, `closed = 400` |
+| `rolling-window` | Rolling window of 500 ms on closure started before | Session: complete event of 600 ms. Window `[500, 1000]`: overlap 200 ms, `completeWithinWindow = false`, no complete closure |
 
-## Note sui risultati
+## Result Notes
 
-- Gli eventi hanno identificativi deterministici per tipo: `left-N`, `right-N`,
+- Events have deterministic identifiers by type: `left-N`, `right-N`,
   `bilateral-N`.
-- Un `endedAtMs: null` indica un evento ancora in corso nell'istantanea.
-- La fixture `rolling-window` verifica che un evento tagliato dal bordo non
-  diventi una chiusura completa più breve: `durationMs` resta 600, mentre
-  `windowOverlapMs` vale 200 e `completeWithinWindow` è falso.
-- `null-valid-time` dimostra la differenza tra `coverage = 0` (periodo osservato
-  senza dati validi) e `closureFraction = null` (nessun tempo valido su cui
-  calcolare la quota).
+- An `endedAtMs: null` indicates an event still ongoing in the snapshot.
+- The `rolling-window` fixture verifies that an event cut by the edge does not
+  become a shorter complete closure: `durationMs` remains 600, while
+  `windowOverlapMs` is 200 and `completeWithinWindow` is false.
+- `null-valid-time` demonstrates the difference between `coverage = 0` (observed
+  period without valid data) and `closureFraction = null` (no valid time on
+  which to calculate the fraction).

@@ -1,11 +1,11 @@
-# Contratti Agent v1 — base di lavoro C0
+# Agent Contracts v1 — C0 work base
 
-Stato: **contratto locale implementato e verificabile; integrazione esterna da confermare con Fabrizio**.
-Versione del contratto: `1.0.0`. Prefisso HTTP previsto: `/api/agent/v1`.
+Status: **local contract implemented and verifiable; external integration to be confirmed with Fabrizio**.
+Contract version: `1.0.0`. Expected HTTP prefix: `/api/agent/v1`.
 
-Questo documento definisce gli accordi di implementazione. Gli schemi eseguibili sono in `server/agent/contracts/`; le interfacce server sono in `server/agent/ports.ts`. T1 implementa ora apertura/lettura delle sessioni e invio messaggi: vedere la [guida T1](t1-conversation.md). Le altre route del catalogo restano da implementare nei rispettivi task.
+This document defines implementation agreements. Executable schemas are in `server/agent/contracts/`; server interfaces are in `server/agent/ports.ts`. T1 now implements session opening/reading and message sending: see the [T1 guide](t1-conversation.md). The other catalog routes remain to be implemented in their respective tasks.
 
-## Uso dei contratti
+## Contract usage
 
 ```ts
 import { SendMessageRequestSchema } from "@/server/agent/contracts";
@@ -18,90 +18,90 @@ if (!result.success) {
 }
 ```
 
-Il barrel `contracts/index.ts` e utilizzabile dal frontend: non importa Prisma, Next.js, SDK AI, filesystem o variabili d'ambiente. `ports.ts` viene usato dalle implementazioni server. I tipi derivano dagli schemi Zod, senza DTO duplicati a mano.
+The barrel `contracts/index.ts` is usable by the frontend: it does not import Prisma, Next.js, AI SDK, filesystem, or environment variables. `ports.ts` is used by server implementations. Types derive from Zod schemas, without hand-written duplicate DTOs.
 
-Gli oggetti sono strict: campi sconosciuti sono rifiutati. Non avvengono conversioni automatiche da stringhe a numeri. L'adattatore HTTP converte esplicitamente il parametro query `limit` prima della validazione.
+Objects are strict: unknown fields are rejected. No automatic string-to-number conversions. The HTTP adapter explicitly converts the query parameter `limit` before validation.
 
-## Decisioni fissate per il MVP
+## Decisions fixed for the MVP
 
-| Aspetto | Accordo |
+| Aspect | Agreement |
 | --- | --- |
-| Identificativi | Stringhe opache di 1–128 caratteri alfanumerici, trattino e underscore; primo carattere alfanumerico |
-| Tempo | Timestamp ISO 8601 UTC con `Z`; data `YYYY-MM-DD`; fuso IANA esplicito nel programma |
-| Versioni | Interi positivi; `revision` per check-in/diario, `version` per programma |
-| Lingua voce | Italiano (`it`); testo sempre disponibile |
-| Qualita sonno | Scala dichiarata 1 = molto scarsa, 5 = molto buona |
-| Stanchezza | Scala dichiarata 1 = assente/minima, 5 = molto elevata |
-| Dati mancanti | Osservazione assente dall'array, mai valore o scala inventati |
-| Metriche simulate | Ore di sonno (`h`), numero di risvegli (`count`), frequenza cardiaca a riposo (`bpm`) |
-| Qualita sensori | `GOOD`, `DEGRADED`, `UNAVAILABLE`; soltanto `UNAVAILABLE` richiede `value: null` |
-| Scenari | `RESTED`, `POOR_SLEEP`, `CONFLICTING_DATA`; scelta interna alla demo, non un campo delle API di produzione |
-| Programma | Singolo astronauta per snapshot; tutte le attivita MVP sono esclusive, senza sovrapposizioni |
-| Operazioni | `MOVE_ACTIVITY` e `ADD_REST`; niente cancellazione, accorciamento o modifica delle priorita |
-| Test | Runner integrato `node:test`, eseguito con `tsx`; comando `npm run test:agent` |
-| Dipendenze nuove | Zod per validazione runtime; `tsx` era gia previsto dal progetto |
+| Identifiers | Opaque strings of 1–128 alphanumeric characters, hyphen, and underscore; first character alphanumeric |
+| Time | ISO 8601 UTC timestamps with `Z`; date `YYYY-MM-DD`; explicit IANA timezone in the program |
+| Versions | Positive integers; `revision` for check-in/diary, `version` for program |
+| Voice language | Italian (`it`); text always available |
+| Sleep quality | Declared scale 1 = very poor, 5 = very good |
+| Fatigue | Declared scale 1 = absent/minimal, 5 = very high |
+| Missing data | Observation absent from the array, never invented value or scale |
+| Simulated metrics | Sleep hours (`h`), number of awakenings (`count`), resting heart rate (`bpm`) |
+| Sensor quality | `GOOD`, `DEGRADED`, `UNAVAILABLE`; only `UNAVAILABLE` requires `value: null` |
+| Scenarios | `RESTED`, `POOR_SLEEP`, `CONFLICTING_DATA`; internal choice for the demo, not a field of production APIs |
+| Program | Single astronaut per snapshot; all MVP activities are exclusive, without overlaps |
+| Operations | `MOVE_ACTIVITY` and `ADD_REST`; no deletion, shortening, or priority modification |
+| Tests | Integrated runner `node:test`, executed with `tsx`; command `npm run test:agent` |
+| New dependencies | Zod for runtime validation; `tsx` was already planned by the project |
 
-I limiti numerici degli schemi sono limiti di formato del prototipo, non soglie mediche. Non si deducono scale numeriche dal termine «male»: l'agent chiede la scala o lascia il dato assente.
+Numeric schema limits are prototype format limits, not medical thresholds. Numerical scales are not deduced from the term "bad": the agent asks for the scale or leaves the data absent.
 
-Input fissati per i futuri simulatori di N1 (stesso programma di `examples/normal.json`):
+Fixed inputs for future N1 simulators (same program as `examples/normal.json`):
 
-| Scenario | Sensori: ore / risvegli / bpm | Dichiarazione: ore / qualita / stanchezza | Aspettativa funzionale |
+| Scenario | Sensors: hours / awakenings / bpm | Declaration: hours / quality / fatigue | Functional expectation |
 | --- | --- | --- | --- |
-| `RESTED` | 8 / 1 / 60 | 8 / 4 / 1 | Nessuna proposta forzata; motivazione esplicita se il programma resta invariato |
-| `POOR_SLEEP` | 4.8 / 6 / 72 | 4.5 / 2 / 4 | Candidato dimostrativo pausa + spostamento dell'inventario, comunque da validare e approvare |
-| `CONFLICTING_DATA` | 8 / 1 / 60 | 4 / 2 / 4 | Conservare entrambi i valori del sonno, chiedere chiarimenti, riportare la discrepanza senza assumere quale sia corretto |
+| `RESTED` | 8 / 1 / 60 | 8 / 4 / 1 | No forced proposal; explicit motivation if the program remains unchanged |
+| `POOR_SLEEP` | 4.8 / 6 / 72 | 4.5 / 2 / 4 | Demonstrative candidate break + inventory move, still to be validated and approved |
+| `CONFLICTING_DATA` | 8 / 1 / 60 | 4 / 2 / 4 | Keep both sleep values, ask for clarification, report the discrepancy without assuming which is correct |
 
-Questi input sono riproducibili; le risposte del provider AI reale possono variare. L'adattatore AI simulato puo restituire risultati fissi per verificare il percorso completo. La frequenza cardiaca dei tre scenari non e una soglia di intervento.
+These inputs are reproducible; real AI provider responses may vary. The simulated AI adapter can return fixed results to verify the full path. The heart rate of the three scenarios is not an intervention threshold.
 
-## Informazioni personali e report operativo
+## Personal information and operational report
 
-Un'osservazione del check-in ha ID, campo, valore, origine `self_report`, timestamp e riferimenti ai messaggi dell'astronauta. I campi ammessi sono `SLEEP_HOURS`, `SLEEP_QUALITY`, `FATIGUE`, `PHYSICAL_NOTES`; massimo un'osservazione per campo. La correzione mantiene l'identita dell'osservazione e incrementa la revisione del check-in.
+A check-in observation has ID, field, value, origin `self_report`, timestamp, and references to the astronaut's messages. Allowed fields are `SLEEP_HOURS`, `SLEEP_QUALITY`, `FATIGUE`, `PHYSICAL_NOTES`; maximum one observation per field. Correction maintains the observation identity and increments the check-in revision.
 
-La conferma include gli ID delle sole osservazioni che l'astronauta accetta di condividere. Anche una selezione vuota e valida. La selezione deve appartenere alla bozza corrente e non puo essere cambiata dopo la conferma nel MVP. Una successiva correzione delle informazioni condivise richiede un nuovo check-in; un futuro flusso di rettifica e fuori da questa versione.
+Confirmation includes the IDs of only the observations the astronaut agrees to share. Even an empty selection is valid. The selection must belong to the current draft and cannot be changed after confirmation in the MVP. A subsequent correction of shared information requires a new check-in; a future rectification flow is outside this version.
 
-Il servizio costruisce `SharedCheckIn` con la selezione confermata e rimuove i riferimenti ai messaggi. Il provider che genera report e proposte riceve soltanto questa proiezione, i sensori e il programma. Non riceve diario, trascrizione integrale o osservazioni escluse. Le osservazioni private non possono comparire neppure nelle motivazioni delle proposte visibili a Terra.
+The service builds `SharedCheckIn` with the confirmed selection and removes message references. The provider that generates reports and proposals receives only this projection, the sensors, and the program. It does not receive the diary, full transcript, or excluded observations. Private observations cannot appear even in the motivations of proposals visible to Earth.
 
-Le evidenze operative sono riferimenti a letture dei sensori o osservazioni condivise; non contengono frasi private copiate dai messaggi. Una deduzione usa `source: inference` ed esplicita le evidenze. Non e un dato misurato ne una diagnosi.
+Operational evidence are references to sensor readings or shared observations; they do not contain private phrases copied from messages. An inference uses `source: inference` and makes the evidence explicit. It is not a measured datum nor a diagnosis.
 
-Il diario e sempre `PRIVATE`, separato dal report e correggibile con controllo della revisione. L'audio grezzo non viene persistito. La politica temporale di conservazione dei dati testuali andra concordata prima di usare dati reali.
+The diary is always `PRIVATE`, separate from the report, and correctable with revision control. Raw audio is not persisted. The text data retention policy will be agreed before using real data.
 
-## Vincoli del programma
+## Program constraints
 
-Lo snapshot include finestra della giornata, versione e attivita con orari, priorita, flag `movable`, dipendenze e finestra consentita. Gli schemi controllano il formato e gli intervalli elementari; il futuro `ScheduleValidator` deve controllare i vincoli tra le attivita e le evidenze.
+The snapshot includes day window, version, and activities with times, priorities, `movable` flag, dependencies, and allowed window. Schemas check format and elementary ranges; the future `ScheduleValidator` must check constraints between activities and evidence.
 
-Regole obbligatorie del validatore:
+Mandatory validator rules:
 
-1. Le attivita citate esistono nello snapshot dell'astronauta e gli ID inseriti sono nuovi.
-2. Attivita con `movable: false` o priorita `CRITICAL` non possono essere spostate.
-3. Uno spostamento preserva la durata e resta nella finestra consentita.
-4. Le dipendenze esistono, non formano cicli e terminano prima dell'attivita dipendente.
-5. Il risultato non contiene sovrapposizioni e resta nei limiti della giornata.
-6. `ADD_REST` crea un'attivita `REST`, priorita `LOW`, spostabile, senza dipendenze, con finestra pari alla giornata.
-7. La proposta cita solo sensori del contesto e osservazioni condivise del check-in confermato.
-8. La versione di partenza corrisponde a quella corrente prima della decisione e dell'applicazione.
+1. Activities cited exist in the astronaut's snapshot and inserted IDs are new.
+2. Activities with `movable: false` or priority `CRITICAL` cannot be moved.
+3. A move preserves duration and stays within the allowed window.
+4. Dependencies exist, do not form cycles, and end before the dependent activity.
+5. The result contains no overlaps and stays within day limits.
+6. `ADD_REST` creates a `REST` activity, priority `LOW`, movable, without dependencies, with window equal to the day.
+7. The proposal cites only sensors from the context and shared observations from the confirmed check-in.
+8. The starting version matches the current one before the decision and application.
 
-Il candidato dell'AI non contiene autorizzazioni, stato della proposta o decisioni. Il servizio assegna ID e stato solo dopo averlo validato. Se la proposta non e valida, non viene pubblicata a Terra; il fallimento viene gestito esplicitamente, senza applicare una correzione silenziosa.
+The AI candidate does not contain authorizations, proposal state, or decisions. The service assigns ID and state only after validating it. If the proposal is invalid, it is not published to Earth; the failure is handled explicitly, without applying a silent correction.
 
-Gli esempi in `examples/normal.json` fissano un programma minimo: collegamento Terra immutabile 08:00–08:30 UTC, inventario flessibile 09:00–09:40. La proposta sposta l'inventario alle 09:20–10:00 e inserisce una pausa 09:00–09:20. E uno scenario dimostrativo, non una prescrizione.
+The examples in `examples/normal.json` fix a minimum program: Earth link immutable 08:00–08:30 UTC, flexible inventory 09:00–09:40. The proposal moves inventory to 09:20–10:00 and inserts a break 09:00–09:20. It is a demonstrative scenario, not a prescription.
 
-## Identita e permessi
+## Identity and permissions
 
-`IdentityProvider` restituisce un'identita verificata sul server:
+`IdentityProvider` returns a verified identity on the server:
 
-- `ASTRONAUT`: `userId` e un solo `astronautId`.
-- `GROUND_CONTROL`: `userId` e lista esplicita degli astronauti autorizzati.
+- `ASTRONAUT`: `userId` and a single `astronautId`.
+- `GROUND_CONTROL`: `userId` and explicit list of authorized astronauts.
 
-Il client non puo inviare `role` o `operatorId` nel body. `operatorId` della decisione deriva dall'identita verificata. L'ID astronauta nelle query non attribuisce permessi: il servizio verifica sempre lo scope.
+The client cannot send `role` or `operatorId` in the body. `operatorId` of the decision derives from the verified identity. The astronaut ID in queries does not grant permissions: the service always verifies the scope.
 
-Le sessioni, i messaggi, il check-in completo e il diario sono accessibili soltanto al relativo astronauta. Terra accede a proposte, decisioni e report dei soli astronauti autorizzati. La visibilita dei sensori nella dashboard verra gestita dal relativo modulo, non da un accesso alla conversazione privata.
+Sessions, messages, full check-in, and diary are accessible only to the respective astronaut. Earth accesses proposals, decisions, and reports only for authorized astronauts. Sensor visibility in the dashboard will be handled by the respective module, not by access to the private conversation.
 
-Autenticazione assente: 401. Ruolo non ammesso: 403. Risorsa inesistente o appartenente a un altro astronauta: 404. Le simulazioni di identita sono ammesse soltanto in sviluppo e devono fallire in avvio se abilitate in produzione.
+Missing authentication: 401. Disallowed role: 403. Nonexistent resource or belonging to another astronaut: 404. Identity simulations are allowed only in development and must fail at startup if enabled in production.
 
-L'accordo concreto sul sistema di login di Fabrizio resta esterno a C0: l'interfaccia e gia definita e consente lo sviluppo con un adattatore locale.
+The concrete agreement on Fabrizio's login system remains outside C0: the interface is already defined and allows development with a local adapter.
 
-## API HTTP
+## HTTP API
 
-`AGENT_ENDPOINTS` in `contracts/endpoints.ts` e il catalogo eseguibile di metodi, percorsi, ruoli e schemi. Tutte le risposte JSON positive usano:
+`AGENT_ENDPOINTS` in `contracts/endpoints.ts` is the executable catalog of methods, paths, roles, and schemas. All positive JSON responses use:
 
 ```json
 {
@@ -110,42 +110,42 @@ L'accordo concreto sul sistema di login di Fabrizio resta esterno a C0: l'interf
 }
 ```
 
-| Metodo e percorso relativo | Body / query | Risposta positiva |
+| Method and relative path | Body / query | Positive response |
 | --- | --- | --- |
-| `POST /sessions` | `{ astronautId }` | 201, sessione |
-| `POST /sessions/:id/messages` | `{ clientMessageId, text, inputMode }` | 200, messaggio astronauta, risposta assistant, bozza check-in |
-| `GET /sessions/:id` | `beforeMessageId?` | 200, stato della sessione |
-| `PATCH /check-ins/:id` | `{ expectedRevision, observations }` | 200, bozza aggiornata |
-| `POST /check-ins/:id/confirm` | `{ expectedRevision, sharedObservationIds }` | 202, stato della sessione e generazione |
-| `GET /proposals` | `astronautId`, `cursor?`, `limit?` | 200, pagina di proposte |
-| `POST /proposals/:id/decision` | `{ decision, comment }` + `Idempotency-Key` | 200, decisione, proposta e programma applicato oppure `null` |
-| `GET /reports` | `astronautId`, `cursor?`, `limit?` | 200, pagina di report |
-| `GET /diary` | `astronautId`, `cursor?`, `limit?` | 200, pagina di diario privato |
-| `PATCH /diary/:id` | `{ expectedRevision, text, status }` | 200, voce aggiornata |
+| `POST /sessions` | `{ astronautId }` | 201, session |
+| `POST /sessions/:id/messages` | `{ clientMessageId, text, inputMode }` | 200, astronaut message, assistant response, check-in draft |
+| `GET /sessions/:id` | `beforeMessageId?` | 200, session state |
+| `PATCH /check-ins/:id` | `{ expectedRevision, observations }` | 200, updated draft |
+| `POST /check-ins/:id/confirm` | `{ expectedRevision, sharedObservationIds }` | 202, session state and generation |
+| `GET /proposals` | `astronautId`, `cursor?`, `limit?` | 200, proposals page |
+| `POST /proposals/:id/decision` | `{ decision, comment }` + `Idempotency-Key` | 200, decision, proposal and applied program or `null` |
+| `GET /reports` | `astronautId`, `cursor?`, `limit?` | 200, reports page |
+| `GET /diary` | `astronautId`, `cursor?`, `limit?` | 200, private diary page |
+| `PATCH /diary/:id` | `{ expectedRevision, text, status }` | 200, updated entry |
 | `POST /voice/transcriptions` | multipart: `audio`, `sessionId`, `durationSeconds` | 200, `{ text, language }` |
-| `POST /voice/speech` | `{ sessionId, messageId }` | 200, binario `audio/mpeg` |
+| `POST /voice/speech` | `{ sessionId, messageId }` | 200, binary `audio/mpeg` |
 
-`PATCH /check-ins/:id` sostituisce l'intero array di osservazioni della bozza; non modifica altri campi. Il servizio verifica che ID e riferimenti ai messaggi appartengano a questa sessione e mantiene la provenienza anche per le correzioni manuali. Una modifica successiva alla conferma restituisce `INVALID_STATE`.
+`PATCH /check-ins/:id` replaces the entire draft observation array; it does not modify other fields. The service verifies that IDs and message references belong to this session and maintains provenance even for manual corrections. A subsequent change after confirmation returns `INVALID_STATE`.
 
-Le pagine usano `{ items, nextCursor }`, ordinamento stabile per data di creazione discendente e ID come spareggio, limite predefinito 20 e massimo 100. Il cursore e l'ID dell'ultimo elemento restituito. I messaggi di sessione sono paginati a gruppi di massimo 200, restituiti in ordine cronologico all'interno della pagina; `nextMessageCursor` permette di caricare la pagina precedente. Nessun contenuto privato entra nei parametri di URL.
+Pages use `{ items, nextCursor }`, stable ordering by descending creation date and ID as tiebreaker, default limit 20 and maximum 100. The cursor is the ID of the last returned item. Session messages are paginated in groups of maximum 200, returned in chronological order within the page; `nextMessageCursor` allows loading the previous page. No private content enters URL parameters.
 
-Una sessione MVP accetta messaggi finche il check-in e in bozza; dopo la conferma si apre una nuova sessione. Questo evita di cambiare il contesto di un report gia confermato. Il diario e accessibile e modificabile anche in seguito.
+An MVP session accepts messages until the check-in is in draft; after confirmation a new session is opened. This avoids changing the context of an already confirmed report. The diary is accessible and modifiable also later.
 
-### Conferma e generazione asincrona
+### Confirmation and asynchronous generation
 
-La conferma restituisce 202 senza attendere il modello. `GET /sessions/:id` espone `generationStatus`: `NOT_STARTED`, `PROCESSING`, `READY`, `FAILED`.
+Confirmation returns 202 without waiting for the model. `GET /sessions/:id` exposes `generationStatus`: `NOT_STARTED`, `PROCESSING`, `READY`, `FAILED`.
 
-Con `READY`, report e diario esistono sempre. Se `proposal` e `null`, `noChangeReason` deve spiegare l'assenza di variazioni. Durante `PROCESSING` un valore `null` non significa che l'agent abbia deciso di non intervenire. L'interfaccia puo effettuare polling ogni 2 secondi, interrompendolo su `READY` o `FAILED`.
+With `READY`, report and diary always exist. If `proposal` is `null`, `noChangeReason` must explain the absence of changes. During `PROCESSING` a `null` value does not mean the agent decided not to intervene. The interface can poll every 2 seconds, stopping on `READY` or `FAILED`.
 
-La conferma identica puo essere ripetuta per recuperare lo stato e, con generazione fallita o lease scaduta, richiedere un nuovo tentativo. La selezione originale e la revisione inviata devono coincidere con la prima conferma. Il repository acquisisce una lease di generazione ed effettua il salvataggio atomico degli artefatti una sola volta per check-in. Un worker con lease scaduta non puo pubblicare risultati.
+Identical confirmation can be repeated to recover state and, with failed generation or expired lease, request a new attempt. The original selection and submitted revision must match the first confirmation. The repository acquires a generation lease and performs atomic saving of artifacts once per check-in. A worker with expired lease cannot publish results.
 
-### Errori
+## Errors
 
-Ogni errore JSON usa `ApiErrorSchema`. `ERROR_HTTP_STATUS` definisce la corrispondenza tra codice applicativo e codice HTTP. `issues` puo essere vuoto; non deve includere valori personali. `requestId` consente di correlare log tecnici privi di trascrizioni.
+Every JSON error uses `ApiErrorSchema`. `ERROR_HTTP_STATUS` defines the mapping between application code and HTTP code. `issues` can be empty; it must not include personal values. `requestId` allows correlating technical logs without transcripts.
 
-Esempio completo di conflitto: `examples/stale.json`, HTTP 409 `VERSION_CONFLICT`, con `currentVersion`. Una nuova proposta richiede una nuova approvazione; ritentare la vecchia non risolve il conflitto.
+Complete conflict example: `examples/stale.json`, HTTP 409 `VERSION_CONFLICT`, with `currentVersion`. A new proposal requires a new approval; retrying the old one does not resolve the conflict.
 
-## Decisione, applicazione e retry
+## Decision, application, and retry
 
 ```text
 PENDING_REVIEW -> REJECTED
@@ -155,39 +155,39 @@ APPROVED      -> STALE | APPLY_FAILED
 APPLY_FAILED  -> APPLIED | STALE
 ```
 
-1. Terra invia `APPROVE` o `REJECT` con una chiave di idempotenza stabile per quell'azione.
-2. Il servizio verifica identita, scope, stato e versione del programma.
-3. Se gia obsoleta, marca la proposta `STALE` e risponde 409 senza registrare un'approvazione nuova.
-4. Altrimenti registra decisione e stato in transazione. La decisione e immutabile.
-5. Solo per `APPROVE` invoca `ScheduleProvider.applyApproved` attraverso un confine server fidato; il provider verifica la decisione autorizzata e controlla nuovamente la versione nella stessa transazione della modifica.
-6. Registra l'esito. Se una modifica concorrente interviene dopo la decisione, la decisione rimane nell'audit e la proposta diventa `STALE`.
+1. Earth sends `APPROVE` or `REJECT` with a stable idempotency key for that action.
+2. The service verifies identity, scope, state, and program version.
+3. If already obsolete, marks the proposal `STALE` and responds 409 without recording a new approval.
+4. Otherwise records decision and state in a transaction. The decision is immutable.
+5. Only for `APPROVE` invokes `ScheduleProvider.applyApproved` through a trusted server boundary; the provider verifies the authorized decision and checks the version again in the same transaction as the modification.
+6. Records the outcome. If a concurrent modification intervenes after the decision, the decision remains in the audit and the proposal becomes `STALE`.
 
-Chiave riutilizzata con payload o operatore differente: 409 `IDEMPOTENCY_CONFLICT`. Decisione incompatibile con quella gia registrata: 409 `INVALID_STATE`. Una ripetizione identica restituisce la decisione originale e lo stato corrente, senza nuovi effetti. La chiave e associata a proposta, operatore e payload normalizzato.
+Reused key with different payload or operator: 409 `IDEMPOTENCY_CONFLICT`. Decision incompatible with the already recorded one: 409 `INVALID_STATE`. An identical repetition returns the original decision and current state, without new effects. The key is associated with proposal, operator, and normalized payload.
 
-L'adattatore del programma deduplica per `proposalId`/`decisionId`, confrontando anche il comando: un comando diverso con la stessa coppia e un conflitto. Il controllo della versione, la scrittura e la ricevuta duratura devono essere atomici nel sistema autorevole del programma.
+The program adapter deduplicates by `proposalId`/`decisionId`, also comparing the command: a different command with the same pair is a conflict. Version check, writing, and durable receipt must be atomic in the authoritative program system.
 
-Esiti dell'adattatore: `APPLIED`, `STALE`, `FAILED`, `UNKNOWN`. Un timeout dopo un possibile invio produce `UNKNOWN`: la proposta resta `APPROVED`, l'interfaccia mostra applicazione in verifica e il servizio riconcilia tramite `getApplication`. Non si marca `APPLY_FAILED` quando l'esito e soltanto sconosciuto. `FAILED` e riservato a un fallimento certo.
+Adapter outcomes: `APPLIED`, `STALE`, `FAILED`, `UNKNOWN`. A timeout after a possible send produces `UNKNOWN`: the proposal remains `APPROVED`, the interface shows application under verification, and the service reconciles via `getApplication`. Do not mark `APPLY_FAILED` when the outcome is only unknown. `FAILED` is reserved for a certain failure.
 
-Un retry di applicazione usa sempre la stessa decisione e lo stesso comando, riconcilia prima l'esito e non scavalca i vincoli di versione. Per il MVP puo essere attivato ripetendo la stessa richiesta di decisione. Il servizio non mantiene transazioni SQLite aperte durante chiamate esterne.
+An application retry always uses the same decision and same command, reconciles the outcome first, and does not override version constraints. For the MVP it can be activated by repeating the same decision request. The service does not keep SQLite transactions open during external calls.
 
-Con `APPLIED`, `DecisionResult.schedule` contiene il programma aggiornato e `appliedScheduleVersion` e valorizzato. Negli altri stati `schedule` e `null`; la lettura del programma corrente resta responsabilita del sistema del programma. Soltanto `APPLIED` consente di annunciare all'astronauta che la variazione e effettiva.
+With `APPLIED`, `DecisionResult.schedule` contains the updated program and `appliedScheduleVersion` is valued. In other states `schedule` is `null`; reading the current program remains the responsibility of the program system. Only `APPLIED` allows announcing to the astronaut that the change is effective.
 
-## Voce
+## Voice
 
-Registrazione a turni: registra, trascrivi, mostra testo correggibile, invia tramite la stessa API messaggi con `inputMode: VOICE`. Non si inviano messaggi due volte al termine della trascrizione.
+Turn-based recording: record, transcribe, show correctable text, send via the same messages API with `inputMode: VOICE`. Messages are not sent twice at the end of transcription.
 
-Limiti: 10 MiB, 120 secondi, timeout provider 30 secondi. MIME ammessi: `audio/webm`, `audio/webm;codecs=opus`, `audio/mp4`, `audio/wav`, `audio/mpeg`. La route ricava MIME e dimensione dal file e verifica il contenuto e la durata effettiva; la durata dichiarata dal client non e autorevole. Un provider incapace di gestire il formato deve convertirlo lato server oppure rispondere con `UNSUPPORTED_AUDIO`.
+Limits: 10 MiB, 120 seconds, provider timeout 30 seconds. Allowed MIMEs: `audio/webm`, `audio/webm;codecs=opus`, `audio/mp4`, `audio/wav`, `audio/mpeg`. The route derives MIME and size from the file and verifies content and actual duration; the client-declared duration is not authoritative. A provider unable to handle the format must convert it server-side or respond with `UNSUPPORTED_AUDIO`.
 
-La sintesi puo leggere soltanto messaggi `ASSISTANT` della sessione dell'astronauta. Output HTTP `audio/mpeg`, `Cache-Control: no-store`; eventuale formato diverso del provider viene convertito dall'adattatore. Non e un endpoint pubblico per sintetizzare testo arbitrario. Le risposte audio positive non hanno envelope JSON; gli errori si.
+Synthesis can read only `ASSISTANT` messages of the astronaut's session. HTTP output `audio/mpeg`, `Cache-Control: no-store`; any different provider format is converted by the adapter. It is not a public endpoint for synthesizing arbitrary text. Positive audio responses have no JSON envelope; errors do.
 
-## File di esempio e verifiche
+## Example files and checks
 
-- `examples/normal.json`: richieste, dati contestuali, proposta, decisione, report e diario di un percorso con variazione.
-- `examples/normal-response.json`: risposta HTTP positiva dopo l'applicazione della variazione.
-- `examples/no-change.json`: risposta di stato `READY` senza proposta, con motivazione esplicita.
-- `examples/stale.json`: errore HTTP 409 per proposta obsoleta.
+- `examples/normal.json`: requests, context data, proposal, decision, report, and diary of a path with variation.
+- `examples/normal-response.json`: positive HTTP response after applying the variation.
+- `examples/no-change.json`: `READY` status response without proposal, with explicit motivation.
+- `examples/stale.json`: HTTP 409 error for obsolete proposal.
 
-I test devono validare questi esempi contro gli schemi e rifiutare input ambigui: ruolo nel body, scale fuori intervallo, sensori con unita sbagliata, contenuti privati nel contesto operativo, metadati di applicazione incoerenti. Questi sono test dei confini condivisi; i test di transazioni e autorizzazione effettiva spettano a N1/N2.
+Tests must validate these examples against schemas and reject ambiguous inputs: role in body, out-of-range scales, sensors with wrong units, private content in operational context, inconsistent application metadata. These are shared boundary tests; transaction and actual authorization tests belong to N1/N2.
 
 ```text
 npm ci
@@ -196,15 +196,15 @@ npm run typecheck
 npm run lint
 ```
 
-In PowerShell, se la policy impedisce l'esecuzione di `npm.ps1`, usare `npm.cmd` negli stessi comandi. Il lint esclude il file generato `next-env.d.ts`, che non va modificato manualmente.
+In PowerShell, if the policy prevents execution of `npm.ps1`, use `npm.cmd` in the same commands. Lint excludes the generated file `next-env.d.ts`, which must not be modified manually.
 
-## Consegna e responsabilita
+## Delivery and responsibilities
 
-- Tu: implementi `AiProvider`, `VoiceProvider`, orchestrazione, report/diario e demo usando questi contratti.
-- Nello: implementa repository, validatore, provider simulati e ciclo di approvazione usando `ports.ts`.
-- Nello resta referente delle modifiche condivise a contratti e dipendenze dopo questa base iniziale; concordare ogni modifica incompatibile prima di integrarla.
-- Fabrizio: collega la dashboard alle API e concorda adattatori di identita e programma; nessun componente grafico della demo e obbligatorio.
+- You: implement `AiProvider`, `VoiceProvider`, orchestration, report/diary, and demo using these contracts.
+- Nello: implements repository, validator, simulated providers, and approval cycle using `ports.ts`.
+- Nello remains the contact for shared changes to contracts and dependencies after this initial base; agree on every incompatible change before integrating it.
+- Fabrizio: connects the dashboard to the APIs and agrees on identity and program adapters; no demo graphic component is mandatory.
 
-Da confermare con Fabrizio: login effettivo, proprietario del programma autorevole e relativo meccanismo transazionale. Provider AI/voce e conservazione temporale dei dati reali saranno scelti prima delle rispettive implementazioni; non modificano i DTO di questa versione.
+To be confirmed with Fabrizio: actual login, owner of the authoritative program and related transactional mechanism. AI/voice provider and real data temporal retention will be chosen before respective implementations; they do not modify the DTOs of this version.
 
-Riferimento della libreria di validazione: [documentazione ufficiale Zod](https://zod.dev/basics).
+Validation library reference: [official Zod documentation](https://zod.dev/basics).

@@ -1,77 +1,77 @@
-# Analisi del sonno e prova demo
+# Sleep analysis and demo test
 
-## Funzione disponibile
+## Available function
 
-`GET /v1/subjects/{subject_id}/sleep-analysis` produce un risultato deterministico, utilizzabile dalla dashboard o dal compagno. Nessun componente speech o modello AI viene eseguito.
+`GET /v1/subjects/{subject_id}/sleep-analysis` produces a deterministic result, usable by the dashboard or the companion. No speech component or AI model is executed.
 
-Parametri obbligatori: `start` e `end`, timestamp con fuso. La finestra è `[start, end)`, al massimo 366 giorni. `synthetic` è `false` per impostazione predefinita; per la prova va impostato a `true`.
+Required parameters: `start` and `end`, timestamps with time zone. The window is `[start, end)`, up to 366 days. `synthetic` is `false` by default; for the test it must be set to `true`.
 
-Il risultato contiene:
+The result contains:
 
-- `analysis_id`: hash del risultato e delle osservazioni selezionate, utile a identificare il rapporto condiviso.
-- Stato di disponibilità e indicazione `partial_data` se il recupero supera il limite di 1.000 osservazioni del servizio.
-- Gruppi distinti per dispositivo e metodo, senza mescolare le misurazioni.
-- Serie con durata e identificativi di episodio e feedback associato.
-- Media, mediana, estremi e deviazione standard della durata.
-- Copertura dei giorni UTC, giorni mancanti e numero di episodi esclusi.
-- Pendenza della durata nel tempo, direzione e differenza fra ultimo e primo episodio.
-- Coppie sonno/fatica riferita ed eventuale correlazione descrittiva di Pearson.
+- `analysis_id`: hash of the result and selected observations, useful for identifying the shared report.
+- Availability status and `partial_data` indication if retrieval exceeds the service limit of 1,000 observations.
+- Distinct groups by device and method, without mixing measurements.
+- Series with duration and episode IDs and associated feedback.
+- Mean, median, extremes, and standard deviation of duration.
+- UTC day coverage, missing days, and number of excluded episodes.
+- Duration slope over time, direction, and difference between last and first episode.
+- Sleep/fatigue reported pairs and eventual descriptive Pearson correlation.
 
-Per ogni gruppo viene selezionato un episodio per giorno UTC di fine sonno: prevale quello che termina più tardi; le finestre sovrapposte non contano due volte. Non è un totale giornaliero inclusivo dei sonnellini. La copertura descrive la presenza di episodi, non l'effettiva aderenza del sensore.
+For each group, one episode per UTC day of sleep end is selected: the one ending latest prevails; overlapping windows are not counted twice. It is not an inclusive daily total including naps. Coverage describes episode presence, not actual sensor adherence.
 
-Le misure sono filtrate per fine dell'episodio, non per momento di importazione. Il feedback associato è l'ultimo valore di fatica valido, riferito e confermato, entro 24 ore dalla fine del sonno e prima dell'inizio dell'episodio selezionato successivo. Una coppia per episodio evita di dare più peso ai giorni con più conversazioni.
+Measures are filtered by episode end, not by import time. Associated feedback is the last valid, referenced, and confirmed fatigue value within 24 hours after sleep end and before the start of the next selected episode. One pair per episode avoids giving more weight to days with more conversations.
 
-La tendenza richiede almeno tre episodi. La correlazione richiede almeno tre coppie e variabilità in entrambe le variabili; altrimenti restituisce `null`. Non vengono calcolate significatività, causalità o diagnosi. La deviazione della durata non misura la regolarità degli orari; la qualità del sonno non viene inventata dalla durata.
+Trend requires at least three episodes. Correlation requires at least three pairs and variability in both variables; otherwise it returns `null`. No significance, causality, or diagnosis is calculated. Duration deviation does not measure schedule regularity; sleep quality is not invented from duration.
 
-## Prova pronta
+## Ready-to-use test
 
-File: [sleep_demo_14d.json](../server/examples/sleep_demo_14d.json). Sono **27 osservazioni interamente sintetiche**, con identificativo soggetto `sleep-demo-14d`, dal 1 al 14 novembre 2026. Non sono dati NASA o misure reali di un astronauta.
+File: [sleep_demo_14d.json](../server/examples/sleep_demo_14d.json). There are **27 fully synthetic observations**, with subject ID `sleep-demo-14d`, from November 1 to 14, 2026. They are not NASA data or real astronaut measurements.
 
-Lo scenario è costruito per mostrare durata progressivamente più breve e fatica riferita crescente. La relazione è deliberatamente disegnata: il suo valore di correlazione non è un risultato scientifico.
+The scenario is designed to show progressively shorter duration and increasing reported fatigue. The relationship is deliberately designed: its correlation value is not a scientific result.
 
-Da PowerShell nella cartella `server/`:
+From PowerShell in the `server/` folder:
 
 ```powershell
 .\.venv\Scripts\python.exe -m aegis_data import examples/sleep_demo_14d.json
 ```
 
-Un secondo import degli stessi identificativi restituisce un errore di duplicazione senza modificare il database. Non serve importare nuovamente dopo il primo caricamento.
+A second import of the same IDs returns a duplicate error without modifying the database. It is not necessary to import again after the first load.
 
-In alternativa, con il server avviato, si può caricare il file via API:
+Alternatively, with the server running, the file can be loaded via API:
 
 ```powershell
 Invoke-RestMethod -Uri 'http://127.0.0.1:8000/v1/observations/import' -Method Post -ContentType 'application/json' -InFile '.\examples\sleep_demo_14d.json'
 ```
 
-L'importazione HTTP è atomica: duplicati o input invalidi impediscono l'inserimento del lotto. Restano le limitazioni di accesso locale documentate in [DATA_BACKEND.md](DATA_BACKEND.md).
+HTTP import is atomic: duplicates or invalid input prevent batch insertion. Local access limitations documented in [DATA_BACKEND.md](DATA_BACKEND.md) still apply.
 
-## Vedere il risultato
+## Viewing the result
 
-Dopo aver riavviato il server, aprire `/docs` e selezionare l'endpoint `sleep-analysis`:
+After restarting the server, open `/docs` and select the `sleep-analysis` endpoint:
 
-| Campo | Valore demo |
+| Field | Demo value |
 |---|---|
 | `subject_id` | `sleep-demo-14d` |
 | `start` | `2026-11-01T00:00:00Z` |
 | `end` | `2026-11-15T00:00:00Z` |
 | `synthetic` | `true` |
 
-Oppure aprire direttamente:
+Or open directly:
 
-[Analisi della prova locale](http://127.0.0.1:8000/v1/subjects/sleep-demo-14d/sleep-analysis?start=2026-11-01T00%3A00%3A00Z&end=2026-11-15T00%3A00%3A00Z&synthetic=true)
+[Local demo analysis](http://127.0.0.1:8000/v1/subjects/sleep-demo-14d/sleep-analysis?start=2026-11-01T00%3A00%3A00Z&end=2026-11-15T00%3A00%3A00Z&synthetic=true)
 
-Risultati attesi:
+Expected results:
 
-- 13 episodi strumentali ricevuti, uno invalido; 12 episodi analizzati.
-- 14 giorni attesi, senza misura utilizzabile il 7 e l'11 novembre.
-- Durata media circa 6,74 ore; andamento decrescente.
-- 12 coppie di sonno/fatica; il feedback inferito non viene usato.
-- Con `synthetic=false` lo stesso soggetto non presenta dati reali.
+- 13 instrumental episodes received, one invalid; 12 episodes analyzed.
+- 14 expected days, with no usable measurement on November 7 and 11.
+- Average duration about 6.74 hours; decreasing trend.
+- 12 sleep/fatigue pairs; inferred feedback is not used.
+- With `synthetic=false` the same subject has no real data.
 
-Il generatore [generate_sleep_demo.py](../server/examples/generate_sleep_demo.py) riproduce il file, senza modificare il database.
+The generator [generate_sleep_demo.py](../server/examples/generate_sleep_demo.py) reproduces the file, without modifying the database.
 
-## Collegamento dell'agente
+## Agent connection
 
-Il compagno può chiamare l'endpoint oppure `AgentDataTools.analyze_sleep(start, end)`. Identità del soggetto e modalità sintetica sono fissate dall'applicazione fidata durante la costruzione dell'adattatore.
+The companion can call the endpoint or `AgentDataTools.analyze_sleep(start, end)`. Subject identity and synthetic mode are fixed by the trusted application during adapter construction.
 
-La risposta può essere spiegata dal modello, che deve mantenere etichetta sintetica, copertura, periodo e limiti. La dashboard consuma lo stesso risultato numerico. L'analisi non è inserita automaticamente in ogni turno: l'agente la richiede quando è utile e con un intervallo esplicito.
+The response can be explained by the model, which must keep synthetic label, coverage, period, and limits. The dashboard consumes the same numeric result. The analysis is not automatically inserted into every turn: the agent requests it when useful and with an explicit interval.

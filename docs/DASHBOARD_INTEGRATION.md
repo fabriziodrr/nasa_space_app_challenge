@@ -1,36 +1,36 @@
-# Dashboard: integrazione della demo sonno
+# Dashboard: sleep demo integration
 
-La sezione **Sleep & reported fatigue** nella dashboard legge l'analisi dal backend Python. Le due viste ISS e Houston usano attualmente gli stessi dati sintetici locali: non rappresentano una sincronizzazione con Terra. La mappa corporea mantiene valori fittizi indipendenti.
+The **Sleep & reported fatigue** section in the dashboard reads the analysis from the Python backend. The ISS and Houston views currently use the same local synthetic data: they do not represent synchronization with Terra. The body map maintains independent fictitious values.
 
-## Avvio
+## Startup
 
-In `server/`, avviare il backend:
+In `server/`, start the backend:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn aegis_data.api:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-In un altro terminale, dalla radice della repo:
+In another terminal, from the repo root:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Aprire `http://localhost:3000` e accedere alla dashboard. Le viste leggono automaticamente le osservazioni sintetiche già presenti nel servizio dati; in assenza di osservazioni mostrano lo stato vuoto. Selezionare soggetto e date corrispondenti; **Until** è escluso.
+Open `http://localhost:3000` and access the dashboard. The views automatically read the synthetic observations already present in the data service; in the absence of observations they show the empty state. Select subject and dates; **Until** is excluded.
 
-Il proxy Next.js usa `http://127.0.0.1:8000` o la variabile server `AEGIS_DATA_API_URL`. Consente solo la modalità sintetica: l'accesso a dati personali e il collegamento a Terra richiedono autenticazione e autorizzazione non ancora implementate. Gli endpoint Python rimangono destinati all'uso locale fidato.
+The Next.js proxy uses `http://127.0.0.1:8000` or the server variable `AEGIS_DATA_API_URL`. It allows only synthetic mode: access to personal data and connection to Terra require authentication and authorization not yet implemented. The Python endpoints remain intended for local trusted use.
 
-Se Next.js usa una porta diversa dalla 3000, impostare `AGENT_NODE_API_URL` nell'ambiente del servizio Python all'origine HTTP locale di Next.js, per esempio `http://127.0.0.1:13000`. Per il servizio Python su una porta diversa dalla 8000, impostare `AEGIS_DATA_API_URL` nel processo Next.js.
+If Next.js uses a port other than 3000, set `AGENT_NODE_API_URL` in the Python service environment to the local HTTP origin of Next.js, for example `http://127.0.0.1:13000`. For the Python service on a port other than 8000, set `AEGIS_DATA_API_URL` in the Next.js process.
 
-La UI segnala backend non disponibile, dati mancanti e osservazioni duplicate. Il grafico presenta gli episodi disponibili, il numero di giorni coperti e i feedback confermati; non esprime giudizi clinici.
+The UI reports backend unavailable, missing data, and duplicate observations. The chart presents available episodes, number of covered days, and confirmed feedback; it does not express clinical judgments.
 
-## Rapporto dell'agente dati
+## Data agent report
 
-Nella demo `/voice-demo`, la misura vision completata viene inviata e selezionata automaticamente. Per includerla nel rapporto di Terra occorre selezionare la condivisione della misura e confermare il check-in. Alla conferma il report operativo usa uno snapshot del programma, dei sensori disponibili e delle sole informazioni condivise; le viste **Data agent** e **Crew Data / Vision report** leggono quel medesimo rapporto per l'astronauta e il check-in selezionati. Il diario resta privato.
+In the `/voice-demo` demo, the completed vision measure is submitted and selected automatically. To include it in the Terra report, measure sharing must be selected and check-in confirmed. Upon confirmation, the operational report uses a snapshot of the program, available sensors, and only shared information; the **Data agent** and **Crew Data / Vision report** views read that same report for the astronaut and selected check-in. The diary remains private.
 
-I dati di esempio vengono letti dal servizio Python. Per i profili demo senza misura nel servizio, soltanto in caso di risposta esplicita `MISSING`, l'agente può leggere in memoria la fixture sintetica del profilo, con timestamp originale e qualità degradata. Non viene scritta nel database del sonno; dati vecchi, servizi offline e identità non corrispondenti rimangono segnalati. Le credenziali demo sono gestite dal server e non vanno inserite nell'interfaccia; per i profili dell'equipaggio non configurati esplicitamente il server Next genera credenziali temporanee distinte.
+Example data is read from the Python service. For demo profiles without a measure in the service, only in case of an explicit `MISSING` response, the agent can read the synthetic profile fixture from memory, with original timestamp and degraded quality. It is not written to the sleep database; old data, offline services, and non-matching identities remain flagged. Demo credentials are managed by the server and must not be entered in the interface; for crew profiles not explicitly configured, the Next.js server generates distinct temporary credentials.
 
-La scelta del profilo è una funzione della sola demo locale: non equivale a un sistema di autenticazione. La sessione demo è disponibile soltanto in ambiente non produttivo su localhost; le credenziali di provider AI restano configurazioni server separate.
+Profile selection is a function of the local demo only: it does not equate to an authentication system. The demo session is available only in non-production environment on localhost; AI provider credentials remain separate server configurations.
 
-Il workflow deterministico Python e il companion LangChain rimangono disponibili come componenti separati; il rapporto operativo condiviso è generato dal provider configurato dell'agente. Il database Python e quello Prisma restano fisicamente separati. I dati sintetici non costituiscono misure personali verificate né una diagnosi.
+The deterministic Python workflow and the LangChain companion remain available as separate components; the shared operational report is generated by the configured agent provider. The Python database and the Prisma database remain physically separate. Synthetic data do not constitute verified personal measures nor a diagnosis.

@@ -1,81 +1,81 @@
-# Integrazione del modulo agent — API e contratto di collegamento
+# Agent module integration — API and linking contract
 
-Stato: **documentazione di integrazione basata sui contratti C0**. Gli schemi eseguibili sono in `server/agent/contracts/`; le interfacce server in `server/agent/ports.ts`. Questa guida descrive il contratto HTTP che la dashboard deve usare, non i dettagli interni dell'agent.
+Status: **contract-based integration documentation**. Executable schemas are in `server/agent/contracts/`; server interfaces in `server/agent/ports.ts`. This guide describes the HTTP contract the dashboard must use, not internal agent details.
 
-> Stato di implementazione delle route: sono esposte sessioni e messaggi (T1), check-in, report e diario (T2), voce (T3) e visione. Le proposte e le decisioni sono disponibili in **v2** con `GET /api/agent/v2/proposals` e `POST /api/agent/v2/proposals/:id/decision`; il programma è leggibile da `GET /api/agent/v2/schedule`. Il runtime demo usa un programma persistente/versionato. Vedere [Report e schedule](./report-and-schedule.md) per vincoli, esempi e schemi v2.
+> Route implementation status: sessions and messages exposed (T1), check-in, report and diary (T2), voice (T3) and vision. Proposals and decisions are available in **v2** with `GET /api/agent/v2/proposals` and `POST /api/agent/v2/proposals/:id/decision`; the schedule is readable from `GET /api/agent/v2/schedule`. The demo runtime uses a persistent/versioned schedule. See [Report and schedule](./report-and-schedule.md) for constraints, examples and v2 schemas.
 
-## Principi generali
+## General principles
 
-- Prefisso: `/api/agent/v1` per il catalogo storico sotto; proposte, decisioni, lettura schedule e report con visione usano `/api/agent/v2` e `meta.contractVersion: "2.0.0"`.
-- Risposta positiva JSON:
+- Prefix: `/api/agent/v1` for the historical catalog below; proposals, decisions, schedule reading and vision reports use `/api/agent/v2` and `meta.contractVersion: "2.0.0"`.
+- Positive JSON response:
 
 ```json
 { "data": {}, "meta": { "contractVersion": "1.0.0", "requestId": "request-1" } }
 ```
 
-- Errore JSON (`ApiError`):
+- JSON error (`ApiError`):
 
 ```json
 { "error": { "code": "VERSION_CONFLICT", "message": "...", "requestId": "request-1", "retryable": false, "issues": [], "currentVersion": 2 } }
 ```
 
-- Il ruolo **non** viene letto dal corpo: deriva dall'identita verificata dal server (`IdentityProvider`). Autenticazione assente → 401; ruolo non ammesso → 403; risorsa inesistente o altrui → 404.
-- Tempo: timestamp ISO 8601 UTC con `Z`; date `YYYY-MM-DD`; versioni intere positive. Il programma dichiara un fuso IANA esplicito.
-- Tutti gli oggetti sono `strict`: campi sconosciuti rifiutati, nessuna coercizione implicita (le route convertono esplicitamente `limit` da query).
+- The role is **not** read from the body: it derives from the server-verified identity (`IdentityProvider`). Missing authentication → 401; disallowed role → 403; nonexistent or other user's resource → 404.
+- Time: ISO 8601 UTC timestamps with `Z`; dates `YYYY-MM-DD`; positive integer versions. The schedule declares an explicit IANA timezone.
+- All objects are `strict`: unknown fields rejected, no implicit coercion (routes explicitly convert `limit` from query).
 
-### Codici errore
+### Error codes
 
-| Codice | HTTP | Significato |
+| Code | HTTP | Meaning |
 | --- | --- | --- |
-| `VALIDATION_ERROR` | 400 | payload/parametri non validi |
-| `UNAUTHENTICATED` | 401 | autenticazione assente |
-| `FORBIDDEN` | 403 | ruolo non ammesso |
-| `NOT_FOUND` | 404 | risorsa assente o non accessibile |
-| `VERSION_CONFLICT` | 409 | revisione/versione non aggiornata; `currentVersion` valorizzato |
-| `INVALID_STATE` | 409 | stato non ammesso per l'operazione |
-| `IDEMPOTENCY_CONFLICT` | 409 | idempotency key riusata con payload/operatore diverso |
-| `PAYLOAD_TOO_LARGE` | 413 | corpo oltre il limite |
-| `UNSUPPORTED_AUDIO` | 415 | formato audio non ammesso |
-| `RATE_LIMITED` | 429 | limite del provider AI raggiunto |
-| `INVALID_AI_OUTPUT` | 502 | output del modello non valido |
-| `PROVIDER_UNAVAILABLE` | 503 | provider AI non disponibile |
-| `PROVIDER_TIMEOUT` | 504 | provider AI in timeout |
-| `INTERNAL_ERROR` | 500 | errore interno |
+| `VALIDATION_ERROR` | 400 | invalid payload/parameters |
+| `UNAUTHENTICATED` | 401 | missing authentication |
+| `FORBIDDEN` | 403 | disallowed role |
+| `NOT_FOUND` | 404 | missing or inaccessible resource |
+| `VERSION_CONFLICT` | 409 | revision/version not up to date; `currentVersion` populated |
+| `INVALID_STATE` | 409 | state not allowed for the operation |
+| `IDEMPOTENCY_CONFLICT` | 409 | idempotency key reused with different payload/operator |
+| `PAYLOAD_TOO_LARGE` | 413 | body over limit |
+| `UNSUPPORTED_AUDIO` | 415 | audio format not allowed |
+| `RATE_LIMITED` | 429 | AI provider limit reached |
+| `INVALID_AI_OUTPUT` | 502 | invalid model output |
+| `PROVIDER_UNAVAILABLE` | 503 | AI provider unavailable |
+| `PROVIDER_TIMEOUT` | 504 | AI provider timeout |
+| `INTERNAL_ERROR` | 500 | internal error |
 
-### Paginazione
+### Pagination
 
-Le liste usano `{ items, nextCursor }`, ordinamento stabile per data di creazione discendente e ID come spareggio, limite predefinito 20 e massimo 100. Il cursore e l'ID dell'ultimo elemento restituito; passarlo come `cursor` per la pagina successiva. I messaggi di sessione sono paginati a gruppi di massimo 200 in ordine cronologico, con `nextMessageCursor` per la pagina precedente.
+Lists use `{ items, nextCursor }`, stable ordering by creation date descending and ID as tiebreaker, default limit 20 and maximum 100. The cursor is the ID of the last returned item; pass it as `cursor` for the next page. Session messages are paginated in groups of up to 200 in chronological order, with `nextMessageCursor` for the previous page.
 
-## Endpoint
+## Endpoints
 
-| Metodo e percorso | Ruolo | Body / query | Risposta |
+| Method and path | Role | Body / query | Response |
 | --- | --- | --- | --- |
-| `POST /sessions` | astronauta | `{ astronautId }` | 201, sessione |
-| `POST /sessions/:id/messages` | astronauta | `{ clientMessageId, text, inputMode }` | 200, `MessageResult` |
-| `GET /sessions/:id` | astronauta | `beforeMessageId?` | 200, `SessionState` |
-| `PATCH /check-ins/:id` | astronauta | `{ expectedRevision, observations }` | 200, check-in aggiornato |
-| `POST /check-ins/:id/confirm` | astronauta | `{ expectedRevision, sharedObservationIds }` | 202, `SessionState` |
-| `GET /api/agent/v2/proposals` | astronauta/Terra | `astronautId`, `cursor?`, `limit?` | 200, pagina di proposte v2 |
+| `POST /sessions` | astronaut | `{ astronautId }` | 201, session |
+| `POST /sessions/:id/messages` | astronaut | `{ clientMessageId, text, inputMode }` | 200, `MessageResult` |
+| `GET /sessions/:id` | astronaut | `beforeMessageId?` | 200, `SessionState` |
+| `PATCH /check-ins/:id` | astronaut | `{ expectedRevision, observations }` | 200, updated check-in |
+| `POST /check-ins/:id/confirm` | astronaut | `{ expectedRevision, sharedObservationIds }` | 202, `SessionState` |
+| `GET /api/agent/v2/proposals` | astronaut/Terra | `astronautId`, `cursor?`, `limit?` | 200, v2 proposals page |
 | `POST /api/agent/v2/proposals/:id/decision` | Terra | `{ decision, comment }` + header `Idempotency-Key` | 200, `DecisionResult` v2 |
-| `GET /api/agent/v2/schedule` | astronauta/Terra | `astronautId`, `date` | 200, `ScheduleSnapshot` v2 |
-| `GET /reports` | astronauta/Terra | `astronautId`, `cursor?`, `limit?` | 200, pagina di report |
-| `GET /diary` | astronauta | `astronautId`, `cursor?`, `limit?` | 200, pagina di diario |
-| `PATCH /diary/:id` | astronauta | `{ expectedRevision, text, status }` | 200, voce di diario |
-| `POST /voice/transcriptions` | astronauta | multipart: `audio`, `sessionId`, `durationSeconds` | 200, `{ text, language }` |
-| `POST /voice/speech` | astronauta | `{ sessionId, messageId }` | 200, binario `audio/mpeg` |
+| `GET /api/agent/v2/schedule` | astronaut/Terra | `astronautId`, `date` | 200, `ScheduleSnapshot` v2 |
+| `GET /reports` | astronaut/Terra | `astronautId`, `cursor?`, `limit?` | 200, reports page |
+| `GET /diary` | astronaut | `astronautId`, `cursor?`, `limit?` | 200, diary page |
+| `PATCH /diary/:id` | astronaut | `{ expectedRevision, text, status }` | 200, diary entry |
+| `POST /voice/transcriptions` | astronaut | multipart: `audio`, `sessionId`, `durationSeconds` | 200, `{ text, language }` |
+| `POST /voice/speech` | astronaut | `{ sessionId, messageId }` | 200, binary `audio/mpeg` |
 
-Catalogo eseguibile di metodi, ruoli e schemi: `server/agent/contracts/endpoints.ts`.
+Executable catalog of methods, roles and schemas: `server/agent/contracts/endpoints.ts`.
 
-### Oggetti principali
+### Main objects
 
 - `MessageResult`: `{ astronautMessage, assistantMessage, checkIn }`.
-- `SessionState`: `{ session, messages, nextMessageCursor, checkIn, generationStatus, reportId, diaryEntryId, proposal, noChangeReason }`. `generationStatus` e `NOT_STARTED`, `PROCESSING`, `READY` o `FAILED`.
-- `DecisionResult`: `{ decision, proposal, schedule }`. `schedule` e valorizzato solo quando `proposal.status === "APPLIED"`.
-- `ScheduleProposal` (stati): `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `APPLIED`, `STALE`, `APPLY_FAILED`.
+- `SessionState`: `{ session, messages, nextMessageCursor, checkIn, generationStatus, reportId, diaryEntryId, proposal, noChangeReason }`. `generationStatus` is `NOT_STARTED`, `PROCESSING`, `READY` or `FAILED`.
+- `DecisionResult`: `{ decision, proposal, schedule }`. `schedule` is populated only when `proposal.status === "APPLIED"`.
+- `ScheduleProposal` (states): `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `APPLIED`, `STALE`, `APPLY_FAILED`.
 
-## Esempi di chiamate
+## Call examples
 
-### Aprire una sessione
+### Open a session
 
 ```http
 POST /api/agent/v1/sessions
@@ -90,7 +90,7 @@ Content-Type: application/json
   "meta": { "contractVersion": "1.0.0", "requestId": "request-1" } }
 ```
 
-### Inviare un messaggio
+### Send a message
 
 ```http
 POST /api/agent/v1/sessions/session-1/messages
@@ -102,9 +102,9 @@ Content-Type: application/json
   "inputMode": "TEXT" }
 ```
 
-Risposta: messaggio dell'astronauta, risposta dell'assistant e bozza del check-in (`MessageResult`). `clientMessageId` e idempotente: ripetere la stessa richiesta restituisce lo stesso risultato; lo stesso ID con testo diverso restituisce 409 `IDEMPOTENCY_CONFLICT`.
+Response: astronaut message, assistant response and check-in draft (`MessageResult`). `clientMessageId` is idempotent: repeating the same request returns the same result; the same ID with different text returns 409 `IDEMPOTENCY_CONFLICT`.
 
-### Correggere e confermare il check-in
+### Correct and confirm check-in
 
 ```http
 PATCH /api/agent/v1/check-ins/checkin-1
@@ -116,9 +116,9 @@ POST /api/agent/v1/check-ins/checkin-1/confirm
 { "expectedRevision": 2, "sharedObservationIds": ["obs-hours", "obs-quality", "obs-fatigue"] }
 ```
 
-La conferma restituisce 202 senza attendere il modello: fare polling su `GET /sessions/:id` (ogni 2 secondi) finche `generationStatus` diventa `READY` o `FAILED`. In `READY`, report e diario esistono sempre e c'e una proposta oppure `noChangeReason`.
+Confirmation returns 202 without waiting for the model: poll `GET /sessions/:id` (every 2 seconds) until `generationStatus` becomes `READY` or `FAILED`. In `READY`, report and diary always exist and there is either a proposal or `noChangeReason`.
 
-### Elencare e decidere una proposta
+### List and decide a proposal
 
 ```http
 GET /api/agent/v2/proposals?astronautId=astro-1
@@ -134,77 +134,77 @@ Content-Type: application/json
 { "decision": "APPROVE", "comment": "Variazione compatibile con le attivita di oggi." }
 ```
 
-Solo `GROUND_CONTROL` puo decidere. La chiave `Idempotency-Key` e associata a proposta, operatore e payload normalizzato: un replay identico restituisce la decisione originale; chiave riusata con payload/operatore diverso → 409 `IDEMPOTENCY_CONFLICT`; decisione incompatibile → 409 `INVALID_STATE`.
+Only `GROUND_CONTROL` can decide. The `Idempotency-Key` header is associated with proposal, operator and normalized payload: an identical replay returns the original decision; key reused with different payload/operator → 409 `IDEMPOTENCY_CONFLICT`; incompatible decision → 409 `INVALID_STATE`.
 
-### Recuperare lo stato dopo un timeout o un reload
+### Retrieve state after a timeout or reload
 
 ```http
 GET /api/agent/v1/sessions/session-1
 ```
 
-`DecisionResult.schedule` e presente solo dopo l'applicazione; negli altri stati `schedule` e `null` e lo stato della proposta comunica l'esito reale. Soltanto `APPLIED` autorizza il messaggio «Il programma e stato aggiornato».
+`DecisionResult.schedule` is present only after application; in other states `schedule` is `null` and the proposal status communicates the actual outcome. Only `APPLIED` authorizes the message "The schedule has been updated".
 
-File di esempio completi: `docs/agent/examples/normal.json`, `normal-response.json`, `no-change.json`, `stale.json`.
+Complete example files: `docs/agent/examples/normal.json`, `normal-response.json`, `no-change.json`, `stale.json`.
 
-## Voce
+## Voice
 
-Il percorso vocale usa gli stessi servizi e messaggi di quello testuale. Due modalita:
+The voice path uses the same services and messages as the text path. Two modes:
 
-- **Browser (predefinito)**: riconoscimento e sintesi delegati al browser (`AGENT_VOICE_PROVIDER=browser`). Non richiede chiavi; serve un contesto sicuro (`localhost` o HTTPS). La trascrizione e modificabile e va inviata con la normale API messaggi usando `inputMode: "VOICE"`.
-- **Server (opzionale)**: con `AGENT_VOICE_PROVIDER=nvidia_nim` si attivano le due route autenticate, che usano servizi NVIDIA Speech NIM locali (ASR e TTS con `it-IT`) configurati via `AGENT_NIM_ASR_URL`/`AGENT_NIM_TTS_URL` (sono accettati solo origin loopback).
+- **Browser (default)**: recognition and synthesis delegated to the browser (`AGENT_VOICE_PROVIDER=browser`). No keys required; requires a secure context (`localhost` or HTTPS). Transcription is editable and must be sent with the normal messages API using `inputMode: "VOICE"`.
+- **Server (optional)**: with `AGENT_VOICE_PROVIDER=nvidia_nim` the two authenticated routes are activated, using local NVIDIA Speech NIM services (ASR and TTS with `it-IT`) configured via `AGENT_NIM_ASR_URL`/`AGENT_NIM_TTS_URL` (only loopback origins accepted).
 
-`POST /voice/transcriptions` — `multipart/form-data` con `sessionId`, `durationSeconds` e `audio` (file `audio/wav`, PCM 16 bit, mono o stereo). Limiti: 10 MiB e 120 s; la durata e verificata dal contenuto. Risponde `{ text, language }` e **non** invia automaticamente il messaggio: l'interfaccia mostra il testo per la correzione e poi usa `POST /sessions/:id/messages` con `inputMode: "VOICE"`.
+`POST /voice/transcriptions` — `multipart/form-data` with `sessionId`, `durationSeconds` and `audio` (file `audio/wav`, PCM 16 bit, mono or stereo). Limits: 10 MiB and 120 s; duration is verified from content. Responds `{ text, language }` and **does not** automatically send the message: the interface shows the text for correction and then uses `POST /sessions/:id/messages` with `inputMode: "VOICE"`.
 
-`POST /voice/speech` — JSON `{ sessionId, messageId }`; restituisce `audio/mpeg` (`Cache-Control: no-store`) per una risposta `ASSISTANT` della sessione dell'astronauta autenticato (testo fino a 2000 caratteri). Non e un endpoint pubblico di sintesi: non accetta testo arbitrario.
+`POST /voice/speech` — JSON `{ sessionId, messageId }`; returns `audio/mpeg` (`Cache-Control: no-store`) for an `ASSISTANT` response of the authenticated astronaut's session (text up to 2000 characters). It is not a public synthesis endpoint: it does not accept arbitrary text.
 
-L'audio e elaborato in memoria senza file temporanei o logging. Formato non ammesso → `UNSUPPORTED_AUDIO`; servizi non configurati o non raggiungibili → `PROVIDER_UNAVAILABLE`.
+Audio is processed in memory without temporary files or logging. Disallowed format → `UNSUPPORTED_AUDIO`; services not configured or unreachable → `PROVIDER_UNAVAILABLE`.
 
-## Configurazione e variabili d'ambiente
+## Configuration and environment variables
 
-Le credenziali sono lette solo sul server e non vengono inviate al browser. Nessun segreto va inserito nei log o nel codice.
+Credentials are read only on the server and never sent to the browser. No secret should be inserted into logs or code.
 
-| Variabile | Default | Note |
+| Variable | Default | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | — | SQLite locale per Prisma |
-| `NODE_ENV` | `development` | `production` vieta la demo simulata |
-| `AGENT_DEMO_ENABLED` | `false` | `true` abilita la demo locale, vietata in produzione |
-| `AGENT_DEMO_TOKEN` | — | token demo, 16–512 caratteri (autenticazione simulata) |
-| `AGENT_GROUND_TOKEN` | — | token demo distinto per `GROUND_CONTROL` (accesso report/proposte) |
+| `DATABASE_URL` | — | Local SQLite for Prisma |
+| `NODE_ENV` | `development` | `production` prohibits simulated demo |
+| `AGENT_DEMO_ENABLED` | `false` | `true` enables local demo, prohibited in production |
+| `AGENT_DEMO_TOKEN` | — | demo token, 16–512 characters (simulated authentication) |
+| `AGENT_GROUND_TOKEN` | — | distinct demo token for `GROUND_CONTROL` (report/proposal access) |
 | `AGENT_DEMO_SCENARIO` | `RESTED` | `RESTED`, `POOR_SLEEP`, `CONFLICTING_DATA` |
 | `AGENT_AI_PROVIDER` | `mock` | `mock`, `nvidia`, `openai` |
-| `NVIDIA_API_KEY`, `NVIDIA_MODEL` | — | obbligatori solo per `nvidia` |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | — | obbligatori solo per `openai` |
+| `NVIDIA_API_KEY`, `NVIDIA_MODEL` | — | mandatory only for `nvidia` |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | — | mandatory only for `openai` |
 | `AGENT_VOICE_PROVIDER` | `browser` | `browser`, `nvidia_nim`, `elevenlabs` |
-| `AGENT_NIM_ASR_URL`, `AGENT_NIM_TTS_URL` | — | obbligatori solo per `nvidia_nim`; origin loopback |
-| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | — | obbligatori solo per `elevenlabs` |
-| `ELEVENLABS_MODEL_ID` | `eleven_multilingual_v2` | modello TTS ElevenLabs |
+| `AGENT_NIM_ASR_URL`, `AGENT_NIM_TTS_URL` | — | mandatory only for `nvidia_nim`; loopback origin |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | — | mandatory only for `elevenlabs` |
+| `ELEVENLABS_MODEL_ID` | `eleven_multilingual_v2` | ElevenLabs TTS model |
 | `AGENT_AI_TIMEOUT_MS` | `30000` | 100–120000 ms |
-| `AGENT_CONTEXT_MESSAGE_LIMIT` | `20` | 1–100 messaggi |
-| `AGENT_PREVIOUS_CHECK_IN_LIMIT` | `3` | 0–10 check-in precedenti |
+| `AGENT_CONTEXT_MESSAGE_LIMIT` | `20` | 1–100 messages |
+| `AGENT_PREVIOUS_CHECK_IN_LIMIT` | `3` | 0–10 previous check-ins |
 
-Validazione in `server/agent/config.ts`. I messaggi di errore di configurazione non espongono i valori delle variabili.
+Validation in `server/agent/config.ts`. Configuration error messages do not expose variable values.
 
-## Sostituire i provider
+## Replacing providers
 
-Gli adattatori implementano le interfacce in `server/agent/ports.ts`; il punto di composizione e `server/agent/runtime.ts`. Non e richiesto modificare il nucleo dell'agent.
+Adapters implement the interfaces in `server/agent/ports.ts`; the composition point is `server/agent/runtime.ts`. No modification to the agent core is required.
 
-- `IdentityProvider.authenticate({ authorizationHeader, sessionCookie })` → `Identity | null`. Verifica le credenziali sul server e non costruisce il ruolo dal body. Esempio demo: `adapters/demo-identity.ts`; per il login reale di Fabrizio sostituire questo adattatore.
-- `SensorProvider.read(astronautId, window)` → `SensorReading[]`. Esempio: `adapters/sensors.ts` (N1) o `adapters/demo-context.ts` (bootstrap T1).
-- `ScheduleReader.getDay(astronautId, date)` e `ScheduleProvider` (con `getById`, `applyApproved`, `getApplication`). Il programma esterno resta da concordare con il backend di Emanuel; il runtime usa `adapters/demo-program.ts`, basato sulla persistenza di `adapters/schedule.ts`.
-- `AiProvider` (`ConversationAiProvider`, `OperationalAiProvider`, `DiaryAiProvider`). Selezione esplicita in `adapters/conversation-ai-factory.ts`; nessun fallback automatico tra provider.
-- `VoiceProvider` (`transcribe`, `synthesize`). Esempio server: `adapters/nvidia-nim-voice.ts`; la demo usa riconoscimento e sintesi del browser. Il contratto consente di sostituire l'adattatore senza cambiare la dashboard.
+- `IdentityProvider.authenticate({ authorizationHeader, sessionCookie })` → `Identity | null`. Verifies credentials on the server and does not build the role from the body. Demo example: `adapters/demo-identity.ts`; for Fabrizio's real login replace this adapter.
+- `SensorProvider.read(astronautId, window)` → `SensorReading[]`. Example: `adapters/sensors.ts` (N1) or `adapters/demo-context.ts` (bootstrap T1).
+- `ScheduleReader.getDay(astronautId, date)` and `ScheduleProvider` (with `getById`, `applyApproved`, `getApplication`). The external schedule is still to be agreed with Emanuel's backend; the runtime uses `adapters/demo-program.ts`, based on persistence from `adapters/schedule.ts`.
+- `AiProvider` (`ConversationAiProvider`, `OperationalAiProvider`, `DiaryAiProvider`). Explicit selection in `adapters/conversation-ai-factory.ts`; no automatic fallback between providers.
+- `VoiceProvider` (`transcribe`, `synthesize`). Server example: `adapters/nvidia-nim-voice.ts`; the demo uses browser recognition and synthesis. The contract allows replacing the adapter without changing the dashboard.
 
-I tipi pubblici in `server/agent/contracts/index.ts` sono importabili dal frontend senza trascinare Prisma, Next.js o variabili d'ambiente.
+Public types in `server/agent/contracts/index.ts` are importable from the frontend without dragging in Prisma, Next.js or environment variables.
 
-## Responsabilita transazionali, idempotenza e riconciliazione
+## Transactional responsibility, idempotency and reconciliation
 
-- L'agent puo leggere il programma e creare proposte; non dispone di uno strumento per applicarle o approvarle. Solo la decisione autorizzata di Terra, attraverso il servizio, invoca `ScheduleProvider.applyApproved`.
-- Il repository (`AgentRepository`, `adapters/prisma/repository.ts`) usa transazioni con confronto-e-scambio su revisione/versione: `commitTurn` deduplica per `clientMessageId` e salva messaggi e bozza in un'unica transazione; `confirmCheckIn` e idempotente; `completeGeneration` pubblica gli artefatti una sola volta per check-in con lease.
-- Non eseguire chiamate AI o di rete dentro una transazione di database.
-- `applyApproved` effettua controllo atomico della versione, mutazione e deduplicazione durevole per `proposalId`/`decisionId` nella stessa transazione. Un comando diverso con la stessa coppia e un conflitto.
-- Esiti dell'applicazione: `APPLIED`, `STALE`, `FAILED`, `UNKNOWN`. Un timeout dopo un possibile invio produce `UNKNOWN`: la proposta resta `APPROVED` e l'esito viene riconciliato tramite `getApplication(proposalId, decisionId)`. Non marcare `APPLY_FAILED` quando l'esito e solo sconosciuto.
+- The agent can read the schedule and create proposals; it has no tool to apply or approve them. Only Terra's authorized decision, through the service, invokes `ScheduleProvider.applyApproved`.
+- The repository (`AgentRepository`, `adapters/prisma/repository.ts`) uses transactions with compare-and-swap on revision/version: `commitTurn` deduplicates by `clientMessageId` and saves messages and draft in a single transaction; `confirmCheckIn` is idempotent; `completeGeneration` publishes artifacts once per check-in with lease.
+- Do not perform AI or network calls inside a database transaction.
+- `applyApproved` performs atomic version check, mutation and durable deduplication for `proposalId`/`decisionId` in the same transaction. A different command with the same pair is a conflict.
+- Application outcomes: `APPLIED`, `STALE`, `FAILED`, `UNKNOWN`. A timeout after a possible send produces `UNKNOWN`: the proposal remains `APPROVED` and the outcome is reconciled via `getApplication(proposalId, decisionId)`. Do not mark `APPLY_FAILED` when the outcome is only unknown.
 
-Stati della proposta:
+Proposal states:
 
 ```text
 PENDING_REVIEW -> REJECTED
@@ -215,17 +215,17 @@ APPROVED      -> APPLY_FAILED
 APPLY_FAILED  -> APPLIED | STALE
 ```
 
-Una proposta obsoleta (versione del programma cambiata) viene marcata `STALE` e non produce una nuova approvazione; va rigenerata e riapprovata.
+An obsolete proposal (schedule version changed) is marked `STALE` and does not produce a new approval; it must be regenerated and re-approved.
 
-## Collegamento con la dashboard di Fabrizio
+## Linking with Fabrizio's dashboard
 
-Da concordare con Fabrizio: sistema di login reale (sostituendo `IdentityProvider`), proprietario del backend autorevole del programma e meccanismo transazionale (sostituendo `ScheduleProvider`). La dashboard deve usare gli stessi endpoint della demo: nessun componente grafico della demo e obbligatorio e il nucleo dell'agent non va modificato.
+To be agreed with Fabrizio: real login system (replacing `IdentityProvider`), owner of the authoritative schedule backend and transactional mechanism (replacing `ScheduleProvider`). The dashboard must use the same endpoints as the demo: no demo UI component is mandatory and the agent core must not be modified.
 
-## Riferimenti
+## References
 
-- [Contratti v1 (C0)](./contracts-v1.md)
-- [Setup, reset e avvio (N1)](./setup.md)
-- [Voce (T3)](./t3-voice.md)
-- Schemi e tipi: `server/agent/contracts/index.ts`
-- Interfacce dei provider: `server/agent/ports.ts`
-- Esempi: `docs/agent/examples/`
+- [v1 contracts (C0)](./contracts-v1.md)
+- [Setup, reset and startup (N1)](./setup.md)
+- [Voice (T3)](./t3-voice.md)
+- Schemas and types: `server/agent/contracts/index.ts`
+- Provider interfaces: `server/agent/ports.ts`
+- Examples: `docs/agent/examples/`

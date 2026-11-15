@@ -1,61 +1,40 @@
-# Acquisizione webcam — T03
+# Webcam acquisition — T03
 
-## Stato
+## Status
 
-Implementata la parte applicativa e allineata a **C01 v2**. Il confine pubblico
-verso l'inferenza usa `InferenceFrame` RGBA di `src/contracts/`; il frame video
-in prestito resta un dettaglio interno a `src/capture/`.
-Il collaudo con webcam fisica rimane a carico dell'utente.
+The application part is implemented and aligned with **C01 v2**. The public boundary toward inference uses `InferenceFrame` RGBA from `src/contracts/`; the borrowed video frame remains an internal detail of `src/capture/`. Testing with a physical webcam remains the user's responsibility.
 
-## Comportamento visibile
+## Visible behavior
 
-- L'accesso viene chiesto solo premendo **Avvia webcam**, con `audio: false`.
-- L'avvio attraversa autorizzazione, preparazione del video e anteprima attiva.
-- **Arresta** è disponibile anche durante la richiesta di permesso o l'avvio.
-- La sorgente predefinita funziona anche se il browser non espone ancora l'elenco
-  dei dispositivi; le etichette vengono aggiornate dopo l'autorizzazione.
-- Cambiare sorgente ferma e libera quella precedente, senza avviare automaticamente
-  la nuova. L'elenco viene aggiornato anche su `devicechange`.
-- Specchiare l'anteprima usa solo CSS: la sorgente per l'analisi resta originale.
-- Una scheda nascosta, `pagehide` o `freeze` interrompono l'acquisizione e rilasciano
-  tutte le tracce. Tornare alla pagina non riaccende la fotocamera.
-- Revoca/interruzione della traccia, perdita del segnale, errori video e del
-  consumatore fermano la webcam e mostrano un messaggio recuperabile.
-- Calibrazione, inferenza, misure, overlay ed esportazione sono collegati alla UI;
-  il collaudo manuale su webcam fisica resta da eseguire.
+- Access is requested only when pressing **Start webcam**, with `audio: false`.
+- Startup goes through authorization, video preparation, and active preview.
+- **Stop** is available also during permission request or startup.
+- The default source works even if the browser does not yet expose the device list; labels are updated after authorization.
+- Changing source stops and releases the previous one, without automatically starting the new one. The list is also updated on `devicechange`.
+- Mirroring the preview uses only CSS: the source for analysis remains original.
+- A hidden tab, `pagehide`, or `freeze` interrupt acquisition and release all tracks. Returning to the page does not turn the camera back on.
+- Track revocation/interruption, signal loss, video errors, and consumer errors stop the webcam and show a recoverable message.
+- Calibration, inference, measurements, overlay, and export are connected to the UI; manual testing on a physical webcam remains to be performed.
 
-Risoluzione e numero dei fotogrammi ricevuti descrivono solo l'acquisizione.
-Non attestano valutabilità degli occhi o disponibilità di una misura.
+Resolution and number of received frames describe only acquisition. They do not attest eye evaluability or availability of a measurement.
 
-## Componenti e responsabilità
+## Components and responsibilities
 
-`webcam.ts` gestisce stream, riproduzione, messaggi, listener e rilascio.
-`video-frame-pump.ts` consegna immagini nuove al consumatore.
-`inference-frame-adapter.ts` copia il video in buffer RGBA conformi a C01.
-`use-webcam.ts` collega la sorgente al video React e aggiorna la lista dispositivi.
-`app/App.tsx` gestisce i controlli visibili e non calcola metriche palpebrali.
+`webcam.ts` manages stream, playback, messages, listeners, and release.
+`video-frame-pump.ts` delivers new images to the consumer.
+`inference-frame-adapter.ts` copies the video into C01-compliant RGBA buffers.
+`use-webcam.ts` connects the source to the React video and updates the device list.
+`app/App.tsx` manages visible controls and does not compute eyelid metrics.
 
-`getUserMedia` richiede idealmente 1280 × 720 e 30 fps, senza imporli; il browser
-può restituire un altro formato. La scelta esplicita del dispositivo usa il suo
-identificativo esatto. Il video ha `muted` e `playsInline`.
+`getUserMedia` ideally requests 1280 × 720 and 30 fps, without imposing them; the browser may return another format. Explicit device selection uses its exact identifier. The video has `muted` and `playsInline`.
 
-Stop, errore e smontaggio rimuovono i listener delle tracce, cancellano il callback
-dei fotogrammi, invocano `stop()` su tutte le tracce e azzerano `video.srcObject`.
-Gli identificativi di generazione impediscono a vecchie risposte di sovrascrivere
-un avvio successivo. Se un permesso arriva dopo lo stop o lo smontaggio, il relativo
-stream viene immediatamente fermato senza essere mostrato.
+Stop, error, and unmount remove track listeners, clear the frame callback, invoke `stop()` on all tracks, and zero `video.srcObject`. Generation identifiers prevent old responses from overwriting a subsequent start. If a permission arrives after stop or unmount, the related stream is immediately stopped without being shown.
 
-Il browser non offre un annullamento diretto della Promise di `getUserMedia`:
-il suo prompt potrebbe restare visibile dopo **Arresta**. L'app invalida la richiesta
-e libera l'eventuale stream appena arriva. Per `video.play()` si attende al massimo
-15 secondi; l'attesa termina subito allo stop, anche se la Promise resta pendente.
+The browser does not offer direct cancellation of the `getUserMedia` Promise: its prompt might remain visible after **Stop**. The app invalidates the request and releases any stream as soon as it arrives. For `video.play()`, it waits at most 15 seconds; the wait ends immediately on stop, even if the Promise remains pending.
 
-## Interfaccia C01 per il consumatore
+## C01 interface for the consumer
 
-Il terzo argomento opzionale del costruttore `WebcamCapture` accetta un
-`InferenceFrameConsumer`, indipendente da React. La UI attuale usa il consumatore nullo,
-che aggiorna soltanto contatore e dimensioni. I test usano anche consumatori lenti
-e fallibili, senza webcam o inferenza.
+The optional third argument of the `WebcamCapture` constructor accepts an `InferenceFrameConsumer`, independent of React. The current UI uses the null consumer, which only updates counter and dimensions. Tests also use slow and fallible consumers, without webcam or inference.
 
 ```ts
 import { WebcamCapture } from '../capture/webcam';
@@ -75,92 +54,57 @@ capture.stop();
 capture.dispose(); // allo smontaggio del consumatore
 ```
 
-| Campo | Significato |
+| Field | Meaning |
 | --- | --- |
-| `frameId` | Intero positivo crescente per istanza di acquisizione |
-| `source` | Origine `webcam` |
-| `width`, `height` | Dimensioni reali del video in pixel |
-| `timestampMs` | Tempo monotono del callback rispetto a `performance.timeOrigin`, in ms |
-| `pixels` | Buffer RGBA sRGB indipendente, quattro byte per pixel |
-| `release()` | Fine dell'uso del buffer; idempotente |
+| `frameId` | Positive increasing integer per acquisition instance |
+| `source` | Origin `webcam` |
+| `width`, `height` | Real video dimensions in pixels |
+| `timestampMs` | Monotonic callback time relative to `performance.timeOrigin`, in ms |
+| `pixels` | Independent RGBA sRGB buffer, four bytes per pixel |
+| `release()` | End of buffer use; idempotent |
 
-Il secondo argomento del consumer, `signal`, è invalidato allo stop o al cambio
-di sessione. `mediaTimeSeconds` serve soltanto alla deduplicazione interna.
+The consumer's second argument, `signal`, is invalidated on stop or session change. `mediaTimeSeconds` is used only for internal deduplication.
 
-Non è un timestamp del sensore. I timestamp non vengono convertiti in durate di
-chiusura: questa responsabilità è del motore N02.
+It is not a sensor timestamp. Timestamps are not converted into closure durations: this responsibility lies with the N02 engine.
 
-L'adattatore copia il video originale prima del primo `await`, tramite un canvas
-non aggiunto alla pagina. Il canvas è creato solo quando un consumer viene
-effettivamente collegato: l'anteprima da sola non alloca copie RGBA. Ciascun buffer
-rimane valido fino a `release()`, poi non si usa più. L'adattatore libera anche
-buffer dimenticati o coinvolti in errori dopo la conclusione del consumer.
+The adapter copies the original video before the first `await`, via a canvas not added to the page. The canvas is created only when a consumer is actually connected: preview alone does not allocate RGBA copies. Each buffer remains valid until `release()`, then it is no longer used. The adapter also releases forgotten or error-involved buffers after consumer completion.
 
-Per un Worker si trasferisce `pixels.data.buffer` con i metadati; `release` e
-`signal` restano nella pagina. Il consumer attende la conferma di fine elaborazione,
-ignora risultati annullati e rilascia il frame in un `finally`. Lo stop non
-interrompe a forza una Promise e non libera pixel che il consumer sta usando.
+For a Worker, `pixels.data.buffer` is transferred with metadata; `release` and `signal` remain in the page. The consumer awaits end-of-processing confirmation, ignores cancelled results, and releases the frame in a `finally`. Stop does not forcefully interrupt a Promise and does not release pixels the consumer is using.
 
-Si usa `requestVideoFrameCallback`, quando disponibile. Il fallback usa
-`requestAnimationFrame`, scarta `currentTime` già visto e usa anche
-`getVideoPlaybackQuality().totalVideoFrames` quando il browser lo valorizza.
-Se il contatore dei frame non è disponibile, il fallback basato su `currentTime`
-è una deduplicazione approssimata, da verificare sul browser di destinazione.
+`requestVideoFrameCallback` is used when available. The fallback uses `requestAnimationFrame`, discards already-seen `currentTime`, and also uses `getVideoPlaybackQuality().totalVideoFrames` when the browser provides it. If the frame counter is not available, the `currentTime`-based fallback is an approximate deduplication, to be verified on the target browser.
 
-Durante un'elaborazione asincrona non si accodano altre immagini. L'anteprima
-continua e il successivo callback viene richiesto al termine del consumatore.
-Anche dopo un riavvio si attende la fine del precedente consumatore prima di
-consegnare un altro frame: gli adattatori devono quindi terminare o rispettare
-l'annullamento. Timestamp duplicati/non crescenti e immagini non pronte vengono
-scartati; i gap restano osservabili, senza generare campioni intermedi.
+During asynchronous processing, no other images are queued. Preview continues and the next callback is requested at the end of the consumer. Even after a restart, the end of the previous consumer is awaited before delivering another frame: adapters must therefore terminate or respect cancellation. Duplicate/non-increasing timestamps and unready images are discarded; gaps remain observable, without generating intermediate samples.
 
-## Verifiche automatiche
+## Automated checks
 
-Verifiche eseguite il 13 novembre 2026 su Windows, Node.js 24.15.0,
-npm 11.12.1. Nessuna nuova dipendenza.
+Checks executed on November 13, 2026 on Windows, Node.js 24.15.0, npm 11.12.1. No new dependencies.
 
-- `npm.cmd run build`: controllo TypeScript e build di produzione riusciti.
-- `npm.cmd test`: **26 test superati**, suite in `src/capture/webcam.test.ts`, con track, stream,
-  callback video, RAF, visibilità e permessi simulati.
-- Casi coperti: avvio esplicito senza audio, rilascio allo stop, concessione tardiva,
-  annullamento di `play`, errori e nuovo tentativo, interruzione delle tracce,
-  sospensione, smontaggio, riavvii, timeout, assenza API/contesto insicuro,
-  consumer lento o fallibile, vecchi errori, duplicati, timestamp e fallback.
-- Server di sviluppo: HTTP 200 per pagina, componente e moduli di acquisizione
-  aggiornati su `http://127.0.0.1:5173`.
-- Brave: pagina caricata, controlli Avvia/Arresta, sorgente e specchio presenti;
-  stato iniziale Spenta con Arresta disabilitato. Accesso alla webcam fisica non
-  attivato durante questa verifica.
+- `npm.cmd run build`: TypeScript check and production build succeeded.
+- `npm.cmd test`: **26 tests passed**, suite in `src/capture/webcam.test.ts`, with track, stream, video callback, RAF, visibility, and permissions simulated.
+- Covered cases: explicit start without audio, release on stop, late grant, `play` cancellation, errors and retry, track interruption, suspension, unmount, restarts, timeout, missing API/insecure context, slow or fallible consumer, old errors, duplicates, timestamps, and fallback.
+- Development server: HTTP 200 for page, component, and acquisition modules updated on `http://127.0.0.1:5173`.
+- Brave: page loaded, Start/Stop controls, source, and mirror present; initial state Off with Stop disabled. Physical webcam access not activated during this check.
 
-La revisione C01 aggiunge verifiche automatiche del confine webcam/RGBA: copia,
-proprietà del buffer, rilascio, errori, annullamento e trasferimento del buffer
-con `structuredClone`. Nessuna prova manuale aggiuntiva viene eseguita dall'agente.
+The C01 review adds automated checks of the webcam/RGBA boundary: copy, buffer properties, release, errors, cancellation, and buffer transfer with `structuredClone`. No additional manual test is performed by the agent.
 
-Questi controlli verificano il comportamento del software con API simulate.
-Non certificano l'hardware, il prompt dei permessi o le prestazioni nel browser.
+These checks verify software behavior with simulated APIs. They do not certify hardware, the permission prompt, or browser performance.
 
-## Collaudo manuale da eseguire
+## Manual testing to be performed
 
-1. Avviare il progetto con `npm.cmd run dev` e aprire `http://127.0.0.1:5173`.
-2. Verificare che prima del clic non si accenda la webcam e non venga chiesto l'audio.
-3. Premere **Avvia webcam**, consentire l'accesso e verificare anteprima, dimensioni
-   e contatore; provare lo specchio senza modificare la sorgente.
-4. Premere **Arresta** e verificare lo spegnimento della webcam e lo svuotamento
-   dell'anteprima. Ripetere avvio/arresto almeno tre volte.
-5. Cambiare fotocamera, se disponibile: la precedente deve fermarsi e la nuova
-   deve richiedere il pulsante **Avvia**.
-6. Passare a un'altra scheda o minimizzare il browser: al ritorno la camera deve
-   essere spenta e lo stato deve spiegare l'interruzione.
-7. Negare il permesso e verificare il messaggio; correggere manualmente i permessi
-   nel browser e riprovare. Provare anche **Arresta** durante il prompt.
-8. Scollegare la webcam o revocare il permesso durante l'anteprima e verificare
-   arresto e messaggio. Ricaricare/chiudere la pagina verificando il rilascio.
+1. Start the project with `npm.cmd run dev` and open `http://127.0.0.1:5173`.
+2. Verify that before clicking, the webcam does not turn on and audio is not requested.
+3. Press **Start webcam**, allow access, and verify preview, dimensions, and counter; try mirroring without changing the source.
+4. Press **Stop** and verify webcam shutdown and preview clearing. Repeat start/stop at least three times.
+5. Change camera, if available: the previous one must stop and the new one must require the **Start** button.
+6. Switch to another tab or minimize the browser: on return, the camera must be off and the state must explain the interruption.
+7. Deny permission and verify the message; manually correct permissions in the browser and retry. Also try **Stop** during the prompt.
+8. Disconnect the webcam or revoke permission during preview and verify stop and message. Reload/close the page verifying release.
 
-Registrare browser, dispositivo e risultati prima di dichiarare T03 completato.
+Record browser, device, and results before declaring T03 complete.
 
-## Riferimenti API
+## API references
 
-- [getUserMedia e richieste di permesso](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
-- [Callback dei frame video](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback)
-- [Rilascio delle tracce](https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/stop)
-- [Visibilità della pagina](https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event)
+- [getUserMedia and permission requests](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)
+- [Video frame callback](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback)
+- [Track release](https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/stop)
+- [Page visibility](https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event)

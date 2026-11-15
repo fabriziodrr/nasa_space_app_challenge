@@ -290,7 +290,7 @@ export class MediaPipeFaceLandmarkerAdapter {
 
         throw new InferenceError(
           'runtime_load_failed',
-          'Impossibile caricare modello o runtime MediaPipe.',
+          'Unable to load the MediaPipe model or runtime.',
           error,
         );
       }

@@ -1,63 +1,44 @@
-# Validazione di misura e prestazioni — N05
+# Measurement and Performance Validation — N05
 
-Versione: **N05 — preparazione e collegamento**, aggiornata il 14 novembre 2026. Il documento raccoglie il
-metodo, il protocollo e i risultati sintetici verificati. **La validazione
-quantitativa con webcam e persone reali non è ancora stata eseguita**. T04/T05
-sono disponibili; restano il caricamento effettivo del modello nel browser e le
-prove reali annotate.
+Version: **N05 — preparation and connection**, updated 14 November 2026. The document collects the method, protocol, and verified synthetic results. **Quantitative validation with webcam and real people has not yet been performed**. T04/T05 are available; actual model loading in the browser and real annotated tests remain.
 
-Le prove manuali senza annotazioni non vengono presentate come accuratezza. I
-risultati sintetici verificano il metodo di confronto, non il comportamento
-clinico o l'accuratezza della misura.
+Manual tests without annotations are not presented as accuracy. Synthetic results verify the comparison method, not clinical behavior or measurement accuracy.
 
-## 1 Scopo e perimetro
+## 1 Purpose and Scope
 
-N05 confronta:
+N05 compares:
 
-- eventi di chiusura annotati manualmente con le chiusure bilaterali del motore;
-- copertura, tempo valido e quota di chiusura lette da `EngineSnapshot`;
-- frequenza dei frame elaborati e latenza dell'inferenza.
+- manually annotated closure events with bilateral closures from the engine;
+- coverage, valid time, and closure share read from `EngineSnapshot`;
+- processed frame frequency and inference latency.
 
-Non rientrano in N05: diagnosi, percentuali di stanchezza, idoneità e accuratezza
-clinica. T04 fornisce la sessione webcam; T06 esegue
-il collaudo applicativo e offline.
+Not included in N05: diagnosis, fatigue percentages, suitability, and clinical accuracy. T04 provides the webcam session; T06 performs application and offline testing.
 
-## 2 Come funziona il confronto
+## 2 How the Comparison Works
 
-Il codice è in `src/validation/`:
+The code is in `src/validation/`:
 
-| Funzione | Scopo |
+| Function | Purpose |
 | --- | --- |
-| `matchClosureEvents` | Confronto uno-a-uno fra annotazioni e chiusure bilaterali |
-| `summarizeInferencePerformance` | Frequenza, media, minimo, massimo, p50 e p95 |
-| `measureInference` | Misura di una singola elaborazione con orologio iniettabile |
-| `createValidationReport` | Riepilogo JSON serializzabile senza ricalcolare il motore |
+| `matchClosureEvents` | One-to-one comparison between annotations and bilateral closures |
+| `summarizeInferencePerformance` | Frequency, mean, min, max, p50, and p95 |
+| `measureInference` | Single processing measurement with injectable clock |
+| `createValidationReport` | Serializable JSON summary without recalculating the engine |
 
-Un evento è candidato se:
+An event is a candidate if:
 
-- l'intersezione su unione (IoU) è almeno `minIou` (predefinito `0.5`), oppure
-- inizio e fine rientrano in `startToleranceMs` / `endToleranceMs` (predefiniti
-  `100 ms` ciascuno).
+- intersection over union (IoU) is at least `minIou` (default `0.5`), or
+- start and end fall within `startToleranceMs` / `endToleranceMs` (defaults `100 ms` each).
 
-L'abbinamento è deterministico e uno-a-uno: prima IoU più alto, poi errori di
-inizio/fine più piccoli. Il report distingue veri positivi, falsi positivi,
-eventi mancati, differenze di completezza e scarti medi di inizio, fine e durata.
+Matching is deterministic and one-to-one: highest IoU first, then smaller start/end errors. The report distinguishes true positives, false positives, missed events, completeness differences, and average start, end, and duration deviations.
 
-La frequenza è `(numero_frame - 1) / intervallo_totale`: descrive il passo dei
-frame elaborati, non il frame rate dichiarato dalla fotocamera. I percentili
-delle latenze usano interpolazione lineare.
+Frequency is `(number_of_frames - 1) / total_interval`: it describes the processed frame step, not the camera's declared frame rate. Latency percentiles use linear interpolation.
 
-## 3 Uso del harness
+## 3 Harness Usage
 
-La sessione webcam misura automaticamente la latenza di `processFrame` durante
-la misura e conserva i campioni nel JSON T05. Il pulsante **Esporta report N05**
-produce un report di prestazioni `n05-session-v1` con configurazioni, profili,
-provenienza e dispositivo. Senza annotazioni `comparison` e `annotations` sono
-`null`: non vengono inventati falsi positivi o indicatori di accuratezza.
+The webcam session automatically measures `processFrame` latency during measurement and stores samples in T05 JSON. The **Export N05 Report** button produces a performance report `n05-session-v1` with configurations, profiles, provenance, and device. Without annotations, `comparison` and `annotations` are `null`: no false positives or accuracy indicators are invented.
 
-Un consumatore può chiamare `createSessionValidationReport(exported, annotations)`
-passando annotazioni reali per ottenere il confronto N05. Un array vuoto passato
-esplicitamente indica invece una sessione annotata senza eventi.
+A consumer can call `createSessionValidationReport(exported, annotations)` passing real annotations to obtain the N05 comparison. An explicitly passed empty array instead indicates an annotated session without events.
 
 ```ts
 import { createValidationReport } from '../validation';
@@ -76,103 +57,91 @@ const report = createValidationReport({
 });
 ```
 
-`annotations` contiene intervalli `{ id, startMs, endMs, complete?, source? }`.
-Le soglie di abbinamento vanno fissate **prima** di guardare i risultati e non
-vanno cambiate per far coincidere un caso sfavorevole.
+`annotations` contains intervals `{ id, startMs, endMs, complete?, source? }`. Matching thresholds must be set **before** looking at results and must not be changed to make an unfavorable case match.
 
-## 4 Esempi sintetici verificati
+## 4 Verified Synthetic Examples
 
-Questi valori vengono dai test in `tests/validation/` e verificano solo il
-metodo di calcolo:
+These values come from tests in `tests/validation/` and verify only the calculation method:
 
-| Caso sintetico | Esito |
+| Synthetic Case | Outcome |
 | --- | --- |
-| Annotazione 100–300 ms, evento 100–300 ms | TP 1, precision 1, recall 1, errori 0 |
-| Annotazione 100–300 ms, evento 400–500 ms | TP 0, FP 1, FN 1, precision 0, recall 0 |
-| Annotazione 100–300 ms, evento 120–280 ms | IoU 0.8, errori inizio +20, fine −20, durata −40 |
-| Evento completo atteso, evento incompleto prodotto | 1 differenza di completezza |
-| 4 frame a 0/100/200/300 ms, latenze 10/20/30/40 ms | 10 fps, media 25 ms, p95 38.5 ms |
-| Sessione sintetica 100–300 ms chiusa | coverage 1, closedMs 200, quota 2/3 |
+| Annotation 100–300 ms, event 100–300 ms | TP 1, precision 1, recall 1, errors 0 |
+| Annotation 100–300 ms, event 400–500 ms | TP 0, FP 1, FN 1, precision 0, recall 0 |
+| Annotation 100–300 ms, event 120–280 ms | IoU 0.8, start errors +20, end −20, duration −40 |
+| Complete event expected, incomplete event produced | 1 completeness difference |
+| 4 frames at 0/100/200/300 ms, latencies 10/20/30/40 ms | 10 fps, mean 25 ms, p95 38.5 ms |
+| Synthetic session 100–300 ms closed | coverage 1, closedMs 200, quota 2/3 |
 
-Comandi:
+Commands:
 
 ```powershell
 npm.cmd test -- tests/validation
 ```
 
-## 5 Protocollo per la sessione reale
+## 5 Real Session Protocol
 
-Da eseguire con T04/T05 disponibili, webcam e modello reale.
+To be executed with T04/T05 available, webcam, and real model.
 
-### 5.1 Ambiente da registrare
+### 5.1 Environment to Record
 
-| Voce | Valore |
+| Entry | Value |
 | --- | --- |
-| Data e ora | da compilare |
-| Macchina, CPU e RAM | da compilare |
-| GPU / delegate (`CPU` o `GPU`) | da compilare |
-| Browser e versione | da compilare |
-| Runtime MediaPipe e versione | `@mediapipe/tasks-vision@1.2.3` |
-| Modello e SHA-256 | `face_landmarker/float16/1`, `64184e22…0bc9ff` |
-| Webcam, risoluzione e fps dichiarati | da compilare |
-| Illuminazione e posizione | da compilare |
-| `configId` motore/geometria/calibrazione | da compilare |
-| `methodVersion` geometria | `n03-ear-v1` |
+| Date and time | to be filled |
+| Machine, CPU, and RAM | to be filled |
+| GPU / delegate (`CPU` or `GPU`) | to be filled |
+| Browser and version | to be filled |
+| MediaPipe runtime and version | `@mediapipe/tasks-vision@1.2.3` |
+| Model and SHA-256 | `face_landmarker/float16/1`, `64184e22…0bc9ff` |
+| Webcam, resolution, and declared fps | to be filled |
+| Lighting and position | to be filled |
+| Engine/geometry/calibration `configId` | to be filled |
+| Geometry `methodVersion` | `n03-ear-v1` |
 
-### 5.2 Annotazioni
+### 5.2 Annotations
 
-Per ogni sessione:
+For each session:
 
-1. registrare o rivedere il video con timestamp coerenti con quelli del pump;
-2. annotare inizio e fine di ogni chiusura bilaterale;
-3. indicare `complete` quando l'occhio si riapre con continuità;
-4. classificare la fonte: `controlled`, `voluntary`, `spontaneous` o `fixture`;
-5. conservare le note su occhiali, riflessi, rotazioni, uscita dall'inquadratura
-   e interruzioni.
+1. record or review the video with timestamps consistent with those of the pump;
+2. annotate start and end of each bilateral closure;
+3. indicate `complete` when the eye reopens continuously;
+4. classify source: `controlled`, `voluntary`, `spontaneous`, or `fixture`;
+5. keep notes on glasses, reflections, rotations, out-of-frame, and interruptions.
 
-Senza annotazioni, la sessione è solo qualitativa e non produce precision,
-recall o errore di durata.
+Without annotations, the session is only qualitative and does not produce precision, recall, or duration error.
 
-### 5.3 Condizioni minime
+### 5.3 Minimum Conditions
 
-| Prova | Cosa registrare |
+| Test | What to Record |
 | --- | --- |
-| Base, volto frontale, luce uniforme | eventi annotati, copertura, latenze |
-| Occhiali | riflessi, falsi positivi, eventi mancati |
-| Controluce o luce bassa | perdita del volto, copertura, invalidità |
-| Rotazione del capo | landmark mancanti, errori di inizio/fine |
-| Uscita dall'inquadratura | invalidità, eventi incompleti, ripresa |
-| Chiusure volontarie brevi e prolungate | durata, completezza, prolungati |
-| Occhiolino | assenza di chiusure bilaterali |
+| Base, frontal face, uniform light | annotated events, coverage, latencies |
+| Glasses | reflections, false positives, missed events |
+| Backlight or low light | face loss, coverage, invalidity |
+| Head rotation | missing landmarks, start/end errors |
+| Out-of-frame | invalidity, incomplete events, recovery |
+| Short and prolonged voluntary closures | duration, completeness, prolonged |
+| Blink | absence of bilateral closures |
 
-Per le prestazioni raccogliere almeno un intervallo continuo di 30 secondi e
-riportare `count`, `intervalMs`, `framesPerSecond`, `meanInferenceMs`,
-`p50InferenceMs`, `p95InferenceMs`.
+For performance, collect at least one continuous 30-second interval and report `count`, `intervalMs`, `framesPerSecond`, `meanInferenceMs`, `p50InferenceMs`, `p95InferenceMs`.
 
-## 6 Risultati reali
+## 6 Real Results
 
-Stato: **non ancora eseguiti**.
+Status: **not yet performed**.
 
-| Prova | Precision | Recall | Errori medi | Copertura | p50 / p95 inferenza |
+| Test | Precision | Recall | Mean Errors | Coverage | p50 / p95 Inference |
 | --- | --- | --- | --- | --- | --- |
-| Base frontale | — | — | — | — | — |
-| Occhiali | — | — | — | — | — |
-| Luce bassa / controluce | — | — | — | — | — |
-| Rotazione | — | — | — | — | — |
-| Uscita dall'inquadratura | — | — | — | — | — |
+| Base frontal | — | — | — | — | — |
+| Glasses | — | — | — | — | — |
+| Low light / backlight | — | — | — | — | — |
+| Rotation | — | — | — | — | — |
+| Out-of-frame | — | — | — | — | — |
 
-Le celle vanno compilate solo con sessioni annotate e con configurazione,
-macchina e versione registrate. I risultati parziali vanno etichettati come
-tali.
+Cells must be filled only with annotated sessions and with configuration, machine, and version recorded. Partial results must be labeled as such.
 
-## 7 Limiti
+## 7 Limitations
 
-- Le misure sintetiche verificano il codice, non l'accuratezza su persone.
-- Le annotazioni manuali possono essere imprecise e vanno conservate.
-- Il modello, gli occhiali, i riflessi, la posa e l'illuminazione influenzano i
-  landmark; N05 misura questi effetti, non li elimina.
-- La latenza dipende da browser, hardware, delegate e risoluzione.
-- Le misure descrivono il comportamento palpebrale osservato: non sono diagnosi,
-  percentuali di stanchezza o giudizi di idoneità.
-- La validazione quantitativa definitiva richiede prove annotate con gli asset
-  locali caricati e un protocollo concordato con l'altro sviluppatore.
+- Synthetic measurements verify the code, not accuracy on people.
+- Manual annotations may be imprecise and must be preserved.
+- The model, glasses, reflections, pose, and lighting influence landmarks; N05 measures these effects, it does not eliminate them.
+- Latency depends on browser, hardware, delegate, and resolution.
+- Measurements describe observed eyelid behavior: they are not diagnosis, fatigue percentages, or suitability judgments.
+- Definitive quantitative validation requires annotated tests with local assets loaded and a protocol agreed with the other developer.

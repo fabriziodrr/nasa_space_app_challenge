@@ -139,7 +139,7 @@ export class PrismaAgentRepository implements AgentRepository {
     return this.prisma.$transaction(async (tx) => {
       const session = await tx.conversationSession.findUnique({ where: { id: input.sessionId } });
       if (!session || session.astronautId !== input.astronautId) {
-        throw AgentErrors.notFound("Sessione non trovata o non accessibile.");
+        throw AgentErrors.notFound("Session not found or inaccessible.");
       }
 
       const existing = await tx.turn.findUnique({ where: { clientMessageId: input.request.clientMessageId } });
@@ -155,21 +155,21 @@ export class PrismaAgentRepository implements AgentRepository {
         : input.expectedCheckInRevision + 1;
       const existingCheckIn = await tx.checkIn.findUnique({ where: { sessionId: input.sessionId } });
       if (input.expectedCheckInRevision === null) {
-        if (existingCheckIn) throw AgentErrors.invalidState("Esiste gia una bozza per questa sessione.");
+        if (existingCheckIn) throw AgentErrors.invalidState("A draft already exists for this session.");
       } else {
-        if (!existingCheckIn) throw AgentErrors.invalidState("Nessuna bozza da aggiornare per questa sessione.");
-        if (existingCheckIn.status !== "DRAFT") throw AgentErrors.invalidState("Il check-in non e piu in bozza.");
+        if (!existingCheckIn) throw AgentErrors.invalidState("No draft is available to update for this session.");
+        if (existingCheckIn.status !== "DRAFT") throw AgentErrors.invalidState("The check-in is no longer a draft.");
         if (existingCheckIn.revision !== input.expectedCheckInRevision) {
-          throw AgentErrors.versionConflict("La bozza e cambiata nel frattempo.", existingCheckIn.revision);
+          throw AgentErrors.versionConflict("The draft has changed in the meantime.", existingCheckIn.revision);
         }
       }
       const draft = input.result.checkIn;
       if (draft.revision !== newRevision || draft.status !== "DRAFT") {
-        throw AgentErrors.internal("Revisione o stato incoerenti nel turno restituito.");
+        throw AgentErrors.internal("Inconsistent revision or status in the returned turn.");
       }
 
       if (existingCheckIn) {
-        if (draft.id !== existingCheckIn.id) throw AgentErrors.internal("Identita della bozza incoerente.");
+        if (draft.id !== existingCheckIn.id) throw AgentErrors.internal("Inconsistent draft identity.");
         await tx.checkIn.update({
           where: { id: existingCheckIn.id },
           data: {
@@ -243,9 +243,9 @@ export class PrismaAgentRepository implements AgentRepository {
     return this.prisma.$transaction(async (tx) => {
       const row = await tx.checkIn.findUnique({ where: { id: checkInId } });
       if (!row || row.astronautId !== astronautId) throw AgentErrors.notFound();
-      if (row.status !== "DRAFT") throw AgentErrors.invalidState("Il check-in confermato non puo essere corretto.");
+      if (row.status !== "DRAFT") throw AgentErrors.invalidState("A confirmed check-in cannot be edited.");
       if (row.revision !== request.expectedRevision) {
-        throw AgentErrors.versionConflict("La bozza e cambiata nel frattempo.", row.revision);
+        throw AgentErrors.versionConflict("The draft has changed in the meantime.", row.revision);
       }
       const updated = await tx.checkIn.update({
         where: { id: checkInId },
@@ -268,10 +268,10 @@ export class PrismaAgentRepository implements AgentRepository {
           === toJson(request.sharedObservationIds);
         const sameBaseRevision = row.revision === request.expectedRevision + 1;
         if (sameSelection && sameBaseRevision) return checkInFromRow(row);
-        throw AgentErrors.invalidState("Selezione condivisa o revisione diverse da una conferma gia registrata.");
+        throw AgentErrors.invalidState("Shared selection or revision differs from the existing confirmation.");
       }
       if (row.revision !== request.expectedRevision) {
-        throw AgentErrors.versionConflict("La bozza e cambiata nel frattempo.", row.revision);
+        throw AgentErrors.versionConflict("The draft has changed in the meantime.", row.revision);
       }
       const updated = await tx.checkIn.update({
         where: { id: checkInId },
@@ -294,7 +294,7 @@ export class PrismaAgentRepository implements AgentRepository {
     return this.prisma.$transaction(async (tx) => {
       const checkIn = await tx.checkIn.findUnique({ where: { id: checkInId } });
       if (!checkIn || checkIn.astronautId !== astronautId) throw AgentErrors.notFound();
-      if (checkIn.status !== "CONFIRMED") throw AgentErrors.invalidState("Il check-in non e confermato.");
+      if (checkIn.status !== "CONFIRMED") throw AgentErrors.invalidState("The check-in is not confirmed.");
       const existing = await tx.generationClaim.findUnique({ where: { checkInId } });
       if (existing?.completedAt) return null;
       if (existing && !existing.failed && existing.leaseExpiresAt.getTime() > Date.now()) return null;
@@ -313,11 +313,11 @@ export class PrismaAgentRepository implements AgentRepository {
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.generationClaim.findUnique({ where: { checkInId: claim.checkInId } });
       if (!existing || existing.token !== claim.token) {
-        throw AgentErrors.invalidState("Lease di generazione non valida o scaduta.");
+        throw AgentErrors.invalidState("Generation lease is invalid or expired.");
       }
       if (existing.completedAt) return;
       if (existing.leaseExpiresAt.getTime() <= Date.now()) {
-        throw AgentErrors.invalidState("Lease di generazione scaduta.");
+        throw AgentErrors.invalidState("Generation lease expired.");
       }
 
       const checkIn = await tx.checkIn.findUnique({ where: { id: claim.checkInId } });
@@ -381,23 +381,23 @@ export class PrismaAgentRepository implements AgentRepository {
   #assertArtifactsScope(checkInId: string, astronautId: string, artifacts: GenerationArtifacts): void {
     const { report, diary, proposal } = artifacts;
     if (report.checkInId !== checkInId || report.astronautId !== astronautId) {
-      throw AgentErrors.internal("Report incoerente con il check-in.");
+      throw AgentErrors.internal("Report is inconsistent with the check-in.");
     }
     if (diary.checkInId !== checkInId || diary.astronautId !== astronautId) {
-      throw AgentErrors.internal("Diario incoerente con il check-in.");
+      throw AgentErrors.internal("Diary is inconsistent with the check-in.");
     }
     if (proposal && (proposal.checkInId !== checkInId || proposal.astronautId !== astronautId)) {
-      throw AgentErrors.internal("Proposta incoerente con il check-in.");
+      throw AgentErrors.internal("Proposal is inconsistent with the check-in.");
     }
     if ((proposal === null) === (artifacts.noChangeReason === null)) {
-      throw AgentErrors.internal("Deve esistere una proposta oppure una motivazione esplicita, mai entrambe.");
+      throw AgentErrors.internal("There must be either a proposal or an explicit reason, never both.");
     }
   }
 
   async failGeneration(claim: GenerationClaim): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.generationClaim.findUnique({ where: { checkInId: claim.checkInId } });
-      if (!existing || existing.token !== claim.token) throw AgentErrors.invalidState("Lease non valida.");
+      if (!existing || existing.token !== claim.token) throw AgentErrors.invalidState("Invalid lease.");
       if (existing.completedAt) return;
       await tx.generationClaim.update({ where: { checkInId: claim.checkInId }, data: { failed: true } });
     });
@@ -462,11 +462,11 @@ export class PrismaAgentRepository implements AgentRepository {
           return { proposal: proposalFromRow(proposal), decision: decisionFromRow(existingDecision) };
         }
         if (sameKey) throw AgentErrors.idempotencyConflict();
-        throw AgentErrors.invalidState("Una decisione per questa proposta e gia registrata.");
+        throw AgentErrors.invalidState("A decision for this proposal has already been recorded.");
       }
 
       if (proposal.status !== "PENDING_REVIEW") {
-        throw AgentErrors.invalidState("La proposta non e in attesa di decisione.");
+        throw AgentErrors.invalidState("The proposal is not awaiting a decision.");
       }
       const decision = await tx.proposalDecision.create({
         data: {
@@ -496,12 +496,12 @@ export class PrismaAgentRepository implements AgentRepository {
     return this.prisma.$transaction(async (tx) => {
       const proposal = await tx.scheduleProposal.findUnique({ where: { id: input.proposalId } });
       if (!proposal || proposal.astronautId !== input.astronautId) throw AgentErrors.notFound();
-      if (proposal.decisionId !== input.decisionId) throw AgentErrors.invalidState("Decisione non coerente con la proposta.");
+      if (proposal.decisionId !== input.decisionId) throw AgentErrors.invalidState("Decision does not match the proposal.");
 
       const result = input.result;
       if (result.outcome === "APPLIED") {
         if (proposal.status === "APPLIED") return proposalFromRow(proposal);
-        if (proposal.status !== "APPROVED") throw AgentErrors.invalidState("Transizione non consentita verso APPLIED.");
+        if (proposal.status !== "APPROVED") throw AgentErrors.invalidState("Transition to APPLIED is not allowed.");
         const updated = await tx.scheduleProposal.update({
           where: { id: input.proposalId },
           data: {
@@ -515,7 +515,7 @@ export class PrismaAgentRepository implements AgentRepository {
       if (result.outcome === "STALE") {
         if (proposal.status === "STALE") return proposalFromRow(proposal);
         if (proposal.status !== "APPROVED" && proposal.status !== "APPLY_FAILED") {
-          throw AgentErrors.invalidState("Transizione non consentita verso STALE.");
+          throw AgentErrors.invalidState("Transition to STALE is not allowed.");
         }
         const updated = await tx.scheduleProposal.update({
           where: { id: input.proposalId },
@@ -525,7 +525,7 @@ export class PrismaAgentRepository implements AgentRepository {
       }
       if (result.outcome === "FAILED") {
         if (proposal.status === "APPLY_FAILED") return proposalFromRow(proposal);
-        if (proposal.status !== "APPROVED") throw AgentErrors.invalidState("Transizione non consentita verso APPLY_FAILED.");
+        if (proposal.status !== "APPROVED") throw AgentErrors.invalidState("Transition to APPLY_FAILED is not allowed.");
         const updated = await tx.scheduleProposal.update({
           where: { id: input.proposalId },
           data: { status: "APPLY_FAILED" },
@@ -543,7 +543,7 @@ export class PrismaAgentRepository implements AgentRepository {
       if (!proposal || proposal.astronautId !== astronautId) throw AgentErrors.notFound();
       if (proposal.status === "STALE") return proposalFromRow(proposal);
       if (!["PENDING_REVIEW", "APPROVED", "APPLY_FAILED"].includes(proposal.status)) {
-        throw AgentErrors.invalidState("Transizione non consentita verso STALE.");
+        throw AgentErrors.invalidState("Transition to STALE is not allowed.");
       }
       const updated = await tx.scheduleProposal.update({
         where: { id: proposalId },
@@ -612,7 +612,7 @@ export class PrismaAgentRepository implements AgentRepository {
       const row = await tx.diaryEntry.findUnique({ where: { id: diaryId } });
       if (!row || row.astronautId !== astronautId) throw AgentErrors.notFound();
       if (row.revision !== request.expectedRevision) {
-        throw AgentErrors.versionConflict("La voce del diario e cambiata nel frattempo.", row.revision);
+        throw AgentErrors.versionConflict("The diary entry has changed in the meantime.", row.revision);
       }
       const updated = await tx.diaryEntry.update({
         where: { id: diaryId },

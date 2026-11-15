@@ -1,33 +1,33 @@
-# AEGIS — Fonti NASA candidate
+# AEGIS — Candidate NASA Sources
 
-**Ricerca:** 14 novembre 2026. Nessun file di studio importato nel backend durante questa ricognizione.
+**Research:** 14 November 2026. No study file imported into the backend during this reconnaissance.
 
-## Primo candidato: sonno da actigrafia
+## First candidate: actigraphy sleep
 
 [UTMB Bedrest Campaign 1 Actigraphy — NASA NLSP](https://nlsp.nasa.gov/search/data/details/e26501eb-7d7a-5012-8c8e-c5bdb3eecaf6?dataType=DATASETS)
 
-Il catalogo NASA lo indica come **Available online**, con dati processati di durata, latenza ed efficienza del sonno per partecipanti a una campagna terrestre di bed rest. Sono elencati tre file, inclusi ReadMe e dati analizzati.
+The NASA catalog marks it as **Available online**, with processed sleep duration, latency, and efficiency data for participants in a ground-based bed rest campaign. Three files are listed, including ReadMe and analyzed data.
 
-È un candidato per una prima importazione sul sonno; non rappresenta telemetria ISS né copre automaticamente umore e reattività. Download dei file, colonne effettive, granularità, unità e condizioni di riutilizzo devono ancora essere verificati. Non chiamarlo dataset già scaricato o integrato.
+It is a candidate for a first sleep import; it does not represent ISS telemetry nor does it automatically cover mood and responsiveness. File download, actual columns, granularity, units, and reuse conditions still need to be verified. Do not call it an already downloaded or integrated dataset.
 
-## Candidato pertinente ma con accesso controllato: PVT su ISS
+## Relevant but controlled-access candidate: PVT on ISS
 
 [Psychomotor Vigilance Test on ISS — NASA NLSP](https://nlsp.nasa.gov/search/data/details/f39b0243-b8f5-5a2a-8905-e5c694b44c22?dataType=EXPERIMENTS)
 
-DOI: `10.83263/z81f-k208`. Il catalogo dichiara dati completi ma **restricted-access**, protetti per privacy e disponibili tramite richiesta. È pertinente alla reattività e ai fattori associati; non è un CSV pubblico immediatamente utilizzabile. Non dipendere dall'ottenimento dell'accesso per completare l'MVP.
+DOI: `10.83263/z81f-k208`. The catalog declares complete data but **restricted-access**, protected for privacy and available via request. It is relevant to responsiveness and associated factors; it is not a publicly usable CSV immediately. Do not depend on obtaining access to complete the MVP.
 
-## Candidato secondario: ritmi circadiani
+## Secondary candidate: circadian rhythms
 
 [DSO 484 — Assessment of Circadian Shifting in Astronauts by Bright Light — NASA NLSP](https://nlsp.nasa.gov/search/data/details/1bb44ffb-b00d-521a-bbeb-d8fcd036ad83?dataType=EXPERIMENTS)
 
-La scheda elenca contenuti open-access, fra cui un Excel di acrofasi e ritardi di fase ormonali, e altre variabili ad accesso controllato. È meno adatto al primo import: non è una serie ordinaria di durata e qualità del sonno. Anche qui i file binari e le colonne non sono stati ispezionati.
+The sheet lists open-access content, including an Excel file of acrophases and hormonal phase delays, and other controlled-access variables. It is less suitable for the first import: it is not a regular series of sleep duration and quality. Binary files and columns have not been inspected here either.
 
-## Chiarimento nella community Space Apps
+## Space Apps community clarification
 
-[Datasets for Create Health Monitoring Software for Astronauts — discussione #2025](https://github.com/nasa/spaceapps/discussions/2025)
+[Datasets for Create Health Monitoring Software for Astronauts — discussion #2025](https://github.com/nasa/spaceapps/discussions/2025)
 
-Una risposta etichettata **Navigator answered** suggerisce di esplorare OSDR e NLSP e, dove mancano dati, usare simulazioni chiaramente dichiarate. È un orientamento nel forum, non una nuova regola di gara o una garanzia di ammissibilità. I requisiti della challenge e di submission restano il riferimento ufficiale.
+A response labeled **Navigator answered** suggests exploring OSDR and NLSP and, where data are missing, using clearly declared simulations. It is forum guidance, not a new competition rule or an eligibility guarantee. Challenge and submission requirements remain the official reference.
 
-## Decisione operativa
+## Operational decision
 
-Seguire [DATA_STRATEGY.md](DATA_STRATEGY.md): verificare prima i file di actigrafia e il dizionario, poi costruire un adattatore nell'archivio di ricerca separato. Conservare il percorso personale e i dati sintetici con etichette esplicite. Non riempire variabili mancanti con valori inventati e non trasferire risultati di popolazione nella baseline personale.
+Follow [DATA_STRATEGY.md](DATA_STRATEGY.md): verify actigraphy files and dictionary first, then build an adapter in the separate research repository. Keep personal path and synthetic data with explicit labels. Do not fill missing variables with invented values and do not transfer population results into the personal baseline.

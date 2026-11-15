@@ -1,12 +1,12 @@
-# Dati dell'astronauta e contratto con il modulo speech
+# Astronaut data and speech module contract
 
-## Perimetro
+## Scope
 
-Il sistema informativo operativo si basa sui dati personali dell'astronauta, con il sonno come dimensione principale. I dataset NASA restano fonti di ricerca e non sostituiscono le sue osservazioni. In demo, strumenti e feedback possono essere simulati con `synthetic: true`.
+The operational information system is based on astronaut personal data, with sleep as the primary dimension. NASA datasets remain research sources and do not replace his observations. In demo, tools and feedback can be simulated with `synthetic: true`.
 
-Questo backend riceve e organizza dati. **Non implementa audio, STT, TTS, estrazione dal parlato o agente conversazionale:** sono responsabilità del modulo esterno del compagno del team.
+This backend receives and organizes data. **It does not implement audio, STT, TTS, speech extraction, or conversational agent:** these are the responsibility of the external team companion module.
 
-## Flusso
+## Flow
 
 ```mermaid
 flowchart LR
@@ -18,17 +18,17 @@ flowchart LR
     C --> A
 ```
 
-Il feedback può arrivare a ogni turno utile. Non ogni frammento audio deve produrre un'osservazione: il modulo esterno assegna un identificativo stabile all'evento ed esplicita che cosa ha raccolto. Rispedire lo stesso `observation_id` restituisce 409, senza duplicare. La correzione di una vecchia osservazione non è ancora implementata: non simulare una rettifica inviando silenziosamente record contraddittori.
+Feedback can arrive at every useful turn. Not every audio fragment must produce an observation: the external module assigns a stable identifier to the event and explicitly states what it collected. Resending the same `observation_id` returns 409, without duplicating. Correction of an old observation is not yet implemented: do not simulate a correction by silently sending contradictory records.
 
-## Ingresso da strumento
+## Tool input
 
-`POST /v1/observations`, tipo `sleep_measurement`: durata stimata, dispositivo, metodo e intervallo di osservazione. I campi sono mostrati nell'OpenAPI. Il backend verifica che la durata sia compatibile con l'intervallo e che il timestamp non preceda la fine della misura.
+`POST /v1/observations`, type `sleep_measurement`: estimated duration, device, method, and observation interval. Fields are shown in OpenAPI. The backend verifies that duration is compatible with the interval and that the timestamp does not precede the end of the measurement.
 
-È un riepilogo di un episodio del sonno, non un'implementazione del sensore o del suo algoritmo. `quality=valid` è dichiarato dal produttore: non certifica precisione clinica. Non inventare una scala di qualità del sonno a partire dalla sola durata.
+It is a summary of a sleep episode, not an implementation of the sensor or its algorithm. `quality=valid` is declared by the manufacturer: it does not certify clinical accuracy. Do not invent a sleep quality scale based solely on duration.
 
-## Ingresso dal modulo speech
+## Speech module input
 
-`POST /v1/speech-feedback` riceve JSON e restituisce l'osservazione registrata e il contesto aggiornato per il compagno. Non accetta file audio.
+`POST /v1/speech-feedback` receives JSON and returns the recorded observation and the updated context for the companion. It does not accept audio files.
 
 ```json
 {
@@ -45,39 +45,39 @@ Il feedback può arrivare a ogni turno utile. Non ogni frammento audio deve prod
 }
 ```
 
-I valori di esempio sono sintetici. Il produttore usa `synthetic=false` solo per osservazioni effettivamente raccolte dal soggetto.
+Example values are synthetic. The producer uses `synthetic=false` only for observations actually collected from the subject.
 
-- `fatigue_rating`: intero 1–10, da minima a massima fatica riferita.
-- `alertness`: intero 1–10, da minima a massima vigilanza percepita.
-- `mood_rating`: intero 1–10, da molto negativo a molto positivo; `mood_scale_max` distingue la scala per i dati nuovi.
-- Almeno una scala deve essere presente; le altre rimangono assenti.
-- `basis=self_report`: valore espresso dall'utente. `user_confirmed=true` richiede che quel valore e la sua attribuzione siano stati confermati; il backend non può verificarlo dall'audio.
-- `basis=model_inference`: ipotesi del modulo esterno, sempre con `user_confirmed=false`. Resta nello storico ma non viene promossa a dichiarazione confermata nel contesto.
+- `fatigue_rating`: integer 1–10, from minimum to maximum reported fatigue.
+- `alertness`: integer 1–10, from minimum to maximum perceived alertness.
+- `mood_rating`: integer 1–10, from very negative to very positive; `mood_scale_max` distinguishes the scale for new data.
+- At least one scale must be present; the others remain absent.
+- `basis=self_report`: value expressed by the user. `user_confirmed=true` requires that the value and its attribution have been confirmed; the backend cannot verify this from audio.
+- `basis=model_inference`: hypothesis of the external module, always with `user_confirmed=false`. It remains in history but is not promoted to a confirmed statement in the context.
 
-Sono scale prototipali definite per il contratto, non strumenti psicometrici validati. «Sono molto stanco» non autorizza ad assegnare arbitrariamente un 8: il modulo esterno deve chiedere o confermare la scala; in alternativa non invia quel valore numerico. Non viene implementata qui una classificazione automatica delle emozioni.
+These are prototype scales defined for the contract, not validated psychometric instruments. «I am very tired» does not authorize arbitrarily assigning an 8: the external module must ask or confirm the scale; alternatively, it does not send that numeric value. Automatic emotion classification is not implemented here.
 
-## Incrocio e uscita
+## Cross-reference and output
 
-Snapshot e `agent-context` includono `sleep_context`:
+Snapshot and `agent-context` include `sleep_context`:
 
-- Ultima misura strumentale valida del sonno, con provenienza e orari.
-- Ultimo feedback valido, espresso e confermato dall'utente.
-- Riferimento personale dimostrativo dalla mediana di 3–5 episodi precedenti dello stesso dispositivo e metodo, non sovrapposti all'episodio corrente.
-- Differenza in ore rispetto al riferimento, oppure `insufficient_data`.
-- Allineamento temporale: il feedback segue la fine del sonno entro 24 ore, oppure appartiene a periodi diversi. La finestra è una regola esplorativa dichiarata.
+- Last valid instrumental sleep measurement, with provenance and times.
+- Last valid feedback, expressed and confirmed by the user.
+- Demonstrative personal reference from the median of 3–5 previous episodes of the same device and method, not overlapping the current episode.
+- Difference in hours compared to the reference, or `insufficient_data`.
+- Temporal alignment: feedback follows the end of sleep within 24 hours, or belongs to different periods. The window is a declared exploratory rule.
 
-Il sistema può quindi fornire all'agente due fatti distinti: «5,5 ore stimate dallo strumento» e «fatica 8/10 riferita dall'utente». Non conclude da solo che il sonno abbia causato stanchezza. `fatigue_diagnosis` resta nullo.
+The system can therefore provide the agent with two distinct facts: «5.5 hours estimated by the instrument» and «fatigue 8/10 reported by the user». It does not conclude by itself that sleep caused fatigue. `fatigue_diagnosis` remains null.
 
-Le misure mantengono i timestamp: un dato vecchio non dimostra lo stato attuale. Lo snapshot non esegue una diagnosi o una certificazione di idoneità. Dati mancanti, invalidi, inferiti e sintetici restano distinguibili.
+Measurements keep their timestamps: an old datum does not demonstrate current state. The snapshot does not perform a diagnosis or fitness certification. Missing, invalid, inferred, and synthetic data remain distinguishable.
 
-## Prova locale
+## Local test
 
-Da `server/`, dopo l'installazione:
+From `server/`, after installation:
 
 ```powershell
 .\.venv\Scripts\python.exe -m aegis_data import examples/sleep_and_feedback.json
 ```
 
-Aprire `/v1/subjects/demo-astronaut/agent-context?synthetic=true`. Il file contiene un episodio e un feedback: il riferimento personale è correttamente insufficiente. I precedenti esempi e i nuovi tipi possono convivere nell'archivio.
+Open `/v1/subjects/demo-astronaut/agent-context?synthetic=true`. The file contains an episode and a feedback: the personal reference is correctly insufficient. Previous examples and new types can coexist in the archive.
 
-Le API restano locali e senza autenticazione: identità del soggetto e conferma sono responsabilità dell'applicazione fidata. Prima di collegamenti remoti servono autenticazione e autorizzazione lato server.
+APIs remain local and without authentication: subject identity and confirmation are the responsibility of the trusted application. Before remote connections, server-side authentication and authorization are required.

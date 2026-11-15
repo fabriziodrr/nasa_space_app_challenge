@@ -1,35 +1,35 @@
-# T2: report operativo e diario personale
+# T2: operational report and personal diary
 
-Il check-in confermato avvia due generazioni separate: il report per Terra riceve soltanto le osservazioni selezionate dall'astronauta e i sensori simulati; il diario riceve la conversazione privata. Il diario e modificabile soltanto dall'astronauta. Report e diario sono salvati una sola volta per check-in nel database SQLite.
+Confirmed check-in starts two separate generations: the report for Earth receives only the observations selected by the astronaut and the simulated sensors; the diary receives the private conversation. The diary is editable only by the astronaut. Report and diary are saved only once per check-in in the SQLite database.
 
-## Configurazione locale
+## Local configuration
 
-In `.env` impostare `AGENT_DEMO_ENABLED=true`, `AGENT_DEMO_TOKEN`, `AGENT_GROUND_TOKEN` (distinto e di almeno 16 caratteri), `AGENT_AI_PROVIDER=nvidia`, `NVIDIA_API_KEY` e, facoltativamente, `NVIDIA_MODEL`. I due token locali autenticando rispettivamente astronauta e sala di controllo non devono essere condivisi nel frontend. Nel file locale gia predisposto per questa demo entrambi i token sono stati generati.
+In `.env` set `AGENT_DEMO_ENABLED=true`, `AGENT_DEMO_TOKEN`, `AGENT_GROUND_TOKEN` (distinct and at least 16 characters), `AGENT_AI_PROVIDER=nvidia`, `NVIDIA_API_KEY` and, optionally, `NVIDIA_MODEL`. The two local tokens authenticating respectively the astronaut and the control room must not be shared in the frontend. In the local file already prepared for this demo both tokens have been generated.
 
-Inizializzare il database con `npm run db:push`, poi avviare `npm run dev`. Il comando `db:seed` cancella tutti i dati dimostrativi: non e necessario per T2. Il runtime usa Prisma e i provider di sensori e programma dimostrativi.
+Initialize the database with `npm run db:push`, then start `npm run dev`. The command `db:seed` deletes all demo data: it is not necessary for T2. The runtime uses Prisma and the demo sensor and program providers.
 
-## Flusso API
+## API flow
 
-1. `POST /api/agent/v1/sessions` e `POST /sessions/:id/messages` creano il check-in in bozza.
-2. `PATCH /check-ins/:id` permette di correggere le osservazioni con `expectedRevision`.
-3. `POST /check-ins/:id/confirm` riceve `{ "expectedRevision": 1, "sharedObservationIds": ["id-osservazione"] }`. Solo gli ID selezionati entrano nel contesto operativo. La risposta e 202.
-4. `GET /sessions/:id` mostra `generationStatus`: `NOT_STARTED` (l'avvio asincrono puo essere ancora in corso), `PROCESSING`, `READY` o `FAILED`. Si puo ripetere la stessa conferma per ritentare una generazione fallita; report e diario non vengono duplicati.
-5. `GET /reports?astronautId=astro-1` restituisce il report all'astronauta o alla sala di controllo autorizzata.
-6. `GET /diary?astronautId=astro-1` e `PATCH /diary/:id` sono riservati all'astronauta. La modifica richiede `expectedRevision`, `text` e `status` (`DRAFT` o `CONFIRMED`).
+1. `POST /api/agent/v1/sessions` and `POST /sessions/:id/messages` create the check-in in draft.
+2. `PATCH /check-ins/:id` allows correcting observations with `expectedRevision`.
+3. `POST /check-ins/:id/confirm` receives `{ "expectedRevision": 1, "sharedObservationIds": ["id-osservazione"] }`. Only the selected IDs enter the operational context. The response is 202.
+4. `GET /sessions/:id` shows `generationStatus`: `NOT_STARTED` (the asynchronous start may still be in progress), `PROCESSING`, `READY` or `FAILED`. The same confirmation can be repeated to retry a failed generation; report and diary are not duplicated.
+5. `GET /reports?astronautId=astro-1` returns the report to the astronaut or the authorized control room.
+6. `GET /diary?astronautId=astro-1` and `PATCH /diary/:id` are reserved to the astronaut. The edit requires `expectedRevision`, `text` and `status` (`DRAFT` or `CONFIRMED`).
 
-I percorsi sono relativi a `/api/agent/v1`. Le credenziali vanno nell'header `Authorization: Bearer ...`; le risposte private sono `Cache-Control: no-store`. Un token Terra e limitato allo scope demo `astro-1` e non puo leggere il diario. Il modello non riceve trascrizione o osservazioni non condivise durante la generazione del report. Le evidenze sono controllate prima del salvataggio; il diario rimane una bozza correggibile.
+Paths are relative to `/api/agent/v1`. Credentials go in the header `Authorization: Bearer ...`; private responses are `Cache-Control: no-store`. A Terra token is limited to the demo scope `astro-1` and cannot read the diary. The model does not receive transcript or non-shared observations during report generation. Evidence is checked before saving; the diary remains a correctable draft.
 
-Per ripetere il collaudo con dati fittizi, avviare il server e, in un secondo terminale:
+To repeat the test with dummy data, start the server and, in a second terminal:
 
 ```powershell
 npm.cmd run test:agent:t2:live
 ```
 
-Se il server usa la porta 3101: `npm.cmd run test:agent:t2:live -- --base-url http://127.0.0.1:3101`. Il test usa la quota NVIDIA e lascia una sessione fittizia nel database; non stampa le credenziali. La suite senza chiamate live e `npm.cmd run test:agent`.
+If the server uses port 3101: `npm.cmd run test:agent:t2:live -- --base-url http://127.0.0.1:3101`. The test uses the NVIDIA quota and leaves a dummy session in the database; it does not print credentials. The suite without live calls is `npm.cmd run test:agent`.
 
-## Limiti attuali
+## Current limits
 
-- La generazione T2 usa NVIDIA oppure il provider simulato. Il provider OpenAI implementa soltanto la conversazione.
-- La generazione asincrona viene avviata nel processo Next locale. Dopo un riavvio durante la generazione, attendere la scadenza della lease e ripetere la stessa conferma; per un deployment distribuito serve una coda persistente.
-- Il programma nel runtime resta simulato e in sola lettura: il report non genera proposte di modifica. I servizi N2 di validazione e approvazione esistono, ma non sono ancora collegati alle API e al programma autorevole.
-- Il report generato e verificato per formato e riferimenti, ma richiede revisione umana per accertare l'accuratezza del testo. Il diario e sempre una bozza modificabile.
+- T2 generation uses NVIDIA or the simulated provider. The OpenAI provider implements only conversation.
+- Asynchronous generation is started in the local Next process. After a restart during generation, wait for the lease to expire and repeat the same confirmation; for a distributed deployment a persistent queue is needed.
+- The program in the runtime remains simulated and read-only: the report does not generate modification proposals. N2 validation and approval services exist, but are not yet connected to the APIs and the authoritative program.
+- The generated report is verified for format and references, but requires human review to ascertain text accuracy. The diary is always an editable draft.

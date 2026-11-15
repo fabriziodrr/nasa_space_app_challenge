@@ -13,7 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { handle } = createConversationHttpHandlers(getAgentRuntime);
   return handle(request, async ({ visionConfirmation, artifacts }, identity) => {
     if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "Funzione riservata all'astronauta.");
-    if (!artifacts) throw new AgentError("PROVIDER_UNAVAILABLE", "Generazione report non configurata.");
+    if (!artifacts) throw new AgentError("PROVIDER_UNAVAILABLE", "Report generation is not configured.");
     const result = await visionConfirmation.confirm(identity.astronautId, IdSchema.parse((await context.params).id),
       ConfirmCheckInWithVisionRequestSchema.parse(await readJson(request)));
     void artifacts.generate(identity, result.checkIn.id).catch(() => {});

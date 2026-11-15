@@ -1,34 +1,34 @@
-# Dati del sonno: contratto iniziale
+# Sleep data: initial contract
 
-AEGIS conserva dati riferiti e strumentali con origine distinta. I campi sono una proposta di interoperabilità per il prototipo; non implicano la presenza di un dispositivo o un protocollo NASA identico.
+AEGIS stores referenced and instrumental data with distinct origins. The fields are a proposal for interoperability for the prototype; they do not imply the presence of an identical device or NASA protocol.
 
-| Campo | Significato | Fonte |
+| Field | Meaning | Source |
 |---|---|---|
-| `period_start`, `period_end` | Intervallo osservato, con fuso orario | Strumento |
-| `sleep_hours` | Ore di sonno stimate, da 0 a 24 | Strumento |
-| `sleep_latency_minutes` | Minuti prima dell'addormentamento | Opzionale, stima dello strumento |
-| `wake_after_sleep_onset_minutes` | Minuti svegli dopo l'addormentamento | Opzionale, stima dello strumento |
-| `awakenings_count` | Numero di risvegli | Opzionale, stima dello strumento |
-| `sleep_efficiency_percent` | Efficienza riportata dal dispositivo, 0–100% | Opzionale; definizione del produttore da verificare |
-| `sleep_stages.rem_minutes` | Durata REM stimata in minuti | Opzionale, sensore EEG o simulazione EEG dichiarati |
-| `heart_rate_variability.value_ms` | Variabilità cardiaca in millisecondi | Opzionale; dispositivo, metodo e aggregazione espliciti |
-| `sleep_quality` | Valutazione 1–10 della persona | Check-in separato `sleep`, con `scale_max` |
-| `fatigue_rating`, `alertness` | Stato riferito 1–10 | Feedback confermato separato |
+| `period_start`, `period_end` | Observed interval, with time zone | Instrument |
+| `sleep_hours` | Estimated sleep hours, from 0 to 24 | Instrument |
+| `sleep_latency_minutes` | Minutes before falling asleep | Optional, instrument estimate |
+| `wake_after_sleep_onset_minutes` | Minutes awake after sleep onset | Optional, instrument estimate |
+| `awakenings_count` | Number of awakenings | Optional, instrument estimate |
+| `sleep_efficiency_percent` | Device-reported efficiency, 0–100% | Optional; manufacturer definition to be verified |
+| `sleep_stages.rem_minutes` | Estimated REM duration in minutes | Optional, declared EEG sensor or EEG simulation |
+| `heart_rate_variability.value_ms` | Heart rate variability in milliseconds | Optional; device, method, and aggregation explicit |
+| `sleep_quality` | Person's 1–10 rating | Separate `sleep` check-in, with `scale_max` |
+| `fatigue_rating`, `alertness` | Person-reported 1–10 state | Separate confirmed feedback |
 
-Ogni rilevazione strumentale richiede dispositivo, metodo, timestamp, qualità dichiarata e flag sintetico. I campi facoltativi mancanti restano `null`: non sono dedotti dal tempo totale. Non si calcolano REM o HRV in assenza di dispositivi e protocolli appropriati.
+Each instrumental detection requires device, method, timestamp, declared quality, and synthetic flag. Missing optional fields remain `null`: they are not inferred from total time. REM or HRV are not calculated without appropriate devices and protocols.
 
-La [ricerca NASA sulla actigrafia](https://ntrs.nasa.gov/citations/20220014774) considera durata, tempo sveglio dopo l'addormentamento ed efficienza; [NASA descrive anche questionari sulla qualità percepita](https://www.nasa.gov/humans-in-space/spaceflight-standard-measures-characterizing-how-humans-adapt-in-space/). Questi precedenti motivano i campi, ma non validano gli strumenti o gli algoritmi AEGIS. I dati storici sintetici già presenti rimangono compatibili con i nuovi campi opzionali.
+The [NASA actigraphy research](https://ntrs.nasa.gov/citations/20220014774) considers duration, wake after sleep onset, and efficiency; [NASA also describes perceived quality questionnaires](https://www.nasa.gov/humans-in-space/spaceflight-standard-measures-characterizing-how-humans-adapt-in-space/). These precedents motivate the fields, but do not validate AEGIS instruments or algorithms. Existing synthetic historical data remain compatible with the new optional fields.
 
-NASA descrive l'esperimento ESA [Dreams](https://www.nasa.gov/humans-in-space/science-in-space-week-of-sept-15-2023-sleep-on-station/), con fascia EEG e informazioni sulle fasi del sonno; una [dimostrazione SpaceWear](https://www.nasa.gov/blogs/stationreport/2023/09/19/iss-daily-summary-report-9-19-2023/) ha raccolto anche variabilità cardiaca. Questi sono esempi di studi, non la prova che ogni navicella abbia sensori permanenti o che AEGIS vi sia collegato. Il metodo RMSSD e l'aggregazione nel campione sono scelte fittizie, non valori ufficiali NASA.
+NASA describes the ESA [Dreams](https://www.nasa.gov/humans-in-space/science-in-space-week-of-sept-15-2023-sleep-on-station/) experiment, with EEG headband and sleep stage information; a [SpaceWear demonstration](https://www.nasa.gov/blogs/stationreport/2023/09/19/iss-daily-summary-report-9-19-2023/) also collected heart rate variability. These are study examples, not proof that every spacecraft has permanent sensors or that AEGIS is connected to them. The RMSSD method and aggregation in the sample are fictional choices, not official NASA values.
 
-Il file [nasa_sensor_demo.json](../server/examples/nasa_sensor_demo.json) contiene una notte interamente sintetica: REM, HRV e gli altri valori sono inventati per mostrare il flusso. In **Crew Data → Sleep recovery**, usare **Load sensor demo** e **Refresh**. Se il campione esiste già, non viene sovrascritto. L'agente dati inoltra le misure nel proprio rapporto; non attribuisce soglie cliniche né modifica una diagnosi o il punteggio di fatica.
+The file [nasa_sensor_demo.json](../server/examples/nasa_sensor_demo.json) contains a fully synthetic night: REM, HRV, and other values are invented to show the flow. In **Crew Data → Sleep recovery**, use **Load sensor demo** and **Refresh**. If the sample already exists, it is not overwritten. The data agent forwards the measures in its report; it does not attribute clinical thresholds nor alter a diagnosis or fatigue score.
 
-Con `AGENT_SENSOR_PROVIDER=python`, anche l'agent conversazionale può ricevere latenza, tempo sveglio, efficienza, REM e HRV quando presenti nello snapshot valido: REM e HRV conservano il proprio dispositivo e metodo e HRV anche l'aggregazione. I campi assenti non producono misure. Le letture sintetiche recenti associate al profilo fittizio dal server possono essere considerate nella proposta demo; le associazioni non verificate restano escluse.
+With `AGENT_SENSOR_PROVIDER=python`, even the conversational agent can receive latency, wake time, efficiency, REM, and HRV when present in the valid snapshot: REM and HRV retain their own device and method and HRV also retains aggregation. Absent fields do not produce measures. Recent synthetic readings associated with the fictional profile from the server can be considered in the demo proposal; unverified associations remain excluded.
 
-## Contesto intermedio
+## Intermediate context
 
-`get_integrated_context` combina lo snapshot personale sintetico con la misura vision **selezionata**. La risposta mantiene origini e qualità separate, esplicita che l'identità comune è ancora da verificare e non calcola diagnosi di fatica. Se vision non risponde, lo stato è `unavailable` e il sonno resta leggibile.
+`get_integrated_context` combines the personal synthetic snapshot with the **selected** vision measure. The response keeps origins and quality separate, states that common identity is still to be verified, and does not calculate fatigue diagnosis. If vision does not respond, the status is `unavailable` and sleep remains readable.
 
-Per test senza modello è disponibile `POST /v1/demo/integrated-context`, con lo stesso token e la stessa `vision_session_id` descritti in [LANGCHAIN.md](LANGCHAIN.md). Non registra né trasmette automaticamente la misura vision a Terra.
+For model-free testing, `POST /v1/demo/integrated-context` is available, with the same token and same `vision_session_id` described in [LANGCHAIN.md](LANGCHAIN.md). It does not record or automatically transmit the vision measure to Earth.
 
-Nella pagina `/voice-demo`, dopo avere importato e selezionato una misura, il pulsante **Verifica contesto sonno e vision** richiama il contesto tramite il proxy locale. Il backend Python deve essere avviato sulla porta 8000, con `AGENT_DEMO_TOKEN` identico a quello del server Next. Il riepilogo mostra origine e disponibilità, non una conclusione medica.
+On the `/voice-demo` page, after importing and selecting a measure, the **Verify sleep and vision context** button invokes the context via the local proxy. The Python backend must be started on port 8000, with `AGENT_DEMO_TOKEN` identical to that of the Next server. The summary shows origin and availability, not a medical conclusion.

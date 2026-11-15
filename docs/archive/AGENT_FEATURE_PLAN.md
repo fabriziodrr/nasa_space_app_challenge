@@ -1,93 +1,93 @@
-# Assistente AI di bordo: specifica e piano di implementazione
+# Edge AI Assistant: specification and implementation plan
 
-## Obiettivo
+## Objective
 
-Realizzare un assistente vocale con cui l'astronauta possa parlare del sonno, delle condizioni fisiche e della propria giornata. L'assistente combina quanto riferito con dati di sensori simulati e con il programma definito da Terra, produce un report operativo e un diario e, quando opportuno, propone una variazione del programma.
+Create a voice assistant with which the astronaut can talk about sleep, physical condition, and their day. The assistant combines what is reported with simulated sensor data and the schedule defined from Earth, produces an operational report and a diary, and, when appropriate, proposes a schedule change.
 
-La variazione diventa effettiva soltanto dopo l'approvazione della sala di controllo e la conferma dell'applicazione da parte del sistema che gestisce il programma.
+The change becomes effective only after approval from the control room and confirmation of application by the system that manages the schedule.
 
-Il modulo deve essere utilizzabile senza la dashboard di Fabrizio. La sua dashboard verra collegata successivamente attraverso API e contratti condivisi, senza riscrivere la logica dell'agent.
+The module must be usable without Fabrizio's dashboard. His dashboard will be connected later through shared APIs and contracts, without rewriting the agent logic.
 
-## Contesto della repo
+## Repository context
 
-- Next.js App Router, React e TypeScript.
-- Prisma con SQLite, attualmente senza modelli applicativi.
-- Cartelle `server/` e `components/` ancora vuote.
-- Nessuna integrazione AI o vocale implementata.
-- `db:seed` fa riferimento a `prisma/seed.ts`, che deve ancora essere creato.
+- Next.js App Router, React and TypeScript.
+- Prisma with SQLite, currently without application models.
+- `server/` and `components/` folders still empty.
+- No AI or voice integration implemented.
+- `db:seed` refers to `prisma/seed.ts`, which must still be created.
 
-Il lavoro riguarda la funzionalita dell'agent e una pagina tecnica di prova. La dashboard di prodotto resta in carico a Fabrizio.
+The work concerns agent functionality and a technical test page. The product dashboard remains under Fabrizio's responsibility.
 
-## Esperienza prevista
+## Expected experience
 
-1. L'astronauta avvia una conversazione testuale o vocale.
-2. L'agent recupera sensori, programma e check-in precedenti autorizzati.
-3. L'astronauta descrive il riposo e come si sente; l'agent chiede chiarimenti quando servono.
-4. L'agent prepara un check-in strutturato, correggibile dall'astronauta.
-5. Dopo la conferma del check-in, genera un report operativo e una bozza del diario; puo anche generare una proposta di variazione.
-6. Il backend valida la proposta rispetto ai vincoli del programma.
-7. Terra legge motivazione, evidenze e confronto prima/dopo e approva oppure rifiuta.
-8. Se approvata e ancora valida, il sistema applica la variazione e ne registra l'esito.
-9. L'astronauta riceve una conferma coerente con lo stato reale.
+1. The astronaut starts a text or voice conversation.
+2. The agent retrieves sensors, schedule, and authorized previous check-ins.
+3. The astronaut describes rest and how they feel; the agent asks for clarification when needed.
+4. The agent prepares a structured check-in, correctable by the astronaut.
+5. After check-in confirmation, it generates an operational report and a diary draft; it can also generate a change proposal.
+6. The backend validates the proposal against schedule constraints.
+7. Earth reads motivation, evidence, and before/after comparison and approves or rejects.
+8. If approved and still valid, the system applies the change and records the outcome.
+9. The astronaut receives a confirmation consistent with the actual state.
 
-Esempio dimostrativo: l'astronauta riferisce sonno frammentato e stanchezza; l'agent approfondisce, propone di spostare un'attivita flessibile e inserire una pausa compatibile con il programma; Terra approva e la nuova versione del programma viene restituita alle due viste.
+Demonstrative example: the astronaut reports fragmented sleep and fatigue; the agent investigates, proposes moving a flexible activity and inserting a schedule-compatible break; Earth approves and the new schedule version is returned to both views.
 
-## Perimetro del primo MVP
+## First MVP scope
 
-Incluso:
+Included:
 
-- Un astronauta dimostrativo, una giornata e un programma iniziale definito da Terra.
-- Tre scenari di sensori riproducibili.
-- Conversazione testuale e successiva aggiunta di input/output vocale in italiano.
-- Check-in strutturato con conferma o correzione.
-- Proposta facoltativa, validazione e approvazione/rifiuto da Terra.
-- Persistenza di messaggi, check-in, proposte, decisioni, report e diario.
-- Memoria limitata a un numero configurabile di messaggi e check-in precedenti autorizzati.
-- Pagina `/agent-demo` indipendente dalla dashboard di Fabrizio.
-- Contratto API ed esempi per l'integrazione.
+- One demonstrative astronaut, one day, and an initial schedule defined from Earth.
+- Three reproducible sensor scenarios.
+- Text conversation and subsequent addition of Italian voice input/output.
+- Structured check-in with confirmation or correction.
+- Optional proposal, validation, and approval/rejection from Earth.
+- Persistence of messages, check-ins, proposals, decisions, reports, and diary.
+- Memory limited to a configurable number of messages and authorized previous check-ins.
+- Page `/agent-demo` independent from Fabrizio's dashboard.
+- API contract and examples for integration.
 
-Rimandato:
+Deferred:
 
-- Dashboard definitiva e integrazione con sensori reali.
-- Conversazione audio continua con interruzioni e streaming in tempo reale.
-- Ottimizzazione automatica dell'intero programma di missione.
-- Sistema con piu agent, database vettoriale e addestramento di modelli.
-- Diagnosi, prescrizioni o affermazioni di efficacia clinica.
-- Funzionamento del modello AI completamente offline; nel MVP un errore di rete viene gestito esplicitamente.
+- Final dashboard and integration with real sensors.
+- Continuous audio conversation with interruptions and real-time streaming.
+- Automatic optimization of the entire mission schedule.
+- Multi-agent system, vector database, and model training.
+- Diagnosis, prescriptions, or clinical efficacy claims.
+- Fully offline AI model operation; in the MVP a network error is handled explicitly.
 
-## Principi di implementazione
+## Implementation principles
 
-### Dati e interpretazione
+### Data and interpretation
 
-- Distinguere sempre `sensor`, `self_report` e `inference` come origine delle informazioni.
-- Conservare timestamp, unita di misura e riferimenti alle evidenze.
-- Non sostituire una dichiarazione dell'astronauta con una misura discordante, o viceversa.
-- Se un dato manca, registrarlo come assente; non inventare valori.
-- Usare scenari e soglie esplicitamente dimostrativi, non presentati come criteri clinici.
-- Non dedurre diagnosi o stati psicologici certi dal testo o dal tono della voce.
-- In presenza di elementi che richiedono valutazione umana, produrre una segnalazione dedicata; non trattare ogni problema come una semplice modifica di orario.
+- Always distinguish `sensor`, `self_report`, and `inference` as information origin.
+- Preserve timestamps, units of measure, and evidence references.
+- Do not replace an astronaut's statement with a discordant measurement, or vice versa.
+- If data is missing, record it as absent; do not invent values.
+- Use explicitly demonstrative scenarios and thresholds, not presented as clinical criteria.
+- Do not infer diagnoses or certain psychological states from text or voice tone.
+- In the presence of elements requiring human evaluation, produce a dedicated report; do not treat every problem as a simple schedule change.
 
-### Autorita sul programma
+### Authority over the schedule
 
-- L'agent puo leggere il programma e creare proposte; non dispone di uno strumento per applicarle o approvarle.
-- Il codice controlla sovrapposizioni, attivita bloccate, dipendenze, durata e limiti della giornata.
-- Ogni proposta contiene la versione del programma da cui deriva.
-- Un'approvazione non equivale a un aggiornamento gia applicato.
-- L'applicazione richiede un controllo atomico della versione e deve essere idempotente.
-- Se il programma e cambiato, la proposta diventa obsoleta e deve essere rigenerata e nuovamente approvata.
-- Una volta in attesa di decisione, il contenuto della proposta e immutabile; una revisione crea una nuova proposta.
+- The agent can read the schedule and create proposals; it does not have a tool to apply or approve them.
+- The code checks overlaps, blocked activities, dependencies, duration, and day limits.
+- Every proposal contains the schedule version it derives from.
+- An approval is not an already applied update.
+- Application requires an atomic version check and must be idempotent.
+- If the schedule has changed, the proposal becomes obsolete and must be regenerated and re-approved.
+- Once pending decision, the proposal content is immutable; a revision creates a new proposal.
 
-### Compagnia, diario e condivisione
+### Companionship, diary, and sharing
 
-- L'agent si presenta come assistente artificiale e incoraggia i contatti umani.
-- Diario personale e report operativo sono oggetti distinti.
-- Il diario e privato per impostazione predefinita e non e leggibile dalle API di Terra.
-- La conversazione completa e privata per impostazione predefinita: il contesto personale non viene trasferito automaticamente nel report.
-- Il check-in confermato identifica le informazioni operative condivisibili; Terra legge il report derivato da quelle informazioni, non la trascrizione integrale.
-- Prima della conferma, l'astronauta puo verificare e correggere i dati estratti.
-- Per il MVP non si conserva l'audio grezzo; si salvano soltanto i dati testuali necessari al flusso. Non includere conversazioni o dati sensibili nei log tecnici.
+- The agent presents itself as an artificial assistant and encourages human contacts.
+- Personal diary and operational report are distinct objects.
+- The diary is private by default and is not readable by Earth APIs.
+- The full conversation is private by default: personal context is not automatically transferred to the report.
+- The confirmed check-in identifies shareable operational information; Earth reads the report derived from that information, not the full transcript.
+- Before confirmation, the astronaut can verify and correct extracted data.
+- For the MVP, raw audio is not stored; only the textual data necessary for the flow is saved. Do not include conversations or sensitive data in technical logs.
 
-## Architettura proposta
+## Proposed architecture
 
 ```text
 server/agent/
@@ -105,47 +105,47 @@ docs/agent/            Contratto API ed esempi di integrazione
 prisma/               Schema e seed dimostrativo
 ```
 
-Il nucleo del modulo non importa componenti React, oggetti request/response di Next.js o il client Prisma. Le route si occupano di autenticazione, validazione e conversione HTTP; gli adattatori gestiscono i servizi esterni e la persistenza.
+The module core does not import React components, Next.js request/response objects, or the Prisma client. Routes handle authentication, validation, and HTTP conversion; adapters manage external services and persistence.
 
-Interfacce principali:
+Main interfaces:
 
-| Interfaccia | Responsabilita |
+| Interface | Responsibility |
 | --- | --- |
-| `AiProvider` | Risposta conversazionale e output strutturato validato |
-| `VoiceProvider` | Trascrizione audio e sintesi della risposta |
-| `SensorProvider` | Letture disponibili per astronauta e intervallo |
-| `ScheduleProvider` | Lettura del programma e applicazione autorizzata con versione attesa |
-| `AgentRepository` | Persistenza di sessioni e risultati del modulo |
-| `IdentityProvider` | Identita e ruolo verificati sul server |
+| `AiProvider` | Conversational response and validated structured output |
+| `VoiceProvider` | Audio transcription and response synthesis |
+| `SensorProvider` | Available readings for astronaut and interval |
+| `ScheduleProvider` | Schedule reading and authorized application with expected version |
+| `AgentRepository` | Persistence of sessions and module results |
+| `IdentityProvider` | Verified identity and role on the server |
 
-Gli adattatori simulati permettono di sviluppare senza chiavi AI. Le credenziali reali sono lette sul server da variabili d'ambiente e non vengono inviate al browser. I tipi pubblici devono poter essere importati senza trascinare dipendenze server nel frontend.
+Simulated adapters allow development without AI keys. Real credentials are read on the server from environment variables and are never sent to the browser. Public types must be importable without dragging server dependencies into the frontend.
 
-### Confine con il programma di Fabrizio
+### Boundary with Fabrizio's program
 
-Nel MVP `ScheduleProvider` usa il programma simulato. Durante l'integrazione verra sostituito con l'implementazione concordata con Fabrizio.
+In the MVP `ScheduleProvider` uses the simulated schedule. During integration it will be replaced with the implementation agreed with Fabrizio.
 
-L'operazione di applicazione riceve `proposalId`, `decisionId`, `expectedScheduleVersion` e le modifiche validate. Il gestore autorevole del programma deve controllare la versione e impedire l'applicazione duplicata nella stessa transazione. L'agent registra l'esito confermato e puo riconciliarlo per identificativo dopo un timeout, senza presumere che l'operazione sia fallita o riuscita.
+The application operation receives `proposalId`, `decisionId`, `expectedScheduleVersion` and the validated changes. The authoritative schedule manager must check the version and prevent duplicate application in the same transaction. The agent records the confirmed outcome and can reconcile it by identifier after a timeout, without assuming the operation failed or succeeded.
 
-## Contratti dati minimi
+## Minimum data contracts
 
-| Oggetto | Campi principali |
+| Object | Main fields |
 | --- | --- |
-| `SensorReading` | ID, astronauta, timestamp, metrica, valore, unita, qualita, scenario |
-| `ScheduleSnapshot` | ID, astronauta, data, fuso orario, versione, attivita |
-| `ScheduleActivity` | ID, inizio/fine, titolo, priorita, spostabile, dipendenze e vincoli |
-| `ConversationSession` | ID, astronauta, apertura/chiusura |
-| `ConversationMessage` | ID, sessione, ruolo, testo, timestamp, origine testo/voce |
-| `CheckIn` | ID, sessione, stato bozza/confermato, sonno riferito, qualita, stanchezza, fastidi, evidenze e dati mancanti |
-| `ScheduleProposal` | ID, check-in, versione di partenza, modifiche, motivazione, evidenze, stato |
-| `ProposalDecision` | ID, proposta, approvazione/rifiuto, operatore, timestamp, commento |
-| `GroundReport` | ID, check-in confermato, sintesi operativa, discrepanze, incertezze, proposta associata |
-| `DiaryEntry` | ID, astronauta, data, testo, stato bozza/confermato, visibilita privata |
+| `SensorReading` | ID, astronaut, timestamp, metric, value, unit, quality, scenario |
+| `ScheduleSnapshot` | ID, astronaut, date, time zone, version, activities |
+| `ScheduleActivity` | ID, start/end, title, priority, movable, dependencies and constraints |
+| `ConversationSession` | ID, astronaut, opening/closing |
+| `ConversationMessage` | ID, session, role, text, timestamp, text/voice origin |
+| `CheckIn` | ID, session, draft/confirmed status, reported sleep, quality, fatigue, discomforts, evidence and missing data |
+| `ScheduleProposal` | ID, check-in, starting version, changes, motivation, evidence, status |
+| `ProposalDecision` | ID, proposal, approval/rejection, operator, timestamp, comment |
+| `GroundReport` | ID, confirmed check-in, operational summary, discrepancies, uncertainties, associated proposal |
+| `DiaryEntry` | ID, astronaut, date, text, draft/confirmed status, private visibility |
 
-I campi soggettivi non hanno valori precompilati. Le eventuali scale, per esempio da 1 a 5, vengono definite nei contratti e spiegate all'astronauta prima di utilizzarle.
+Subjective fields have no pre-filled values. Any scales, for example from 1 to 5, are defined in the contracts and explained to the astronaut before use.
 
-Usare timestamp ISO 8601 in UTC e un fuso esplicito nel programma. Concordare gli enum e il formato degli errori prima di sviluppare i due rami di lavoro.
+Use ISO 8601 timestamps in UTC and an explicit time zone in the schedule. Agree on enums and error format before developing the two work branches.
 
-### Stati delle proposte
+### Proposal states
 
 ```text
 PENDING_REVIEW -> REJECTED
@@ -157,200 +157,200 @@ APPLY_FAILED  -> APPLIED       (solo retry della stessa operazione, se ancora va
 APPLY_FAILED  -> STALE
 ```
 
-Una proposta non valida viene scartata prima di entrare in `PENDING_REVIEW`. Solo `APPLIED` autorizza il messaggio «Il programma e stato aggiornato». Una decisione ripetuta non deve creare nuovi effetti; una decisione incompatibile con quella gia registrata restituisce conflitto.
+An invalid proposal is discarded before entering `PENDING_REVIEW`. Only `APPLIED` authorizes the message "The schedule has been updated". A repeated decision must not create new effects; a decision incompatible with the one already recorded returns a conflict.
 
-## API da concordare nella prima attivita
+## API to be agreed in the first activity
 
-Prefisso proposto: `/api/agent/v1`. Il contratto definitivo deve includere esempi JSON completi, ruoli, codici HTTP ed errori.
+Proposed prefix: `/api/agent/v1`. The final contract must include complete JSON examples, roles, HTTP codes, and errors.
 
-| Metodo e percorso | Utilizzo |
+| Method and path | Usage |
 | --- | --- |
-| `POST /sessions` | Apre una sessione per l'astronauta autorizzato |
-| `POST /sessions/:id/messages` | Invia testo; restituisce risposta, bozza del check-in e stato |
-| `GET /sessions/:id` | Recupera lo stato della propria sessione |
-| `PATCH /check-ins/:id` | Corregge una bozza |
-| `POST /check-ins/:id/confirm` | Conferma i dati condivisibili e avvia la produzione dei risultati |
-| `GET /proposals` | Elenca proposte visibili all'identita corrente |
-| `POST /proposals/:id/decision` | Registra una decisione di Terra e tenta l'applicazione se approvata |
-| `GET /reports` | Recupera report autorizzati per Terra o per il relativo astronauta |
-| `GET /diary` | Recupera il diario del solo astronauta autenticato |
-| `PATCH /diary/:id` | Corregge o conferma una voce del proprio diario |
-| `POST /voice/transcriptions` | Converte audio in testo, da inviare poi alla normale API messaggi |
-| `POST /voice/speech` | Produce l'audio di una risposta autorizzata dell'agent |
+| `POST /sessions` | Opens a session for the authorized astronaut |
+| `POST /sessions/:id/messages` | Sends text; returns response, check-in draft, and status |
+| `GET /sessions/:id` | Retrieves the status of one's own session |
+| `PATCH /check-ins/:id` | Corrects a draft |
+| `POST /check-ins/:id/confirm` | Confirms shareable data and starts result production |
+| `GET /proposals` | Lists proposals visible to the current identity |
+| `POST /proposals/:id/decision` | Records an Earth decision and attempts application if approved |
+| `GET /reports` | Retrieves reports authorized for Earth or for the relative astronaut |
+| `GET /diary` | Retrieves the diary of only the authenticated astronaut |
+| `PATCH /diary/:id` | Corrects or confirms one's own diary entry |
+| `POST /voice/transcriptions` | Converts audio to text, to be sent then to the normal messages API |
+| `POST /voice/speech` | Produces audio of an authorized agent response |
 
-Le API vocali usano gli stessi servizi del percorso testuale. Definire formati audio ammessi, dimensione/durata massime, timeout e formato della risposta. La sintesi riceve un riferimento a un messaggio accessibile, non testo arbitrario da altri utenti.
+Voice APIs use the same services as the text path. Define allowed audio formats, maximum size/duration, timeouts, and response format. Synthesis receives a reference to an accessible message, not arbitrary text from other users.
 
-Il ruolo non viene accettato dal corpo della richiesta. Una identita simulata puo essere usata nella sola demo locale, abilitata esplicitamente e disabilitata in produzione. La pagina demo non costituisce un sistema di autenticazione.
+The role is not accepted from the request body. A simulated identity can be used only in the local demo, explicitly enabled and disabled in production. The demo page is not an authentication system.
 
-Per il MVP sono sufficienti richieste HTTP e aggiornamento tramite polling; streaming ed eventi push sono estensioni successive. L'API di stato deve consentire di recuperare il risultato dopo timeout o ricaricamento della pagina.
+For the MVP, HTTP requests and polling updates are sufficient; streaming and push events are subsequent extensions. The status API must allow retrieving the result after timeout or page reload.
 
-## Divisione del lavoro
+## Work division
 
-Assegnazione proposta: **tu segui conversazione AI, voce e demo; Nello segue dati, programma, proposte e approvazione**. I contratti vengono definiti insieme prima di procedere in parallelo. Fabrizio gestisce la dashboard finale.
+Proposed assignment: **you follow AI conversation, voice, and demo; Nello follows data, schedule, proposals, and approval**. Contracts are defined together before proceeding in parallel. Fabrizio manages the final dashboard.
 
-### C0 — Contratti e accordi iniziali — Tu + Nello
+### C0 — Initial contracts and agreements — You + Nello
 
-- [x] Definire schemi di input/output, enum, errori e interfacce degli adattatori.
-- [x] Definire le informazioni condivisibili nel check-in e quelle private.
-- [x] Definire il formato del programma, i vincoli e le operazioni ammesse nel MVP.
-- [x] Preparare esempi JSON per percorso normale, nessuna proposta e proposta obsoleta.
-- [ ] Concordare con Fabrizio il confine di integrazione per identita e programma, senza bloccare lo sviluppo degli adattatori simulati.
-- [x] Scegliere il runner dei test e aggiungere uno script comune per i test del modulo.
-- [x] Assegnare un referente unico per le modifiche a `contracts/` e `package.json`: Nello nella fase iniziale.
+- [x] Define input/output schemas, enums, errors, and adapter interfaces.
+- [x] Define shareable information in the check-in and private information.
+- [x] Define schedule format, constraints, and allowed operations in the MVP.
+- [x] Prepare JSON examples for normal path, no proposal, and obsolete proposal.
+- [ ] Agree with Fabrizio on the integration boundary for identity and schedule, without blocking simulated adapter development.
+- [x] Choose the test runner and add a common script for module tests.
+- [x] Assign a single referent for changes to `contracts/` and `package.json`: Nello in the initial phase.
 
-Base tecnica disponibile: [Contratti v1](../agent/contracts-v1.md), schemi in `server/agent/contracts/`, interfacce in `server/agent/ports.ts`, esempi in `docs/agent/examples/`. Le route HTTP e gli adattatori sono contratti da implementare nei task successivi. Il confronto con Fabrizio resta da svolgere: non e stato assunto un accordo esterno.
+Available technical base: [Contracts v1](../agent/contracts-v1.md), schemas in `server/agent/contracts/`, interfaces in `server/agent/ports.ts`, examples in `docs/agent/examples/`. HTTP routes and adapters are contracts to implement in subsequent tasks. The comparison with Fabrizio remains to be carried out: no external agreement has been assumed.
 
-Completato quando entrambi possono implementare usando gli stessi esempi e le stesse firme, senza dipendere dal lavoro interno dell'altro.
+Completed when both can implement using the same examples and the same signatures, without depending on the other's internal work.
 
-### T1 — Conversazione testuale e provider AI — Tu
+### T1 — Text conversation and AI provider — You
 
-Dipendenza: C0.
+Dependency: C0.
 
-- [x] Implementare `AiProvider`, un adattatore simulato e uno reale configurabile.
-- [x] Implementare l'orchestratore con contesto limitato e autorizzato.
-- [x] Scrivere le istruzioni per conversazione, chiarimenti ed estrazione del check-in.
-- [x] Validare l'output strutturato del modello; gestire output invalido e timeout senza creare proposte malformate.
-- [x] Gestire informazioni mancanti, dati discordanti e il caso in cui non serva alcuna modifica.
-- [x] Esporre le API di sessione e messaggi usando le interfacce di persistenza concordate.
+- [x] Implement `AiProvider`, a simulated adapter and a real configurable one.
+- [x] Implement the orchestrator with limited and authorized context.
+- [x] Write instructions for conversation, clarification, and check-in extraction.
+- [x] Validate model structured output; handle invalid output and timeout without creating malformed proposals.
+- [x] Handle missing information, discordant data, and the case where no change is needed.
+- [x] Expose session and message APIs using the agreed persistence interfaces.
 
-Implementazione e prova: [Guida T1](../agent/t1-conversation.md). Il runtime usa Prisma con sensori e programma dimostrativi. Il provider reale principale e NVIDIA Nemotron; OpenAI resta opzionale per la conversazione. `npm run test:agent:live` permette di ripetere la prova con la propria chiave e un server locale gia avviato.
+Implementation and test: [T1 guide](../agent/t1-conversation.md). The runtime uses Prisma with demonstrative sensors and schedule. The main real provider is NVIDIA Nemotron; OpenAI remains optional for conversation. `npm run test:agent:live` allows repeating the test with your own key and an already running local server.
 
-Completato quando uno scenario testuale produce una risposta utile e una bozza di check-in corretta, senza poter applicare modifiche al programma.
+Completed when a text scenario produces a useful response and a correct check-in draft, without being able to apply schedule changes.
 
-### N1 — Persistenza e scenari simulati — Nello
+### N1 — Persistence and simulated scenarios — Nello
 
-Dipendenza: C0.
+Dependency: C0.
 
-- [x] Definire i modelli Prisma e il percorso di inizializzazione del database.
-- [x] Implementare `AgentRepository` e le verifiche di accesso ai record.
-- [x] Creare `prisma/seed.ts` con astronauta, identita demo e programma coerente.
-- [x] Implementare `SensorProvider` e `ScheduleProvider` simulati.
-- [x] Preparare tre scenari deterministici: riposo regolare, riposo insufficiente, dati discordanti.
-- [x] Documentare setup, reset dei dati dimostrativi e avvio.
+- [x] Define Prisma models and database initialization path.
+- [x] Implement `AgentRepository` and record access checks.
+- [x] Create `prisma/seed.ts` with astronaut, demo identity, and consistent schedule.
+- [x] Implement `SensorProvider` and `ScheduleProvider` simulated.
+- [x] Prepare three deterministic scenarios: regular rest, insufficient rest, discordant data.
+- [x] Document setup, demonstrative data reset, and startup.
 
-Implementazione e prova: [Guida N1](../agent/setup.md). Modelli in `prisma/schema.prisma`, `AgentRepository` in `server/agent/adapters/prisma/repository.ts`, provider simulati in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`) e scenari in `server/agent/simulator/scenarios.ts`. Test in `tests/agent/n1.test.ts`. La persistenza Prisma non e ancora collegata al runtime HTTP (usa `MemoryConversationRepository`); il collegamento avviene nell'integrazione con T4/N3.
+Implementation and test: [N1 guide](../agent/setup.md). Models in `prisma/schema.prisma`, `AgentRepository` in `server/agent/adapters/prisma/repository.ts`, simulated providers in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`) and scenarios in `server/agent/simulator/scenarios.ts`. Tests in `tests/agent/n1.test.ts`. Prisma persistence is not yet connected to the HTTP runtime (uses `MemoryConversationRepository`); the connection occurs in integration with T4/N3.
 
-Completato quando i dati sopravvivono al riavvio e ogni scenario puo essere ripetuto con gli stessi input.
+Completed when data survives restart and every scenario can be repeated with the same inputs.
 
-### T2 — Report, diario e comportamento di compagnia — Tu
+### T2 — Report, diary, and companionship behavior — You
 
-Dipendenze: T1; N1 per il salvataggio reale. Si puo iniziare con repository simulato.
+Dependencies: T1; N1 for real saving. Can start with simulated repository.
 
-- [x] Generare report e bozza del diario dal check-in confermato e dal contesto autorizzato.
-- [x] Distinguere nel report misure, dichiarazioni, discrepanze e interpretazioni.
-- [x] Implementare un comportamento di compagnia che riconosca la propria natura artificiale e mantenga continuita con le conversazioni autorizzate.
-- [x] Non inserire nel report contenuti privati estranei al check-in condivisibile.
-- [x] Esporre recupero e modifica del diario e recupero dei report, con i relativi controlli di accesso.
-- [x] Gestire la rigenerazione senza duplicare report o voci dello stesso check-in.
+- [x] Generate report and diary draft from confirmed check-in and authorized context.
+- [x] Distinguish in the report measurements, statements, discrepancies, and interpretations.
+- [x] Implement a companionship behavior that recognizes its artificial nature and maintains continuity with authorized conversations.
+- [x] Do not insert into the report private content foreign to the shareable check-in.
+- [x] Expose diary retrieval and modification and report retrieval, with related access checks.
+- [x] Handle regeneration without duplicating reports or entries of the same check-in.
 
-Guida e prova: [report e diario T2](../agent/t2-report-diary.md). La generazione usa NVIDIA o mock; il testo richiede revisione umana. Il programma del runtime e dimostrativo e le proposte di variazione non sono ancora collegate.
+Guide and test: [report and diary T2](../agent/t2-report-diary.md). Generation uses NVIDIA or mock; text requires human review. The runtime schedule is demonstrative and change proposals are not yet connected.
 
-Completato quando l'astronauta puo correggere il diario e Terra riceve soltanto il report previsto.
+Completed when the astronaut can correct the diary and Earth receives only the expected report.
 
-### N2 — Check-in, validatore e ciclo di approvazione — Nello
+### N2 — Check-in, validator, and approval cycle — Nello
 
-Dipendenze: C0 e N1. Usa inizialmente proposte simulate, senza attendere T1.
+Dependencies: C0 and N1. Uses initially simulated proposals, without waiting for T1.
 
-- [x] Implementare correzione e conferma del check-in, impedendo effetti duplicati su conferme ripetute.
-- [x] Implementare il servizio che riceve la proposta strutturata generata dall'agent.
-- [x] Validare attivita esistenti, blocchi, dipendenze, durate, sovrapposizioni e limiti della giornata.
-- [x] Salvare una proposta immutabile con evidenze e versione del programma.
-- [x] Implementare elenco delle proposte e decisione approvata/rifiutata.
-- [x] Verificare il ruolo Terra sul server e registrare operatore, orario e commento.
-- [x] Applicare con controllo atomico della versione e protezione dai duplicati nell'adattatore simulato.
-- [x] Gestire proposta obsoleta, fallimento di applicazione e recupero dell'esito dopo timeout.
-- [x] Restituire stato e programma effettivi, distinguendo approvazione e applicazione.
+- [x] Implement check-in correction and confirmation, preventing duplicate effects on repeated confirmations.
+- [x] Implement the service that receives the structured proposal generated by the agent.
+- [x] Validate existing activities, blocks, dependencies, durations, overlaps, and day limits.
+- [x] Save an immutable proposal with evidence and schedule version.
+- [x] Implement proposal list and approved/rejected decision.
+- [x] Verify Earth role on the server and record operator, time, and comment.
+- [x] Apply with atomic version control and duplicate protection in the simulated adapter.
+- [x] Handle obsolete proposal, application failure, and outcome recovery after timeout.
+- [x] Return status and effective schedule, distinguishing approval and application.
 
-Implementazione e prova: validatore in `server/agent/services/validator.ts`, servizi in `server/agent/services/` (`checkin.ts`, `proposals.ts`, `approval.ts`) e applicazione con controllo atomico di versione nell'adattatore simulato `server/agent/adapters/schedule.ts`. Test in `tests/agent/n2.test.ts`. Le route HTTP di proposta/decisione/report restano all'integrazione con T4/N3.
+Implementation and test: validator in `server/agent/services/validator.ts`, services in `server/agent/services/` (`checkin.ts`, `proposals.ts`, `approval.ts`) and application with atomic version control in the simulated adapter `server/agent/adapters/schedule.ts`. Tests in `tests/agent/n2.test.ts`. Proposal/decision/report HTTP routes remain for integration with T4/N3.
 
-Completato quando una proposta valida viene applicata una sola volta e una proposta obsoleta o non autorizzata non modifica il programma.
+Completed when a valid proposal is applied once and an obsolete or unauthorized proposal does not modify the schedule.
 
-### T3 — Interfaccia vocale — Tu
+### T3 — Voice interface — You
 
-Dipendenza: T1 stabile; puo procedere in parallelo a N2.
+Dependency: T1 stable; can proceed in parallel with N2.
 
-- [x] Implementare `VoiceProvider` e le route server di trascrizione e sintesi.
-- [x] Gestire permesso del microfono, registrazione, invio e riproduzione.
-- [x] Mostrare la trascrizione e consentirne la correzione prima dell'invio.
-- [x] Mantenere sempre disponibile l'inserimento testuale.
-- [x] Gestire permesso negato, audio vuoto, formato non supportato, timeout e doppio invio.
-- [x] Impostare limiti audio ed evitare salvataggio o logging dell'audio grezzo.
+- [x] Implement `VoiceProvider` and server transcription and synthesis routes.
+- [x] Handle microphone permission, recording, sending, and playback.
+- [x] Show transcription and allow correction before sending.
+- [x] Always keep text input available.
+- [x] Handle denied permission, empty audio, unsupported format, timeout, and double sending.
+- [x] Set audio limits and avoid saving or logging raw audio.
 
-Implementazione e prova: [Guida vocale](../agent/t3-voice.md). La verifica pratica richiede un browser compatibile; le route NIM richiedono servizi locali separati.
+Implementation and test: [Voice guide](../agent/t3-voice.md). Practical verification requires a compatible browser; NIM routes require separate local services.
 
-Completato quando il percorso vocale usa gli stessi servizi e produce gli stessi oggetti del percorso testuale.
+Completed when the voice path uses the same services and produces the same objects as the text path.
 
-### T4 — Pagina di prova indipendente — Tu
+### T4 — Independent test page — You
 
-Dipendenze: T1 e contratti API; collegamento progressivo con N1 e N2.
+Dependencies: T1 and API contracts; progressive connection with N1 and N2.
 
-- [ ] Creare `/agent-demo` con scelta dello scenario, chat e controlli vocali.
-- [ ] Mostrare dati estratti e correzione/conferma del check-in.
-- [ ] Mostrare proposta, report e diario secondo i permessi.
-- [ ] Aggiungere una vista tecnica Terra per approvazione e rifiuto, chiaramente marcata come demo.
-- [ ] Mostrare il programma originale, quello proposto e quello effettivamente applicato.
-- [ ] Gestire caricamento, errore, nessuna proposta e aggiornamento dello stato.
-- [ ] Isolare la demo dall'autenticazione di produzione e dalla futura dashboard.
+- [ ] Create `/agent-demo` with scenario choice, chat, and voice controls.
+- [ ] Show extracted data and check-in correction/confirmation.
+- [ ] Show proposal, report, and diary according to permissions.
+- [ ] Add a technical Earth view for approval and rejection, clearly marked as demo.
+- [ ] Show original schedule, proposed schedule, and actually applied schedule.
+- [ ] Handle loading, error, no proposal, and status update.
+- [ ] Isolate the demo from production authentication and the future dashboard.
 
-Completato quando il percorso completo e dimostrabile senza il codice di Fabrizio.
+Completed when the full path is demonstrable without Fabrizio's code.
 
-### N3 — Documentazione di integrazione — Nello
+### N3 — Integration documentation — Nello
 
-Dipendenza: C0; aggiornamento finale dopo N2 e T3.
+Dependency: C0; final update after N2 and T3.
 
-- [x] Scrivere `docs/agent/integration.md` con endpoint, payload, risposte ed errori.
-- [x] Includere esempi di chiamate per sessione, check-in, proposta, decisione e recupero stato.
-- [x] Documentare configurazione, variabili d'ambiente e modalita simulata/reale senza segreti.
-- [x] Spiegare come sostituire i provider di identita, sensori e programma.
-- [x] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
-- [ ] Concordare con Fabrizio il collegamento alla dashboard usando gli stessi endpoint della demo.
+- [x] Write `docs/agent/integration.md` with endpoints, payloads, responses, and errors.
+- [x] Include call examples for session, check-in, proposal, decision, and status retrieval.
+- [x] Document configuration, environment variables, and simulated/real mode without secrets.
+- [x] Explain how to replace identity, sensor, and schedule providers.
+- [x] Explicitly state transactional responsibilities, idempotency, and application reconciliation.
+- [ ] Agree with Fabrizio on connecting to the dashboard using the same endpoints as the demo.
 
-Implementazione e prova: [Guida di integrazione](../agent/integration.md). Aggiornata dopo T3 (sezione voce, variabili `AGENT_VOICE_PROVIDER`/`AGENT_NIM_*`). Restano da documentare come "esposte" soltanto le route `GET /proposals` e `POST /proposals/:id/decision`. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
+Implementation and test: [Integration guide](../agent/integration.md). Updated after T3 (voice section, `AGENT_VOICE_PROVIDER`/`AGENT_NIM_*` variables). Remain to document as "exposed" only routes `GET /proposals` and `POST /proposals/:id/decision`. The agreement with Fabrizio (real login and authoritative schedule backend) remains open.
 
-Completato quando Fabrizio puo collegare una propria vista senza importare i componenti grafici della demo o modificare il nucleo dell'agent.
+Completed when Fabrizio can connect his own view without importing demo graphic components or modifying the agent core.
 
-### C1 — Verifica finale — Tu + Nello
+### C1 — Final verification — You + Nello
 
-- [ ] Eseguire i tre scenari e verificarne risultati e persistenza.
-- [ ] Verificare rifiuto, doppia approvazione, programma modificato nel frattempo e applicazione fallita.
-- [ ] Verificare che un astronauta non possa approvare e Terra non possa leggere il diario privato.
-- [ ] Verificare che l'agent non abbia accesso diretto alla scrittura del programma.
-- [ ] Verificare dati mancanti, output AI invalido e indisponibilita del provider.
-- [ ] Verificare che report e diario non contengano informazioni inventate o trasferimenti di contenuti privati.
-- [ ] Eseguire lint, controllo TypeScript, test pertinenti e build.
-- [ ] Provare l'avvio da un checkout pulito seguendo la documentazione.
+- [ ] Run the three scenarios and verify results and persistence.
+- [ ] Verify rejection, double approval, schedule changed meanwhile, and failed application.
+- [ ] Verify that an astronaut cannot approve and Earth cannot read the private diary.
+- [ ] Verify that the agent does not have direct write access to the schedule.
+- [ ] Verify missing data, invalid AI output, and provider unavailability.
+- [ ] Verify that report and diary do not contain invented information or private content transfers.
+- [ ] Run lint, TypeScript check, relevant tests, and build.
+- [ ] Test startup from a clean checkout following the documentation.
 
-## Ordine di lavoro consigliato
+## Recommended work order
 
-1. Chiudere C0 e unire i contratti condivisi.
-2. Procedere in parallelo con T1 e N1, usando adattatori simulati.
-3. Collegare conversazione e persistenza; sviluppare T2 e N2 in parallelo.
-4. Completare il percorso testuale fino all'applicazione approvata.
-5. Aggiungere T3 e completare T4; aggiornare N3 lungo lo sviluppo.
-6. Eseguire C1 e consegnare a Fabrizio demo e documentazione.
+1. Close C0 and merge shared contracts.
+2. Proceed in parallel with T1 and N1, using simulated adapters.
+3. Connect conversation and persistence; develop T2 and N2 in parallel.
+4. Complete the text path up to approved application.
+5. Add T3 and complete T4; update N3 during development.
+6. Execute C1 and deliver demo and documentation to Fabrizio.
 
-Ogni task dovrebbe diventare una issue o una PR con il relativo identificativo nel titolo. Evitare modifiche concorrenti a schema Prisma e contratti; comunicare ogni variazione delle API prima di integrarla.
+Each task should become an issue or a PR with the relative identifier in the title. Avoid concurrent changes to Prisma schema and contracts; communicate every API variation before integrating it.
 
-## Criteri di accettazione del MVP
+## MVP acceptance criteria
 
-- L'astronauta puo completare un check-in con voce oppure testo.
-- I dati dichiarati e quelli dei sensori restano distinguibili e correggibili dove previsto.
-- L'agent puo decidere di non proporre alcuna variazione.
-- Una proposta mostra motivazione, evidenze e differenze rispetto al programma corrente.
-- Il programma non cambia prima di una decisione autorizzata da Terra.
-- Una proposta rifiutata, duplicata o obsoleta non produce modifiche improprie.
-- L'interfaccia comunica l'aggiornamento soltanto dopo la conferma dell'applicazione.
-- Report operativo e diario personale sono persistiti con accessi distinti.
-- Il flusso funziona con provider simulati e dispone di un percorso AI/vocale reale configurabile.
-- Fabrizio puo integrare la funzionalita usando il contratto HTTP e gli adattatori documentati.
+- The astronaut can complete a check-in with voice or text.
+- Declared data and sensor data remain distinguishable and correctable where provided.
+- The agent can decide not to propose any change.
+- A proposal shows motivation, evidence, and differences compared to the current schedule.
+- The schedule does not change before an authorized Earth decision.
+- A rejected, duplicate, or obsolete proposal does not produce improper changes.
+- The interface communicates the update only after application confirmation.
+- Operational report and personal diary are persisted with distinct accesses.
+- The flow works with simulated providers and has a configurable real AI/voice path.
+- Fabrizio can integrate the functionality using the HTTP contract and documented adapters.
 
-## Decisioni ancora da fissare in C0
+## Decisions still to be fixed in C0
 
-- Fornitore e modelli per conversazione, trascrizione e sintesi vocale.
-- Metriche dei sensori e scale soggettive effettivamente usate nella demo.
-- Attivita e vincoli dello scenario dimostrativo.
-- Sistema di autenticazione condiviso con la dashboard.
-- Chi possiede il backend autorevole del programma durante l'integrazione.
-- Limiti di conservazione di trascrizioni, check-in e diario.
+- Provider and models for conversation, transcription, and voice synthesis.
+- Sensor metrics and subjective scales actually used in the demo.
+- Activities and constraints of the demonstrative scenario.
+- Shared authentication system with the dashboard.
+- Who owns the authoritative schedule backend during integration.
+- Retention limits for transcripts, check-ins, and diary.
 
-Queste decisioni non impediscono di iniziare contratti e simulatori; nessuna chiave o dipendenza dalla dashboard e necessaria per il primo percorso simulato.
+These decisions do not prevent starting contracts and simulators; no key or dashboard dependency is necessary for the first simulated path.

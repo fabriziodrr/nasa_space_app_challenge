@@ -1,262 +1,150 @@
-# CrewReady — prototipo di visione palpebrale
+# CrewReady — eyelid vision prototype
 
-## Stato e ambito
+## Status and scope
 
-T01 predispone React, TypeScript, Vite e il runner Vitest. Il percorso webcam di T03
-ora offre avvio/arresto espliciti, anteprima, selezione della sorgente e gestione
-degli errori. L'anteprima non esegue inferenza, registrazione, trasmissione o
-misure palpebrali.
+T01 sets up React, TypeScript, Vite, and the Vitest runner. The T03 webcam path now offers explicit start/stop, preview, source selection, and error handling. Preview performs no inference, recording, transmission, or eyelid measurements.
 
-N01 fornisce contratti e fixture; N02 aggiunge il motore temporale puro, il replay
-senza webcam e i test deterministici. N03 aggiunge geometria palpebrale, controlli
-di ammissibilità, raccolta dei riferimenti di calibrazione e normalizzazione per
-occhio. N04 aggiunge l'adattatore MediaPipe, gli asset locali di modello e WASM,
-la conversione dei landmark e il collegamento strutturale alla sorgente T03.
-La UI collega webcam, inferenza, calibrazione e motore per la misura e permette
-l'esportazione JSON versionata di sessioni webcam e sintetiche, secondo il
-[piano](../docs/CrewReady_Piano_Implementazione_Visione_Palpebrale.md).
-I contratti correnti sono stabiliti in **C01 v2**. La webcam è allineata al formato RGBA
-condiviso tramite `src/capture/inference-frame-adapter.ts`. Stati applicativi,
-calibrazione, tempi e proprietà dei buffer sono definiti in
-[docs/contracts.md](docs/contracts.md); esempi verificabili in
-`fixtures/contract-examples.ts`.
+N01 provides contracts and fixtures; N02 adds the pure timing engine, webcam-free replay, and deterministic tests. N03 adds eyelid geometry, admissibility checks, calibration reference collection, and per-eye normalization. N04 adds the MediaPipe adapter, local model and WASM assets, landmark conversion, and structural connection to the T03 source. The UI connects webcam, inference, calibration, and engine for measurement and allows exporting versioned JSON of webcam and synthetic sessions, according to the [plan](../docs/CrewReady_Piano_Implementazione_Visione_Palpebrale.md). Current contracts are established in **C01 v2**. The webcam is aligned to the shared RGBA format via `src/capture/inference-frame-adapter.ts`. Application states, calibration, timing, and buffer properties are defined in [docs/contracts.md](docs/contracts.md); verifiable examples in `fixtures/contract-examples.ts`.
 
-Per provare la webcam: aprire la pagina locale, premere **Avvia webcam** e
-consentire l'accesso alla sola fotocamera nel browser. **Arresta** interrompe anche
-un avvio in corso. Cambiare sorgente, nascondere la scheda o minimizzare il browser
-ferma l'acquisizione; per ripartire serve un nuovo avvio esplicito.
-La casella **Anteprima a specchio** modifica solo la visualizzazione.
-Dettagli tecnici e checklist del collaudo fisico in [docs/capture.md](docs/capture.md).
+To try the webcam: open the local page, press **Start webcam** and grant access to only the camera in the browser. **Stop** also interrupts an ongoing start. Changing source, hiding the tab, or minimizing the browser stops acquisition; to restart, a new explicit start is required. The **Mirror preview** checkbox changes only the display. Technical details and physical test checklist in [docs/capture.md](docs/capture.md).
 
-Per una misura webcam: avviare la webcam e premere **Prepara analisi**. Avviare
-la calibrazione con gli occhi aperti, continuare con gli occhi chiusi e completare
-la procedura quando i campioni richiesti sono disponibili. Dopo il successo, usare
-**Avvia misura** e **Arresta misura**. Un cambio di sorgente, la sospensione della
-scheda o l'arresto della webcam interrompono l'analisi e richiedono una nuova
-calibrazione. Il modello e il runtime sono locali; le prove con webcam fisica e
-la validazione delle misure restano da eseguire.
-La casella **Mostra punti palpebrali** abilita l'overlay facoltativo. I test
-automatici della pipeline usano inferenza simulata; le prove reali restano aperte.
+For a webcam measurement: start the webcam and press **Prepare analysis**. Start calibration with eyes open, continue with eyes closed, and complete the procedure when the required samples are available. After success, use **Start measurement** and **Stop measurement**. A source change, tab suspension, or webcam stop interrupts analysis and requires a new calibration. The model and runtime are local; physical webcam tests and measurement validation remain to be performed. The **Show eyelid points** checkbox enables the optional overlay. Automatic pipeline tests use simulated inference; real tests remain open.
 
-La sezione **Replay sintetico** permette di scegliere una fixture e riprodurla,
-metterla in pausa o azzerarla senza webcam. Il grafico mostra le aperture e le
-interruzioni; il riepilogo e gli eventi sono prodotti dal motore temporale.
-I valori sono simulati, non misure ottenute dalla persona davanti alla webcam.
+The **Synthetic replay** section allows selecting a fixture and playing, pausing, or resetting it without a webcam. The graph shows openings and closures; the summary and events are produced by the timing engine. Values are simulated, not measurements obtained from the person in front of the webcam.
 
-I pulsanti **Esporta JSON webcam** e **Esporta JSON sintetico** salvano il risultato
-mostrato, i campioni e i metadati necessari al motore. Schema e istruzioni per un
-consumatore separato sono in [docs/integration.md](docs/integration.md). Per
-incorporare la pipeline in un'altra applicazione, seguire la [guida dettagliata
-d'integrazione](docs/integrare-componente.md).
+The **Export webcam JSON** and **Export synthetic JSON** buttons save the displayed result, samples, and metadata required by the engine. Schema and instructions for a separate consumer are in [docs/integration.md](docs/integration.md). To embed the pipeline in another application, follow the [detailed integration guide](docs/integrare-componente.md).
 
-## Requisiti e avvio
+## Requirements and startup
 
-- Node.js **24.15.0 o successivo della serie 24**; `.nvmrc` indica la versione verificata.
-- npm **11**; versione usata per il lockfile: **11.12.1**.
-- Browser moderno con accesso alla fotocamera da localhost, 127.0.0.1 oppure HTTPS.
+- Node.js **24.15.0 or later of the 24 series**; `.nvmrc` indicates the verified version.
+- npm **11**; version used for the lockfile: **11.12.1**.
+- Modern browser with camera access from localhost, 127.0.0.1, or HTTPS.
 
-Dalla cartella `vision-prototype/`:
+From the `vision-prototype/` folder:
 
 ```powershell
 npm.cmd ci
 npm.cmd run dev
 ```
 
-Aprire `http://127.0.0.1:5173`. Interrompere il server con `Ctrl+C`.
-Su Windows usare `npm.cmd` se PowerShell blocca `npm.ps1`: non occorre cambiare
-l'execution policy. Su altri sistemi gli stessi comandi funzionano con `npm`.
+Open `http://127.0.0.1:5173`. Stop the server with `Ctrl+C`.
+On Windows use `npm.cmd` if PowerShell blocks `npm.ps1`: no need to change the execution policy. On other systems the same commands work with `npm`.
 
-L'installazione iniziale richiede il registro npm. Le dipendenze dirette sono
-fissate a versioni esatte e `package-lock.json` vincola quelle transitive.
-Usare `npm.cmd ci` per riprodurre l'installazione; chi gestisce T01 mantiene
-dipendenze e lockfile. Il runtime di inferenza `@mediapipe/tasks-vision@1.2.3` è
-fissato nel lockfile; modello e WASM sono già in `public/models/`.
+Initial installation requires the npm registry. Direct dependencies are pinned to exact versions and `package-lock.json` constrains transitive ones. Use `npm.cmd ci` to reproduce the installation; whoever manages T01 maintains dependencies and lockfile. The inference runtime `@mediapipe/tasks-vision@1.2.3` is pinned in the lockfile; model and WASM are already in `public/models/`.
 
-## Comandi
+## Commands
 
-| Comando | Scopo |
+| Command | Purpose |
 | --- | --- |
-| `npm.cmd run dev` | Server locale Vite, porta 5173 |
-| `npm.cmd run typecheck` | Controllo TypeScript di applicazione, configurazioni e test |
-| `npm.cmd run build` | Controllo dei tipi e build in `dist/` |
-| `npm.cmd run preview` | Serve la build su `http://127.0.0.1:4173` |
-| `npm.cmd test` | Esecuzione singola Vitest |
-| `npm.cmd run test:watch` | Vitest in modalità osservazione |
+| `npm.cmd run dev` | Local Vite server, port 5173 |
+| `npm.cmd run typecheck` | TypeScript check of application, configurations, and tests |
+| `npm.cmd run build` | Type check and build in `dist/` |
+| `npm.cmd run preview` | Serve the build on `http://127.0.0.1:4173` |
+| `npm.cmd test` | Single Vitest run |
+| `npm.cmd run test:watch` | Vitest in watch mode |
 
-Le porte sono fisse: se occupate, Vite segnala l'errore. È possibile cambiarle
-con `npm.cmd run dev -- --port 5174` o l'equivalente per `preview`.
+Ports are fixed: if occupied, Vite reports the error. They can be changed with `npm.cmd run dev -- --port 5174` or the equivalent for `preview`.
 
-Vitest usa l'ambiente **Node**, senza DOM, adatto al motore TypeScript puro.
-Riconosce `tests/**/*.test.ts` e `src/**/*.test.ts`; importare esplicitamente
-`describe`, `it`, `expect` da `vitest`. Le suite di acquisizione usano dispositivi
-simulati e verificano rilascio delle risorse, permessi tardivi, errori, sospensione,
-riavvio e consegna dei frame senza code. Il comando fallisce se non trova test.
+Vitest uses the **Node** environment, without DOM, suitable for the pure TypeScript engine. It recognizes `tests/**/*.test.ts` and `src/**/*.test.ts`; import `describe`, `it`, `expect` explicitly from `vitest`. Acquisition suites use simulated devices and verify resource release, late permissions, errors, suspension, restart, and frame delivery without queues. The command fails if it does not find tests.
 
-Le suite N02 in `tests/analysis/` coprono isteresi, eventi completi e incompleti,
-gap, cambio calibrazione, arresto, reset, finestra mobile e stabilità fra
-frequenze diverse. Le suite N03 coprono formula EAR, correzione delle scale,
-punti fuori immagine, rapporti implausibili e la procedura di calibrazione con
-progresso, stabilità, separazione minima e normalizzazione. Le suite N04 usano
-un runtime MediaPipe finto e landmark sintetici per verificare conversione,
-volto assente o ambiguo, errori, rilascio e metadati di provenienza.
+The N02 suites in `tests/analysis/` cover hysteresis, complete and incomplete events, gaps, calibration change, stop, reset, sliding window, and stability across different frequencies. The N03 suites cover EAR formula, scale correction, out-of-image points, implausible ratios, and the calibration procedure with progress, stability, minimum separation, and normalization. The N04 suites use a fake MediaPipe runtime and synthetic landmarks to verify conversion, missing or ambiguous face, errors, release, and provenance metadata.
 
-## Motore temporale N02
+## N02 timing engine
 
-`src/analysis/` contiene un motore TypeScript puro, senza DOM, React, webcam o
-rete. L'API è `start`, `processSample`, `getSnapshot`, `stop` e `reset`; i
-contratti sono in `src/contracts/`. Il motore calcola tempo valido, copertura,
-tempo chiuso, quota di chiusura, episodi prolungati e massima chiusura completa,
-distinguendo sessione e finestra mobile.
+`src/analysis/` contains a pure TypeScript engine, without DOM, React, webcam, or network. The API is `start`, `processSample`, `getSnapshot`, `stop`, and `reset`; contracts are in `src/contracts/`. The engine calculates valid time, coverage, closed time, closure share, prolonged episodes, and maximum complete closure, distinguishing session and sliding window.
 
-Le regole temporali e i nomi dei campi sono in
-[docs/contracts.md](docs/contracts.md); formule e limiti sperimentali sono in
-[docs/measurement-method.md](docs/measurement-method.md). Le sequenze sintetiche
-e i risultati attesi sono in [fixtures/README.md](fixtures/README.md) e possono
-essere riprodotte con `replayFixture` di `src/analysis/replay.ts`, senza webcam.
+Temporal rules and field names are in [docs/contracts.md](docs/contracts.md); formulas and experimental limits are in [docs/measurement-method.md](docs/measurement-method.md). Synthetic sequences and expected results are in [fixtures/README.md](fixtures/README.md) and can be reproduced with `replayFixture` from `src/analysis/replay.ts`, without a webcam.
 
-### Verifica N02 — 13 novembre 2026
+### N02 verification — November 13, 2026
 
-Ambiente: Windows, Node.js 22.18.0 (il progetto dichiara la serie 24; `npm.cmd ci`
-ha segnalato la differenza di engine solo come avviso).
+Environment: Windows, Node.js 22.18.0 (the project declares series 24; `npm.cmd ci` reported the engine difference only as a warning).
 
-| Verifica | Esito |
+| Check | Result |
 | --- | --- |
-| `npm.cmd run typecheck` | Controllo TypeScript riuscito |
-| `npm.cmd test` | 2 file, 24 test superati, inclusi tutti i casi fixture |
-| `npm.cmd run build` | Controllo dei tipi e build Vite riusciti |
+| `npm.cmd run typecheck` | TypeScript check passed |
+| `npm.cmd test` | 2 files, 24 tests passed, including all fixture cases |
+| `npm.cmd run build` | Type check and Vite build passed |
 
-I test coprono i risultati attesi delle fixture e le regole non espresse da una
-singola sequenza: validazione della configurazione, campioni malformati, uso
-scorretto dell'API, riavvio dopo reset, gap oltre `maxGapMs`, cambio calibrazione
-e stabilità a 10 Hz e 20 Hz. Webcam, calibrazione reale, inferenza su modello
-reale e prestazioni restano da verificare nei task N05 e T04-T06.
+Tests cover expected fixture results and rules not expressed by a single sequence: configuration validation, malformed samples, incorrect API usage, restart after reset, gap beyond `maxGapMs`, calibration change, and stability at 10 Hz and 20 Hz. Webcam, real calibration, inference on real model, and performance remain to be verified in tasks N05 and T04-T06.
 
-## Geometria e calibrazione N03
+## Geometry and calibration N03
 
-`src/analysis/geometry.ts` calcola il rapporto palpebrale EAR dai sei punti per
-occhio, converte le coordinate normalizzate in pixel per correggere le scale
-dell'immagine e rifiuta punti mancanti, fuori immagine, occhi troppo stretti o
-rapporti implausibili. Gli indici MediaPipe proposti sono esportati per N04, che
-dovrà verificarli.
+`src/analysis/geometry.ts` calculates the eyelid aspect ratio EAR from the six points per eye, converts normalized coordinates to pixels to correct image scales, and rejects missing, out-of-image, too narrow eyes, or implausible ratios. Proposed MediaPipe indices are exported for N04, which must verify them.
 
-`src/analysis/calibration.ts` gestisce la raccolta guidata delle fasi aperto e
-chiuso, il progresso per le schermate T04, le mediane per occhio, la stabilità,
-la separazione minima e la normalizzazione `open-closed-v1`. Un esito fallito
-espone motivi distinti per occhio, non un profilo parziale utilizzabile.
+`src/analysis/calibration.ts` manages guided collection of open and closed phases, progress for T04 screens, per-eye medians, stability, minimum separation, and `open-closed-v1` normalization. A failed outcome exposes distinct reasons per eye, not a usable partial profile.
 
-La formula e i controlli sono in
-[docs/measurement-method.md](docs/measurement-method.md); la procedura e i
-messaggi per T04 sono in [docs/calibration.md](docs/calibration.md).
+The formula and checks are in [docs/measurement-method.md](docs/measurement-method.md); the procedure and messages for T04 are in [docs/calibration.md](docs/calibration.md).
 
-### Verifica N03 — 13 novembre 2026
+### N03 verification — November 13, 2026
 
-| Verifica | Esito |
+| Check | Result |
 | --- | --- |
-| `npm.cmd run typecheck` | Controllo TypeScript riuscito |
-| `npm.cmd test` | 5 file, 63 test superati; 13 test N03 fra geometria e calibrazione |
-| `npm.cmd run build` | Controllo dei tipi e build Vite riusciti |
+| `npm.cmd run typecheck` | TypeScript check passed |
+| `npm.cmd test` | 5 files, 63 tests passed; 13 N03 tests between geometry and calibration |
+| `npm.cmd run build` | Type check and Vite build passed |
 
-Le prove usano punti e osservazioni sintetiche, senza webcam. La calibrazione su
-persone reali, gli indici effettivi di MediaPipe e la stabilità delle soglie
-restano da verificare in T04 e N05.
+Tests use synthetic points and observations, without a webcam. Calibration on real people, actual MediaPipe indices, and threshold stability remain to be verified in T04 and N05.
 
-## Inferenza MediaPipe N04
+## MediaPipe inference N04
 
-`src/inference/` contiene l'adattatore per MediaPipe Face Landmarker. Carica
-modello e WASM da percorsi locali, converte i landmark nella geometria N03 e
-gestisce volto assente, più volti, landmark mancanti ed errori con codici
-espliciti. `createMediaPipeFrameConsumer` consuma il frame RGBA di C01 prodotto
-da T03; il rilascio del runtime resta esplicito con `release()`.
+`src/inference/` contains the adapter for MediaPipe Face Landmarker. It loads model and WASM from local paths, converts landmarks to N03 geometry, and handles missing face, multiple faces, missing landmarks, and errors with explicit codes. `createMediaPipeFrameConsumer` consumes the RGBA frame from C01 produced by T03; runtime release remains explicit with `release()`.
 
-Runtime e modello sono fissati: `@mediapipe/tasks-vision@1.2.3`, modello
-`face_landmarker/float16/1`, SHA-256
-`64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`,
-licenza Apache-2.0. Dettagli, asset e percorso Web Worker in
-[docs/inference.md](docs/inference.md).
+Runtime and model are fixed: `@mediapipe/tasks-vision@1.2.3`, model `face_landmarker/float16/1`, SHA-256 `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`, Apache-2.0 license. Details, assets, and Web Worker path in [docs/inference.md](docs/inference.md).
 
-### Verifica N04 — 13 novembre 2026
+### N04 verification — November 13, 2026
 
-| Verifica | Esito |
+| Check | Result |
 | --- | --- |
-| `npm.cmd run typecheck` | Controllo TypeScript riuscito |
-| `npm.cmd test` | 12 file, 121 test superati; 12 test N04 con runtime finto |
-| `npm.cmd run build` | Controllo dei tipi e build Vite riusciti |
-| Asset locali | Modello presente, 3 758 596 byte e SHA-256 verificato; quattro file WASM copiati dal pacchetto |
+| `npm.cmd run typecheck` | TypeScript check passed |
+| `npm.cmd test` | 12 files, 121 tests passed; 12 N04 tests with fake runtime |
+| `npm.cmd run build` | Type check and Vite build passed |
+| Local assets | Model present, 3 758 596 bytes and SHA-256 verified; four WASM files copied from package |
 
-Il caricamento reale di modello, WASM e GPU/CPU nel browser non è stato eseguito
-in questa sede: T04 è collegato, ma serve il collaudo con webcam fisica.
-Il percorso Web Worker è documentato ma non implementato.
+Real model, WASM, and GPU/CPU loading in the browser has not been performed here: T04 is connected, but physical webcam testing is needed. The Web Worker path is documented but not implemented.
 
-## Validazione N05
+## N05 validation
 
-`src/validation/` contiene il harness per confrontare chiusure annotate ed
-eventi del motore, riepilogare latenze e frequenza di inferenza e produrre un
-report JSON con le metriche già calcolate da `EngineSnapshot`.
+`src/validation/` contains the harness to compare annotated closures and engine events, summarize latencies and inference frequency, and produce a JSON report with metrics already calculated by `EngineSnapshot`.
 
-Il metodo, il protocollo per occhiali/riflessi/luce/rotazioni/uscita
-dall'inquadratura e i risultati sintetici sono in
-[docs/validation-results.md](docs/validation-results.md). La validazione
-quantitativa con webcam e persone reali non è ancora stata eseguita: richiede
-sessioni annotate. Le prove manuali senza annotazioni restano qualitative.
+The method, protocol for glasses/reflections/light/rotations/out-of-frame, and synthetic results are in [docs/validation-results.md](docs/validation-results.md). Quantitative validation with webcam and real people has not yet been performed: it requires annotated sessions. Manual tests without annotations remain qualitative.
 
-### Verifica N05 — 13 novembre 2026
+### N05 verification — November 13, 2026
 
-| Verifica | Esito |
+| Check | Result |
 | --- | --- |
-| `npm.cmd run typecheck` | Controllo TypeScript riuscito |
-| `npm.cmd test` | 12 file, 121 test superati; 14 test N05 |
-| `npm.cmd run build` | Controllo dei tipi e build Vite riusciti |
+| `npm.cmd run typecheck` | TypeScript check passed |
+| `npm.cmd test` | 12 files, 121 tests passed; 14 N05 tests |
+| `npm.cmd run build` | Type check and Vite build passed |
 
-I test N05 verificano abbinamento uno-a-uno, eventi mancati e falsi positivi,
-tolleranze, differenze di completezza, percentili di latenza e report senza
-ricalcolo delle metriche. Non attestano accuratezza su persone reali.
+N05 tests verify one-to-one matching, missed events and false positives, tolerances, completeness differences, latency percentiles, and reports without metric recalculation. They do not attest accuracy on real people.
 
-### Verifica del merge C01/N03/N04
+### C01/N03/N04 merge verification
 
-Verifica del merge, 13 novembre 2026: su Node.js 24.15.0 e npm 11.12.1,
-`npm.cmd run build` (incluso controllo dei tipi) e `npm.cmd test` sono riusciti:
-**121 test superati in 12 file**. I test verificano contratti C01, webcam RGBA,
-profili geometrici e calibrazione, motore N02, replay sintetico T02, adattatore
-N04 con runtime finto e harness N05. Nessuna prova manuale nel browser è stata
-eseguita.
+Merge verification, November 13, 2026: on Node.js 24.15.0 and npm 11.12.1, `npm.cmd run build` (including type check) and `npm.cmd test` passed: **121 tests passed in 12 files**. Tests verify C01 contracts, webcam RGBA, geometric profiles and calibration, N02 engine, synthetic replay T02, N04 adapter with fake runtime, and N05 harness. No manual browser testing was performed.
 
-Questi risultati datati sono storici. La verifica corrente, compresi i test per
-volti ambigui, stati C01 v2, limiti, export v2 e report N05, è riportata in
-[docs/integration.md](docs/integration.md).
+These dated results are historical. Current verification, including tests for ambiguous faces, C01 v2 states, limits, v2 export, and N05 reports, is reported in [docs/integration.md](docs/integration.md).
 
-## Configurazione degli asset
+## Asset configuration
 
-I valori predefiniti non richiedono un file `.env`. Per modificarli:
+Default values do not require a `.env` file. To modify them:
 
 ```powershell
 Copy-Item .env.example .env.local
 ```
 
-| Variabile | Default | Significato |
+| Variable | Default | Meaning |
 | --- | --- | --- |
-| `VITE_APP_BASE_PATH` | `/` | Base di pubblicazione, con `/` iniziale e finale |
-| `VITE_MODEL_PATH` | `models/face_landmarker.task` | Percorso del modello locale |
-| `VITE_WASM_PATH` | `models/wasm/` | Directory del runtime WASM locale |
+| `VITE_APP_BASE_PATH` | `/` | Publishing base, with leading and trailing `/` |
+| `VITE_MODEL_PATH` | `models/face_landmarker.task` | Local model path |
+| `VITE_WASM_PATH` | `models/wasm/` | Local WASM runtime directory |
 
-I percorsi modello e WASM relativi vengono prefissati con la base dell'app in
-`src/app/runtime-config.ts`. Un `/` iniziale li riferisce invece alla radice del
-server. Il modulo rifiuta URL esterni; l'adattatore N04 usa `runtimeAssets` quando
-viene collegato alla UI.
-Le variabili `VITE_` sono pubbliche e incorporate nella build: non inserirvi segreti.
-Riavviare il server dopo modifiche all'ambiente e ricostruire per la produzione.
+Relative model and WASM paths are prefixed with the app base in `src/app/runtime-config.ts`. A leading `/` refers them instead to the server root. The module rejects external URLs; the N04 adapter uses `runtimeAssets` when connected to the UI. `VITE_` variables are public and embedded in the build: do not put secrets there. Restart the server after environment changes and rebuild for production.
 
-Esempio di pubblicazione sotto `/crewready/vision/`: impostare
-`VITE_APP_BASE_PATH=/crewready/vision/` in `.env.local`, eseguire la build e servire
-`dist/` sotto quel percorso. Anche `preview` usa la base configurata.
-Vite gestisce `BASE_URL` per gli asset; non aprire `dist/index.html` via `file://`.
+Example publishing under `/crewready/vision/`: set `VITE_APP_BASE_PATH=/crewready/vision/` in `.env.local`, run the build, and serve `dist/` under that path. `preview` also uses the configured base. Vite handles `BASE_URL` for assets; do not open `dist/index.html` via `file://`.
 
-`public/` viene copiato nella build. Modello `face_landmarker.task`, runtime
-MediaPipe e WASM sono inclusi in `public/models/`; provenienza, checksum e
-licenze sono in [docs/inference.md](docs/inference.md) e
-[public/models/README.md](public/models/README.md). L'app non usa CDN o font
-remoti. Il funzionamento offline dell'intera pipeline resta da verificare in T06.
+`public/` is copied to the build. Model `face_landmarker.task`, MediaPipe runtime, and WASM are included in `public/models/`; provenance, checksums, and licenses are in [docs/inference.md](docs/inference.md) and [public/models/README.md](public/models/README.md). The app does not use CDN or remote fonts. Offline operation of the entire pipeline remains to be verified in T06.
 
-## Struttura e responsabilità
+## Structure and responsibilities
 
 ```text
 src/
@@ -277,28 +165,21 @@ tests/integration/ verifiche applicative (T05/T06)
 docs/            contratti, metodo, calibrazione, inferenza e validazione
 ```
 
-Produttori e consumatori usano i contratti C01 v2 di `docs/contracts.md`.
-Variazioni incompatibili richiedono una nuova versione e l'aggiornamento dei
-moduli coinvolti e delle fixture. N03 fornisce geometria e calibrazione su questo
-confine; N04 consuma i frame RGBA per l'inferenza. La UI T02 può procedere con il
-motore e il replay sintetico.
+Producers and consumers use C01 v2 contracts from `docs/contracts.md`. Incompatible variations require a new version and updating involved modules and fixtures. N03 provides geometry and calibration on this boundary; N04 consumes RGBA frames for inference. T02 UI can proceed with the engine and synthetic replay.
 
-La specifica `CrewReady_Feature_Visione_Palpebrale.md`, citata dal piano, non è
-presente nel repository al momento di T01.
+The specification `CrewReady_Feature_Visione_Palpebrale.md`, cited by the plan, is not present in the repository at the time of T01.
 
-## Verifica T01 — 13 novembre 2026
+## T01 verification — November 13, 2026
 
-Ambiente: Windows, Node.js 24.15.0, npm 11.12.1.
+Environment: Windows, Node.js 24.15.0, npm 11.12.1.
 
-| Verifica | Esito |
+| Check | Result |
 | --- | --- |
-| `npm.cmd ci` | Installazione pulita dal lockfile riuscita |
-| `npm.cmd run build` | Controllo TypeScript e build riusciti |
-| `npm.cmd test` | Runner avviato; nessun test ancora presente |
-| Server di sviluppo | HTTP 200 per pagina e moduli applicativi |
-| Preview della build | HTTP 200 per la pagina con riferimenti agli asset compilati |
-| Base `/crewready/vision/` | Pagina e configurazione asset servite dal sottopercorso in sviluppo |
+| `npm.cmd ci` | Clean installation from lockfile succeeded |
+| `npm.cmd run build` | TypeScript check and build succeeded |
+| `npm.cmd test` | Runner started; no tests yet |
+| Development server | HTTP 200 for page and application modules |
+| Build preview | HTTP 200 for page with compiled asset references |
+| Base `/crewready/vision/` | Page and asset configuration served from subpath in development |
 
-Queste sono verifiche di struttura, compilazione e servizio HTTP. Il collaudo
-visivo nel browser, la webcam e le prestazioni della pipeline restano da eseguire
-nei task successivi. I server usati per le verifiche sono stati arrestati.
+These are structure, compilation, and HTTP service verifications. Visual browser testing, webcam, and pipeline performance remain to be performed in subsequent tasks. Servers used for verifications were stopped.

@@ -1,51 +1,33 @@
-# Esportazione e integrazione — T05
+# Export and integration — T05
 
-La UI offre **Esporta JSON webcam** durante o dopo una misura e **Esporta JSON
-sintetico** durante o dopo un replay. Il download è locale. Il risultato esportato
-è l'istantanea mostrata al momento del clic, anche se l'inferenza ha già elaborato
-altri fotogrammi non ancora visualizzati. Un'interruzione della webcam conserva
-il profilo necessario a esportare l'ultima misura visualizzata.
+The UI offers **Export JSON webcam** during or after a measurement and **Export JSON synthetic** during or after a replay. The download is local. The exported result is the snapshot shown at the time of the click, even if inference has already processed other frames not yet displayed. A webcam interruption preserves the profile needed to export the last displayed measurement.
 
 ## Schema `crewready-session-v2`
 
-La revisione v2 aggiunge profili multipli con configurazione per identificativo,
-stato applicativo, contesto webcam e campioni di prestazione. È distinta da v1;
-i file già esportati in v1 rimangono invariati, ma il validatore v2 li rifiuta.
+Revision v2 adds multiple profiles with configuration for identifier, application state, webcam context, and performance samples. It is distinct from v1; files already exported in v1 remain unchanged, but the v2 validator rejects them.
 
-| Campo | Contenuto |
+| Field | Content |
 | --- | --- |
-| `schemaVersion`, `contractVersion` | Versioni del pacchetto e dei contratti |
-| `exportedAt` | Data UTC di esportazione, ISO 8601 |
-| `source` | `webcam` con dispositivo, risoluzione e limiti, oppure `synthetic` con nome, versione e fingerprint della fixture |
-| `units` | Tempo in millisecondi, apertura normalizzata, quote tra 0 e 1 |
-| `clock`, `timeOriginUnixMs` | Orologio monotono e sua origine Unix per la webcam; tempo virtuale e `null` per le fixture |
-| `calibration` | Profili e configurazioni effettive per identificativo per la webcam; identificativi sintetici e motivo dell'assenza di profili fisici per il replay |
-| `inference` | Configurazione geometrica, modello, runtime, provenienza e checksum; `null` per replay sintetici |
-| `snapshot` | Istantanea del motore completa, con configurazione, sessione, finestra, eventi, versioni e diagnostica |
-| `samples` | Campioni nell'ordine offerto al motore, compresi eventuali rifiutati e motivi di invalidità |
-| `performanceSamples` | Timestamp e latenza di inferenza per i frame elaborati durante la misura webcam |
-| `application` | Fase, interruzione ed eventuale errore applicativo; `null` per il replay |
-| `unavailable` | Motivi espliciti dei valori non disponibili: nessun intervallo, nessun tempo valido o nessun evento completo |
+| `schemaVersion`, `contractVersion` | Package and contract versions |
+| `exportedAt` | UTC export date, ISO 8601 |
+| `source` | `webcam` with device, resolution, and limits, or `synthetic` with fixture name, version, and fingerprint |
+| `units` | Time in milliseconds, normalized aperture, values between 0 and 1 |
+| `clock`, `timeOriginUnixMs` | Monotonic clock and its Unix origin for webcam; virtual time and `null` for fixtures |
+| `calibration` | Profiles and effective configurations per identifier for webcam; synthetic identifiers and reason for absence of physical profiles for replay |
+| `inference` | Geometric configuration, model, runtime, provenance, and checksum; `null` for synthetic replays |
+| `snapshot` | Complete engine snapshot, with configuration, session, window, events, versions, and diagnostics |
+| `samples` | Samples in the order offered to the engine, including any rejected ones and invalidity reasons |
+| `performanceSamples` | Timestamp and inference latency for frames processed during the webcam measurement |
+| `application` | Phase, interruption, and any application error; `null` for replay |
+| `unavailable` | Explicit reasons for unavailable values: no interval, no valid time, or no complete event |
 
-L'assenza di un valore resta `null`, distinta da uno zero misurato. La quota
-`closureFraction` è la quota temporale sperimentale calcolata da N02. UI e
-consumatore non ricalcolano durate o frazioni. Gli eventi in corso e quelli
-incompleti conservano i campi originali del motore.
+The absence of a value remains `null`, distinct from a measured zero. The `closureFraction` quota is the experimental time quota calculated by N02. UI and consumer do not recalculate durations or fractions. Ongoing and incomplete events retain the original engine fields.
 
-I campioni sintetici sono già normalizzati: gli identificativi di calibrazione
-sono conservati, ma non rappresentano profili fisici. L'export non include immagini
-o video. La configurazione MediaPipe include anche i percorsi locali degli asset;
-la provenienza conserva versione e SHA-256 del modello. L'identificativo e il nome
-del dispositivo sono inclusi se disponibili. Il fingerprint FNV-1a a 32 bit della
-fixture identifica variazioni accidentali del contenuto, non è una firma di sicurezza.
+Synthetic samples are already normalized: calibration identifiers are preserved, but they do not represent physical profiles. The export does not include images or video. MediaPipe configuration also includes local asset paths; provenance preserves model version and SHA-256. Device identifier and name are included if available. The fixture's 32-bit FNV-1a fingerprint identifies accidental content variations, it is not a security signature.
 
-## Consumatore separato
+## Separate consumer
 
-`src/integration/session-export.ts` non importa React o variabili globali della UI.
-`createSessionExport` riceve il risultato e i relativi metadati, controlla che i
-profili webcam siano risolvibili e crea un oggetto JSON indipendente. Il timestamp
-di esportazione viene fornito dal chiamante. `summarizeExport` è un esempio di
-consumatore che legge direttamente i valori del motore:
+`src/integration/session-export.ts` does not import React or UI global variables. `createSessionExport` receives the result and its metadata, checks that webcam profiles are resolvable, and creates an independent JSON object. The export timestamp is provided by the caller. `summarizeExport` is an example consumer that reads engine values directly:
 
 ```ts
 import { summarizeExport } from '../src/integration/session-export';
@@ -57,32 +39,14 @@ const summary = summarizeExport(data);
 console.log(summary.coverage, summary.closureFraction, summary.validMs);
 ```
 
-`parseSessionExport` valida versione, struttura, metadati, profili, limiti e
-campioni, poi riesegue il motore e rifiuta un'istantanea incoerente. Accetta fino
-a 50 milioni di caratteri e 18.000 campioni; supporta soltanto C01 v2 / session v2.
-La verifica è sincrona e non autentica la provenienza del file.
-`serializeSessionExport` rifiuta numeri non finiti e valori non serializzabili
-invece di convertirli silenziosamente in `null`.
+`parseSessionExport` validates version, structure, metadata, profiles, limits, and samples, then re-runs the engine and rejects an inconsistent snapshot. It accepts up to 50 million characters and 18,000 samples; it supports only C01 v2 / session v2. Verification is synchronous and does not authenticate file provenance. `serializeSessionExport` rejects non-finite numbers and non-serializable values instead of silently converting them to `null`.
 
-Per riprodurre il risultato, creare `TemporalEngine` con `snapshot.config`, chiamare
-`start()`, offrire `samples` nell'ordine salvato e chiamare `stop()` solo se
-`snapshot.status` è `stopped`. L'esportazione di un replay parziale conserva
-solo i campioni già elaborati nell'istantanea mostrata. Non vengono conservati
-fotogrammi o geometrie grezze: il file riproduce il motore temporale dai campioni
-calibrati, non l'intera inferenza MediaPipe dal video.
+To reproduce the result, create `TemporalEngine` with `snapshot.config`, call `start()`, offer `samples` in the saved order, and call `stop()` only if `snapshot.status` is `stopped`. Exporting a partial replay preserves only the samples already processed in the displayed snapshot. No raw frames or geometries are preserved: the file reproduces the temporal engine from calibrated samples, not the entire MediaPipe inference from video.
 
-## Verifica
+## Verification
 
-`npm.cmd test` include `src/integration/session-export.test.ts`: round trip JSON
-e riproduzione di tutte le fixture, replay parziali con campioni rifiutati,
-risultati non disponibili, profilo webcam, provenienza, rifiuto di profili mancanti
-e valori non serializzabili. `src/app/live-session.test.ts` verifica che il profilo
-resti esportabile dopo lo stop. La prova manuale del download è a carico dell'utente.
+`npm.cmd test` includes `src/integration/session-export.test.ts`: JSON round trip and replay of all fixtures, partial replays with rejected samples, unavailable results, webcam profile, provenance, rejection of missing profiles and non-serializable values. `src/app/live-session.test.ts` verifies that the profile remains exportable after stop. Manual download testing is the user's responsibility.
 
-## Prestazioni e limiti
+## Performance and limits
 
-La misura si arresta automaticamente a 18.000 campioni; tutti restano esportabili.
-Il grafico è limitato a 2.000 punti e segnala quando viene semplificato. Il JSON
-può comunque essere grande: contiene l'intera istantanea, tutti i campioni e le
-latenze. `createSessionValidationReport` produce `n05-session-v1` con contesto e
-statistiche; il confronto resta `null` finché non vengono fornite annotazioni.
+The measurement automatically stops at 18,000 samples; all remain exportable. The chart is limited to 2,000 points and reports when it is simplified. The JSON can still be large: it contains the entire snapshot, all samples, and latencies. `createSessionValidationReport` produces `n05-session-v1` with context and statistics; the comparison remains `null` until annotations are provided.

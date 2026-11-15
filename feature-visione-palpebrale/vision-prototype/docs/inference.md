@@ -1,37 +1,33 @@
-# Inferenza MediaPipe — N04
+# MediaPipe Inference — N04
 
-Versione: **N04**, 13 novembre 2026. L'adattatore è in `src/inference/`; la
-geometria di destinazione è quella di N03. T04 collega l'adattatore a UI e
-calibrazione; il collaudo con webcam reale resta da eseguire. Non è una validazione clinica.
+Version: **N04**, November 13, 2026. The adapter is in `src/inference/`; the target geometry is that of N03. T04 connects the adapter to UI and calibration; testing with a real webcam remains to be done. This is not clinical validation.
 
-## 1 Scelte fissate
+## 1 Fixed Choices
 
-| Voce | Valore |
+| Item | Value |
 | --- | --- |
 | Runtime | `@mediapipe/tasks-vision` |
-| Versione runtime | `1.2.3` (esatta in `package.json` e nel lockfile) |
-| Licenza runtime | Apache-2.0 |
-| Modello | MediaPipe Face Landmarker, float16 |
-| Identificativo modello | `face_landmarker/float16/1/face_landmarker.task` |
-| Dimensione modello | 3 758 596 byte |
-| SHA-256 modello | `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff` |
-| Licenza modello | Apache-2.0 |
-| Metodo geometrico | `n03-ear-v1` |
+| Runtime version | `1.2.3` (exact in `package.json` and lockfile) |
+| Runtime license | Apache-2.0 |
+| Model | MediaPipe Face Landmarker, float16 |
+| Model identifier | `face_landmarker/float16/1/face_landmarker.task` |
+| Model size | 3 758 596 bytes |
+| Model SHA-256 | `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff` |
+| Model license | Apache-2.0 |
+| Geometric method | `n03-ear-v1` |
 
-Provenienza:
+Provenance:
 
 - runtime: `https://www.npmjs.com/package/@mediapipe/tasks-vision/v/1.2.3`
-- modello:
+- model:
   `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`
-- licenze e condizioni MediaPipe: `https://github.com/google-ai-edge/mediapipe`
+- MediaPipe licenses and terms: `https://github.com/google-ai-edge/mediapipe`
 
-I valori sono esportati da `src/inference/mediapipe-runtime.ts` e vengono
-inseriti nei metadati dell'adattatore. Un aggiornamento del modello o del runtime
-richiede una nuova verifica e l'aggiornamento di checksum, versione e test.
+The values are exported from `src/inference/mediapipe-runtime.ts` and are inserted into the adapter metadata. A model or runtime update requires a new verification and updating checksum, version, and tests.
 
-## 2 Asset locali
+## 2 Local Assets
 
-I file sono inclusi in `public/models/`:
+Files are included in `public/models/`:
 
 ```text
 public/models/
@@ -44,11 +40,9 @@ public/models/
   README.md
 ```
 
-`public/` viene copiato nella build. Non ci sono richieste a CDN durante
-l'esecuzione: modello e WASM sono serviti dalla stessa origine dell'app.
+`public/` is copied into the build. There are no CDN requests during execution: model and WASM are served from the same origin as the app.
 
-L'adattatore non incorpora percorsi o variabili d'ambiente. T04 passa i
-percorsi risolti da `src/app/runtime-config.ts`:
+The adapter does not embed paths or environment variables. T04 passes the paths resolved from `src/app/runtime-config.ts`:
 
 ```ts
 import { runtimeAssets } from '../app/runtime-config';
@@ -60,14 +54,14 @@ const adapter = new MediaPipeFaceLandmarkerAdapter({
 });
 ```
 
-Verifica locale del modello:
+Local model verification:
 
 ```powershell
 (Get-FileHash public\models\face_landmarker.task -Algorithm SHA256).Hash.ToLower()
 (Get-Item public\models\face_landmarker.task).Length
 ```
 
-## 3 API e ciclo di vita
+## 3 API and Lifecycle
 
 ```ts
 const adapter = new MediaPipeFaceLandmarkerAdapter(config);
@@ -79,79 +73,58 @@ adapter.getStatus();                  // stato, frame, ultimo numero di volti, e
 adapter.getProvenance();              // versioni, licenze, checksum, configId
 ```
 
-- `init()` è idempotente; chiamate concorrenti condividono la stessa Promise.
-- `release()` chiude il runtime. Un caricamento che termina dopo il rilascio
-  viene chiuso senza essere usato. Dopo `release()` è possibile un nuovo `init()`.
-- `processFrame()` è sincrono e usa il buffer RGBA di `InferenceFrame`. Un frame
-  già annullato restituisce `{ status: 'cancelled' }` senza chiamare il runtime.
-- Timestamp non crescenti, frame malformati, buffer già rilasciati, uso prima di
-  `init()` ed errori del runtime lanciano `InferenceError` con un `code` esplicito.
+- `init()` is idempotent; concurrent calls share the same Promise.
+- `release()` shuts down the runtime. A load that completes after release is closed without being used. After `release()`, a new `init()` is possible.
+- `processFrame()` is synchronous and uses the RGBA buffer of `InferenceFrame`. An already cancelled frame returns `{ status: 'cancelled' }` without calling the runtime.
+- Non-increasing timestamps, malformed frames, already released buffers, use before `init()`, and runtime errors throw `InferenceError` with an explicit `code`.
 
-`createMediaPipeFrameConsumer(adapter, onResult)` adatta l'adattatore a
-`InferenceFrameConsumer` di C01. Il pump consegna un solo frame alla volta;
-l'adattatore non crea code e il consumer rilascia il buffer in un `finally`. Il
-proprietario della sessione chiama `release()` allo stop.
+`createMediaPipeFrameConsumer(adapter, onResult)` adapts the adapter to `InferenceFrameConsumer` from C01. The pump delivers one frame at a time; the adapter does not create queues and the consumer releases the buffer in a `finally`. The session owner calls `release()` on stop.
 
-## 4 Conversione e casi senza volto
+## 4 Conversion and No-Face Cases
 
-`convertFaceLandmarkerResult` è una funzione pura:
+`convertFaceLandmarkerResult` is a pure function:
 
-| Uscita MediaPipe | Risultato |
+| MediaPipe Output | Result |
 | --- | --- |
-| Nessun volto | `no_face`, entrambi gli occhi invalidi con `not_tracked` |
-| Più volti | `ambiguous`, entrambi invalidi con `ambiguous_face`; nessun volto scelto |
-| Meno di 388 landmark | `invalid_landmarks`, motivo `landmark_missing` |
-| Punti fuori immagine | `invalid_landmarks` o validità parziale, motivo `out_of_range` |
-| Un volto utilizzabile | `face`, EAR per occhio secondo N03 |
+| No face | `no_face`, both eyes invalid with `not_tracked` |
+| Multiple faces | `ambiguous`, both invalid with `ambiguous_face`; no face selected |
+| Fewer than 388 landmarks | `invalid_landmarks`, reason `landmark_missing` |
+| Points outside image | `invalid_landmarks` or partial validity, reason `out_of_range` |
+| Usable face | `face`, EAR per eye according to N03 |
 
-Il risultato contiene sempre `FaceGeometryObservation`. La calibrazione e il
-motore possono quindi ricevere un'osservazione invalida, senza confondere un
-volto assente con occhi aperti.
+The result always contains `FaceGeometryObservation`. Calibration and the engine can therefore receive an invalid observation, without confusing an absent face with open eyes.
 
-## 5 Percorso Web Worker
+## 5 Web Worker Path
 
-Non è il percorso predefinito in N04. È compatibile con il progetto e va
-verificato in T04/T06:
+This is not the default path in N04. It is compatible with the project and must be verified in T04/T06:
 
-1. il thread principale riceve `InferenceFrame` RGBA da C01 e trasferisce
-   `pixels.data.buffer`, `width`, `height` e `timestampMs` al Worker;
-2. il Worker ricostruisce `ImageData` e usa lo stesso modello MediaPipe;
-3. converte con `convertFaceLandmarkerResult` e restituisce la geometria;
-4. il thread principale ignora i risultati di sessioni annullate e rilascia il
-   frame C01 secondo il contratto.
+1. the main thread receives `InferenceFrame` RGBA from C01 and transfers `pixels.data.buffer`, `width`, `height`, and `timestampMs` to the Worker;
+2. the Worker reconstructs `ImageData` and uses the same MediaPipe model;
+3. converts with `convertFaceLandmarkerResult` and returns the geometry;
+4. the main thread ignores results from cancelled sessions and releases the C01 frame according to the contract.
 
-Requisiti e limiti: supporto a `OffscreenCanvas`/WebGL2 per il percorso GPU,
-costo di copia o trasferimento del buffer, necessità di una coda esplicita fra
-thread e gestione dell'annullamento. La configurazione CPU può funzionare anche
-senza WebGL2. T03 produce già RGBA tramite `inference-frame-adapter.ts`; il
-Worker non è implementato in N04.
+Requirements and limits: `OffscreenCanvas`/WebGL2 support for the GPU path, buffer copy or transfer cost, need for an explicit queue between threads, and cancellation handling. The CPU configuration can work without WebGL2. T03 already produces RGBA via `inference-frame-adapter.ts`; the Worker is not implemented in N04.
 
-## 6 Comportamento e limiti
+## 6 Behavior and Limits
 
-- `numFaces` predefinito è 2: serve a riconoscere la presenza di più volti e
-  rifiutare l'osservazione ambigua. Con `numFaces: 1` questa ambiguità non viene
-  rilevata.
-- `delegate` predefinito è `CPU` per ridurre dipendenze da WebGL2. `GPU` è
-  configurabile e va verificato sul browser di destinazione.
-- Il modello può perdere il volto con occhiali, riflessi, rotazioni o occlusione.
-  N04 non interpreta questi casi come occhi chiusi: produce invalidità esplicite.
-- Il timestamp è quello del pump di T03 (`performance.now()`), non il tempo del
-  sensore. Il motore N02 usa gli stessi timestamp.
-- L'adattatore non gestisce webcam, calibrazione, overlay o esportazione.
-- Le prestazioni reali e l'accuratezza dei landmark richiedono N05.
+- `numFaces` default is 2: it serves to recognize the presence of multiple faces and reject the ambiguous observation. With `numFaces: 1` this ambiguity is not detected.
+- `delegate` default is `CPU` to reduce WebGL2 dependencies. `GPU` is configurable and must be verified on the target browser.
+- The model may lose the face with glasses, reflections, rotations, or occlusion. N04 does not interpret these cases as closed eyes: it produces explicit invalidity.
+- The timestamp is that of the T03 pump (`performance.now()`), not sensor time. The N02 engine uses the same timestamps.
+- The adapter does not handle webcam, calibration, overlay, or export.
+- Real performance and landmark accuracy require N05.
 
-## 7 Verifiche automatiche
+## 7 Automated Verifications
 
-I test in `src/inference/inference.test.ts` usano un runtime finto e landmark
-sintetici; non caricano WASM, modello o DOM:
+Tests in `src/inference/inference.test.ts` use a mock runtime and synthetic landmarks; they do not load WASM, model, or DOM:
 
-- conversione di occhi aperti/chiusi con EAR atteso;
-- volto assente, landmark insufficienti, più volti e punti fuori immagine;
-- init idempotente, frame annullati, timestamp non monotoni e frame malformati;
-- errori di caricamento e inferenza, rilascio e nuovo init;
-- metadati di provenienza, versione, checksum e licenza.
+- open/closed eye conversion with expected EAR;
+- absent face, insufficient landmarks, multiple faces, and out-of-image points;
+- idempotent init, cancelled frames, non-monotonic timestamps, and malformed frames;
+- load and inference errors, release and new init;
+- provenance metadata, version, checksum, and license.
 
-Comandi eseguiti il 13 novembre 2026:
+Commands executed on November 13, 2026:
 
 ```powershell
 npm.cmd run typecheck
@@ -159,10 +132,10 @@ npm.cmd test
 npm.cmd run build
 ```
 
-## 8 Da verificare con T04/N05
+## 8 To Verify with T04/N05
 
-- Collegamento reale di `runtimeAssets` e del consumer RGBA C01 al pump webcam.
-- Caricamento offline di modello e WASM dopo la build.
-- Scelta CPU/GPU, latenza e frequenza di inferenza sul PC di prova.
-- Eventuale passaggio al Worker e relativa coda/trasferimento del buffer.
-- Robustezza con occhiali, riflessi, illuminazione e rotazioni.
+- Real connection of `runtimeAssets` and the RGBA C01 consumer to the webcam pump.
+- Offline loading of model and WASM after build.
+- CPU/GPU choice, latency, and inference frequency on the test PC.
+- Possible switch to Worker and related queue/buffer transfer.
+- Robustness with glasses, reflections, lighting, and rotations.

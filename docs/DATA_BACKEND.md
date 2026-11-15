@@ -1,14 +1,14 @@
-# Base dati AEGIS
+# AEGIS Database
 
-Il backend dati contiene un archivio SQLite separato, schemi validati, analytics deterministiche e API FastAPI. Il progetto comprende anche dashboard, agent e visione come componenti separati: per il loro avvio integrato vedere il [README principale](../README.md). Il test di reattività rimane un prototipo separato.
+The data backend contains a separate SQLite archive, validated schemas, deterministic analytics, and FastAPI APIs. The project also includes dashboard, agent, and vision as separate components: for their integrated startup see the [main README](../README.md). The responsiveness test remains a separate prototype.
 
-Estensione per dati strumentali del sonno e feedback continui dal modulo speech esterno: [SPEECH_DATA_CONTRACT.md](SPEECH_DATA_CONTRACT.md). Include i nuovi tipi `sleep_measurement` e `speech_feedback`, l'endpoint `/v1/speech-feedback` e il campo condiviso `sleep_context`.
+Extension for instrumental sleep data and continuous feedback from the external speech module: [SPEECH_DATA_CONTRACT.md](SPEECH_DATA_CONTRACT.md). Includes the new types `sleep_measurement` and `speech_feedback`, the endpoint `/v1/speech-feedback`, and the shared field `sleep_context`.
 
-Analisi longitudinale e prova sintetica di 14 giorni: [SLEEP_ANALYSIS.md](SLEEP_ANALYSIS.md). Sono disponibili anche l'importazione HTTP di un lotto JSON e lo strumento `analyze_sleep` per il compagno.
+Longitudinal analysis and 14-day synthetic proof: [SLEEP_ANALYSIS.md](SLEEP_ANALYSIS.md). HTTP import of a JSON batch and the `analyze_sleep` tool for the companion are also available.
 
-## Avvio locale
+## Local startup
 
-Il backend Python si trova in `server/`, separato dal frontend Next.js. Dalla radice del clone, con Python 3.12 o successivo:
+The Python backend is located in `server/`, separate from the Next.js frontend. From the clone root, with Python 3.12 or later:
 
 ```powershell
 cd server
@@ -17,48 +17,48 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn aegis_data.api:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-Se `py` non è configurato, usare il percorso del proprio `python.exe`. Installare le dipendenze richiede rete; l'esecuzione successiva usa risorse locali.
+If `py` is not configured, use your own `python.exe` path. Installing dependencies requires network; subsequent execution uses local resources.
 
-OpenAPI e interfaccia interattiva: `http://127.0.0.1:8000/docs`.
+OpenAPI and interactive interface: `http://127.0.0.1:8000/docs`.
 
-L'archivio predefinito è `data/aegis.sqlite3`, escluso da Git. Il percorso è configurabile con `AEGIS_DB_PATH`. Non inserire dati personali nei file tracciati.
+The default archive is `data/aegis.sqlite3`, excluded from Git. The path is configurable with `AEGIS_DB_PATH`. Do not put personal data in tracked files.
 
-**Confine dell'MVP:** API locale per un ambiente fidato, senza autenticazione, cifratura o autorizzazioni multiutente. Non esporre sulla rete o usare per il pannello a Terra prima di implementare questi controlli. La selezione `subject_id` nell'API non costituisce autorizzazione.
+**MVP boundary:** local API for a trusted environment, without authentication, encryption, or multi-user authorization. Do not expose on the network or use for the ground panel before implementing these controls. The `subject_id` selection in the API does not constitute authorization.
 
-## Inserimento e importazione
+## Insertion and import
 
-`POST /v1/observations` accetta i tipi discriminati da `kind`: `sleep`, `mood`, `vigilance`, `sleep_measurement` e `speech_feedback`. I campi sconosciuti e i valori non validi sono rifiutati. I timestamp richiedono un fuso; `observed_at` è normalizzato in UTC.
+`POST /v1/observations` accepts types discriminated by `kind`: `sleep`, `mood`, `vigilance`, `sleep_measurement`, and `speech_feedback`. Unknown fields and invalid values are rejected. Timestamps require a timezone; `observed_at` is normalized to UTC.
 
-- Sonno: `sleep_hours` da 0 a 24; `sleep_quality` intero 1–10, da molto scarsa a molto buona. Sono autovalutazioni.
-- Umore: `mood_rating` intero 1–10, da molto negativo a molto positivo, `alertness` intero 1–10 (minima–massima), `confirmed: true`. Sono scale dimostrative non validate. Il modello non può registrare un'emozione inferita come autovalutazione confermata.
+- Sleep: `sleep_hours` from 0 to 24; `sleep_quality` integer 1–10, from very poor to very good. These are self-assessments.
+- Mood: `mood_rating` integer 1–10, from very negative to very positive, `alertness` integer 1–10 (minimum–maximum), `confirmed: true`. These are demonstrative non-validated scales. The model cannot record an inferred emotion as a confirmed self-assessment.
 
-Per nuovi `sleep` e `mood` è obbligatorio `scale_max: 10`. Per `speech_feedback` con umore è obbligatorio `mood_scale_max: 10`; i feedback senza umore non richiedono tale campo. Client precedenti devono essere aggiornati. I record già salvati senza indicazione della scala restano consultabili con scala `null` e non vengono convertiti.
-- Reattività: `protocol_id: aegis-pvt-demo-v1`, `device_id`, elenco `trials`. Ogni trial è `response` con `rt_ms`, oppure `false_start`/`missed` senza tempo.
+For new `sleep` and `mood`, `scale_max: 10` is mandatory. For `speech_feedback` with mood, `mood_scale_max: 10` is mandatory; feedback without mood does not require that field. Previous clients must be updated. Records already saved without scale indication remain queryable with scale `null` and are not converted.
+- Responsiveness: `protocol_id: aegis-pvt-demo-v1`, `device_id`, list of `trials`. Each trial is `response` with `rt_ms`, or `false_start`/`missed` without time.
 
-Ogni osservazione include `subject_id`, `observed_at`, `synthetic` e `quality`. L'identificativo è generato se assente; il client dovrebbe conservarlo per evitare duplicazioni nei tentativi successivi. Un ID già presente dà HTTP 409: non viene sovrascritto. Non esiste ancora una procedura di rettifica/cancellazione: da definire prima di raccogliere dati personali reali.
+Each observation includes `subject_id`, `observed_at`, `synthetic`, and `quality`. The identifier is generated if absent; the client should keep it to avoid duplication on subsequent retries. An already present ID gives HTTP 409: it is not overwritten. No correction/deletion procedure exists yet: to be defined before collecting real personal data.
 
-Esempio sintetico completo in [examples/synthetic.json](../server/examples/synthetic.json). Importazione JSON atomica, senza trasformazioni nascoste e senza chiamate LLM:
+Complete synthetic example in [examples/synthetic.json](../server/examples/synthetic.json). Atomic JSON import, no hidden transformations, no LLM calls:
 
 ```powershell
 .\.venv\Scripts\python.exe -m aegis_data import examples/synthetic.json
 ```
 
-Il file deve essere un array con 1–10.000 osservazioni. Errori di validazione o ID duplicati annullano l'intero inserimento. Il formato è intenzionalmente esplicito: CSV o dataset pubblici richiederanno un adattatore dopo averne visto colonne e protocollo. Nessun dataset NASA è incluso o spacciato per storia personale.
+The file must be an array with 1–10,000 observations. Validation errors or duplicate IDs cancel the entire insertion. The format is intentionally explicit: CSV or public datasets will require an adapter after inspecting columns and protocol. No NASA dataset is included or passed off as personal history.
 
-## Lettura e integrazione dell'agente
+## Reading and agent integration
 
-| Endpoint | Uso |
+| Endpoint | Use |
 |---|---|
-| `GET /health` | Verifica servizio |
-| `GET /v1/subjects/{id}/observations` | Osservazioni, incluse prove grezze |
-| `GET /v1/subjects/{id}/snapshot` | Serie e metriche per dashboard |
-| `GET /v1/subjects/{id}/agent-context` | Contesto compatto per il compagno |
+| `GET /health` | Service check |
+| `GET /v1/subjects/{id}/observations` | Observations, including raw trials |
+| `GET /v1/subjects/{id}/snapshot` | Series and metrics for dashboard |
+| `GET /v1/subjects/{id}/agent-context` | Compact context for the companion |
 
-I dati sintetici sono esclusi per impostazione predefinita. Per l'esempio usare `subject_id=demo-astronaut` e `?synthetic=true`. Osservazioni e snapshot accettano `start`/`end` con fuso, estremi inclusi. Il recupero è limitato alle 1.000 osservazioni più recenti, segnalando `truncated`; non promette di rappresentare tutta la storia se supera il limite.
+Synthetic data are excluded by default. For the example use `subject_id=demo-astronaut` and `?synthetic=true`. Observations and snapshot accept `start`/`end` with timezone, inclusive bounds. Retrieval is limited to the 1,000 most recent observations, signaling `truncated`; it does not promise to represent the entire history if it exceeds the limit.
 
-Snapshot e contesto condividono lo stesso `snapshot_id` a parità di archivio e filtri. L'ID cambia se i dati cambiano: due richieste separate possono quindi riferirsi a versioni diverse. Per allineamento rigoroso durante una conversazione, recuperare uno snapshot una volta e passarne la proiezione al compagno; lo storico degli snapshot non è ancora persistito. `as_of` è l'ultima acquisizione inclusa, non certifica che i sensori siano attuali: consultare anche `observed_at` e `quality`.
+Snapshot and context share the same `snapshot_id` for the same archive and filters. The ID changes if data change: two separate requests can therefore refer to different versions. For strict alignment during a conversation, retrieve a snapshot once and pass its projection to the companion; snapshot history is not yet persisted. `as_of` is the last acquisition included, it does not certify that sensors are current: also consult `observed_at` and `quality`.
 
-Integrazione Python senza dipendenza da LangChain:
+Python integration without LangChain dependency:
 
 ```python
 from aegis_data.store import Store
@@ -71,20 +71,20 @@ tools = AgentDataTools(service, subject_id="demo-astronaut", synthetic=True)
 context = tools.get_context()
 ```
 
-Il compagno del team può avvolgere `get_context()` come tool LangChain o chiamare l'endpoint HTTP. Non serve fornire al modello SQL, percorsi del DB o strumenti di scrittura. Il contesto non contiene audio o trascrizioni. La registrazione di un check-in rimane un'azione applicativa validata, dopo conferma dell'utente.
+The team companion can wrap `get_context()` as a LangChain tool or call the HTTP endpoint. There is no need to provide the model with SQL, DB paths, or write tools. The context does not contain audio or transcripts. Recording a check-in remains a validated application action, after user confirmation.
 
-## Calcoli dimostrativi
+## Demonstrative calculations
 
-Regola `demo-1`: tempi sotto 100 ms sono falsi avvii; risposte da 500 ms sono conteggiate come lapses; omissioni restano separate. Mediana sulle risposte da 100 ms in su. Una sessione è utilizzabile per il confronto se dichiarata valida e con almeno cinque risposte utilizzabili. Queste regole servono al wiring e ai test; non riproducono né validano da sole un PVT clinico.
+Rule `demo-1`: times under 100 ms are false starts; responses from 500 ms are counted as lapses; omissions remain separate. Median on responses from 100 ms upward. A session is usable for comparison if declared valid and with at least five usable responses. These rules serve wiring and tests; they do not reproduce nor validate by themselves a clinical PVT.
 
-Baseline dimostrativa: mediana delle mediane delle ultime 3–5 sessioni precedenti valide dello stesso soggetto, dispositivo e protocollo, nella finestra richiesta. Esclude la sessione corrente e la modalità sintetica opposta. Se manca storia, ritorna `insufficient_data` e valori nulli; nessuna soglia clinica o etichetta automatica di salute.
+Demonstrative baseline: median of medians of the last 3–5 previous valid sessions of the same subject, device, and protocol, within the requested window. Excludes the current session and opposite synthetic mode. If history is missing, it returns `insufficient_data` and null values; no clinical threshold or automatic health label.
 
-La sessione utilizzabile più recente può essere precedente a un test invalido più nuovo: gli ID e i timestamp lo rendono esplicito. Restano da implementare protocollo di acquisizione, rilevamento automatico di interruzioni, baseline scientificamente giustificata e confronto dei dispositivi.
+The most recent usable session may precede a newer invalid test: IDs and timestamps make this explicit. Acquisition protocol, automatic interruption detection, scientifically justified baseline, and device comparison remain to be implemented.
 
-## Verifica
+## Verification
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-I test coprono persistenza, isolamento dei soggetti e dei dati sintetici, import atomico, input invalidi, calcoli, provenienza della baseline e coerenza del contesto. Il test HTTP richiede FastAPI e httpx; viene segnalato come saltato se FastAPI non è disponibile.
+Tests cover persistence, subject and synthetic data isolation, atomic import, invalid inputs, calculations, baseline provenance, and context consistency. The HTTP test requires FastAPI and httpx; it is reported as skipped if FastAPI is not available.

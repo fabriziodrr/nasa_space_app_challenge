@@ -39,7 +39,7 @@ export function useWebcam(consumer?: InferenceFrameConsumer, onCaptureState?: (s
         setDevices(available.filter((device) => device.kind === 'videoinput' && device.deviceId));
         setDeviceMessage('');
       } catch {
-        if (mounted) setDeviceMessage('Elenco fotocamere non disponibile. Puoi provare la sorgente predefinita.');
+        if (mounted) setDeviceMessage('Camera list unavailable. You can try the default source.');
       }
     };
     refreshRef.current = refresh;
@@ -63,7 +63,7 @@ export function useWebcam(consumer?: InferenceFrameConsumer, onCaptureState?: (s
   const stop = useCallback(() => { captureRef.current?.stop(); }, []);
 
   const selectDevice = useCallback((nextDeviceId: string) => {
-    captureRef.current?.stop('Source changed. Premi Avvia per accendere la fotocamera selezionata.', 'source_changed');
+    captureRef.current?.stop('Source changed. Press Start to activate the selected camera.', 'source_changed');
     setDeviceId(nextDeviceId);
   }, []);
 

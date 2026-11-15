@@ -49,7 +49,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
                                  f"aegis-demo-crew:{subject}".encode(), hashlib.sha256).hexdigest()
             if token and 16 <= len(token) <= 512 and hmac.compare_digest(supplied.encode(), token.encode()):
                 return subject, token
-        raise HTTPException(401, "Credenziali demo richieste.")
+        raise HTTPException(401, "Demo credentials are required.")
 
     def demo_vision_reader(session_id: str, authorization: str | None):
         _, token = demo_identity(authorization)
@@ -74,7 +74,7 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             return {"response": response, "subject_id": "sleep-demo-14d", "synthetic": True}
         except Exception:
             # Preserve data APIs even if dependencies, model or local inference fail.
-            raise HTTPException(503, "Companion non disponibile: verificare dipendenze e modello locale.")
+            raise HTTPException(503, "Companion unavailable: check dependencies and the local model.")
 
     @app.post("/v1/demo/integrated-context")
     def demo_integrated_context(request: IntegratedDemoRequest, authorization: str | None = Header(default=None)):
