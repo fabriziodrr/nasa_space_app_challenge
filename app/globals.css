@@ -497,6 +497,21 @@ button:focus-visible {
   min-height: 32px;
 }
 
+.pill-nav__brand-button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  transition: transform .2s ease, filter .2s ease;
+}
+
+.pill-nav__brand-button:hover, .pill-nav__brand-button:focus-visible {
+  filter: saturate(1.15);
+  outline: none;
+  transform: translateY(-1px) scale(1.04);
+}
+
 .pill-nav__logo {
   position: relative;
   overflow: hidden;

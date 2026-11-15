@@ -44,6 +44,7 @@
 .sidebarFooter { margin-top: auto; padding: 18px 22px 0; color: #969ca1; font-size: 8px; }
 
 .dataPanel { display: flex; min-width: 0; min-height: 0; flex-direction: column; padding: 22px 0 16px; }
+.reveal { animation: card-reveal .55s cubic-bezier(.2, .8, .2, 1) both; }
 .crewSelector { position: relative; display: flex; align-items: flex-end; gap: 15px; min-height: 58px; margin-bottom: 18px; padding: 0 0 14px; border-bottom: 1px solid rgba(98, 105, 112, .1); }
 .crewSelectorHeading { display: grid; align-content: center; min-width: 207px; padding-left: 1px; }
 .crewSelectorHeading span { color: #6d747b; font: 800 9px var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .12em; }
@@ -86,6 +87,7 @@
 .sleepActions button, .visionControls button { padding: 8px 12px; border: 1px solid rgba(59, 26, 189, .3); border-radius: 6px; color: #3b1abd; background: transparent; cursor: pointer; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; }
 .sleepActions button:hover, .visionControls button:hover { background: rgba(59, 26, 189, .08); }
 .sleepActions button:disabled, .visionControls button:disabled { opacity: .5; }
+.isRefreshing svg { animation: refresh-spin .85s linear infinite; }
 .refreshButton { display: inline-grid; width: 40px; height: 40px; padding: 0 !important; place-items: center; border-radius: 50% !important; }
 .refreshButton svg { transition: transform .35s ease; }
 .refreshButton:hover svg { transform: rotate(-45deg); }
@@ -99,7 +101,7 @@
 .sleepContent .sleepDate { margin: 8px 0 10px; font-size: clamp(17px, 2.2vw, 25px); }
 .sleepReadout small { display: block; max-width: 290px; margin-top: 10px; color: #a0a5a9; font: 700 9px/1.5 var(--font-dm-mono), ui-monospace, monospace; }
 .sleepSensorGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.sleepSensor { display: grid; align-content: center; gap: 5px; min-height: 74px; min-width: 0; padding: 10px 13px; border: 1px solid rgba(98, 105, 112, .16); border-radius: 8px; background: rgba(255, 255, 255, .35); }
+.sleepSensor { display: grid; align-content: center; gap: 5px; min-height: 74px; min-width: 0; padding: 10px 13px; border: 1px solid rgba(98, 105, 112, .16); border-radius: 8px; background: rgba(255, 255, 255, .35); animation: card-reveal .55s cubic-bezier(.2, .8, .2, 1) both; }
 .sleepSensor span, .sleepSensor small { color: #8a9095; font: 700 10px/1.4 var(--font-dm-mono), ui-monospace, monospace; overflow-wrap: anywhere; }
 .sleepSensor strong { color: #3b1abd; font: 800 18px var(--font-dm-mono), ui-monospace, monospace; overflow-wrap: anywhere; }
 .sleepFootnote, .sleepNotice { color: #777e84; font: 700 10px/1.5 var(--font-dm-mono), ui-monospace, monospace; }
@@ -176,6 +178,9 @@
 @keyframes ring-draw { from { stroke-dashoffset: 302; } }
 @keyframes trace-in { from { stroke-dashoffset: 1000; opacity: .3; } to { stroke-dashoffset: 0; opacity: 1; } }
 @keyframes point-in { from { opacity: 0; transform: scale(.5); transform-origin: center; } to { opacity: 1; transform: scale(1); } }
+@keyframes card-reveal { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .reveal, .sleepSensor, .barFill, .ringValue, .reactionPath, .reactionPoint, .lapsePoint, .falseStartPoint, .missedPoint, .isRefreshing svg { animation: none; } }
 
 @media (max-width: 800px) {
   .dataShell { grid-template-columns: 175px minmax(0, 1fr); gap: 18px; }
