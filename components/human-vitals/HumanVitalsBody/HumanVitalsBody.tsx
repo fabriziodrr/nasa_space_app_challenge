@@ -16,6 +16,7 @@ export function HumanVitalsBody({
   onZoneSelect,
   autoRotate = false,
   compact = false,
+  panelBeside = false,
   className = "",
   resetToken = 0,
 }: HumanVitalsBodyProps) {
@@ -86,6 +87,7 @@ export function HumanVitalsBody({
   return (
     <section className={`${styles["human-vitals-body"]} ${compact ? styles["is-compact"] : ""} ${className}`}>
       <div className={styles["body-explorer"]}>
+        <div className={`${styles["body-workspace"]} ${panelBeside ? styles["workspace-side-panel"] : ""}`}>
         <div className={styles["body-canvas"]}>
            <DotGrid
              className={styles["canvas-dot-grid"]}
@@ -107,7 +109,7 @@ export function HumanVitalsBody({
              modelPath={selectedModelPath}
              bodyVariant={bodyVariant}
            />
-           {panelOpen && (
+           {panelOpen && !panelBeside && (
              <VitalPanel
                key={selected.id}
                zone={selected}
@@ -117,6 +119,10 @@ export function HumanVitalsBody({
              />
            )}
            <div className={styles["canvas-hint"]}><TextType text="DRAG TO ORBIT · SCROLL TO ZOOM" initialDelay={160} /></div>
+         </div>
+         {panelOpen && panelBeside && (
+           <VitalPanel key={selected.id} zone={selected} closing={panelClosing} onClose={closePanel} onReset={reset} />
+         )}
          </div>
          <div className={styles["zone-legend"]}>
            <span className={styles["legend-dot"]} /> <TextType text="SELECT A ZONE TO INSPECT VITALS" initialDelay={280} />

@@ -14,7 +14,7 @@ import styles from "./voice-demo.module.css";
 type Message = { id: string; role: "ASTRONAUT" | "ASSISTANT"; text: string };
 type Pending = { id: string; text: string; mode: "TEXT" | "VOICE" };
 
-export function VoiceDemo() {
+export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
   const [token, setToken] = useState("");
   const [astronautId, setAstronautId] = useState("astro-1");
   const [sessionId, setSessionId] = useState("");
@@ -136,23 +136,29 @@ export function VoiceDemo() {
   }
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
-  return <main className={styles.page} lang="en">
+  return <section className={`${styles.page} ${embedded ? styles.embedded : ""}`} lang="en" aria-label="S.L.O.T.H. voice assistant">
     <div className={styles.shell}>
       <header><p className={styles.eyebrow}>Local demo · Onboard assistant</p><h1>Talk to the assistant</h1>
         <p>Start a session, dictate or type a message and listen to the reply.</p></header>
+      {embedded && <div className={styles.stage}>
+        <SlothMascot speaking={speaking} size={130} />
+        {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
+      </div>}
       {!sessionId ? <form className={styles.panel} onSubmit={start}>
-        <label htmlFor="demo-token">Astronaut demo token</label>
         <label htmlFor="demo-astronaut">Astronaut profile</label>
         <select id="demo-astronaut" value={astronautId} onChange={(event) => setAstronautId(event.target.value)}>{demoCrewMappings.map((member) => <option value={member.astronautId} key={member.astronautId}>{member.name}</option>)}</select>
         <p>Enter the value of <code>{demoCrewMappings.find((member) => member.astronautId === astronautId)?.tokenEnv}</code> from the local <code>.env</code> file. It is not the NVIDIA key.</p>
+        <label htmlFor="demo-token">Astronaut demo token</label>
         <input id="demo-token" type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} />
         <button type="submit" disabled={starting || !token.trim()}>{starting ? "Starting…" : "Start session"}</button>
         {error && <p role="alert">{error}</p>}
       </form> : <>
-        <div className={styles.stage}>
+        {!embedded && <div className={styles.stage}>
           <SlothMascot speaking={speaking} />
           {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
-        </div>
+        </div>}
+        {embedded && <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>}
+        {embedded && <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>}
         <section className={styles.panel} aria-labelledby="conversation-title">
           <h2 id="conversation-title">Conversation</h2>
           {!messages.length && <p>The session is ready. Start the continuous conversation or type the first message.</p>}
@@ -165,13 +171,14 @@ export function VoiceDemo() {
           </div>}
           {speechError && <p role="alert">{speechError}</p>}
         </section>
-        <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
-          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
-        <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
-        <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>
+        {embedded ? <details className={styles.visionDetails}><summary>Vision and check-in</summary><VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} /></details> : <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />}
+        {!embedded && <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>}
+        {!embedded && <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>}
         <p className={styles.footnote}>In continuous mode the reply is read aloud and the assistant listens again on its own. You can always interrupt and use manual mode to correct the text. Sharing happens only when the check-in is confirmed.</p>
         <p className={styles.footnote}>Voice: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (with browser fallback).</p>
       </>}
     </div>
-  </main>;
+  </section>;
 }

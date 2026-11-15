@@ -431,6 +431,28 @@ button:focus-visible {
   flex: 1;
 }
 
+.human-vitals-dashboard--iss {
+  flex-direction: row;
+  gap: 18px;
+}
+
+.human-vitals-dashboard--iss > .human-vitals-dashboard__body,
+.human-vitals-dashboard__assistant {
+  min-width: 0;
+}
+
+.human-vitals-dashboard--iss > .human-vitals-dashboard__body { flex: 1 1 0; }
+
+.human-vitals-dashboard__assistant {
+  flex: 0 0 clamp(280px, 27%, 360px);
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid rgba(98, 105, 112, .13);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #f0f2f3, #dfe3e7);
+  box-shadow: 6px 6px 14px rgba(203, 208, 214, .72), -6px -6px 14px rgba(255, 255, 255, .88);
+}
+
 .dashboard-shell__data-panel {
   width: min(100%, 1440px);
   margin: 0 auto;
@@ -622,6 +644,21 @@ button:focus-visible {
 }
 
 @media (max-width: 850px) {
+  .human-vitals-dashboard--iss {
+    flex-direction: column;
+  }
+
+  .human-vitals-dashboard--iss > .human-vitals-dashboard__body {
+    flex: none;
+    height: 65vh;
+    min-height: 630px;
+  }
+
+  .human-vitals-dashboard__assistant {
+    flex: none;
+    overflow: visible;
+  }
+
   .dashboard-shell__main {
     height: auto;
   }
