@@ -22,14 +22,16 @@ class SleepObservation(BaseObservation):
     kind: Literal["sleep"]
     source: Literal["self_report"] = "self_report"
     sleep_hours: float = Field(ge=0, le=24)
-    sleep_quality: int = Field(ge=1, le=5, strict=True)
+    sleep_quality: int = Field(ge=1, le=10, strict=True)
+    scale_max: Literal[10]
 
 
 class MoodObservation(BaseObservation):
     kind: Literal["mood"]
     source: Literal["self_report"] = "self_report"
     confirmed: Literal[True]
-    mood_rating: int = Field(ge=1, le=5, strict=True)
+    mood_rating: int = Field(ge=1, le=10, strict=True)
+    scale_max: Literal[10]
     alertness: int = Field(ge=1, le=10, strict=True)
     # Free conversation and unconfirmed model inferences are deliberately absent.
 
@@ -71,7 +73,8 @@ class SpeechFeedback(BaseObservation):
     user_confirmed: bool
     fatigue_rating: int | None = Field(default=None, ge=1, le=10, strict=True)
     alertness: int | None = Field(default=None, ge=1, le=10, strict=True)
-    mood_rating: int | None = Field(default=None, ge=1, le=5, strict=True)
+    mood_rating: int | None = Field(default=None, ge=1, le=10, strict=True)
+    mood_scale_max: Literal[10] | None = None
 
     @model_validator(mode="after")
     def check_feedback(self):
@@ -79,6 +82,8 @@ class SpeechFeedback(BaseObservation):
             raise ValueError("at least one feedback rating is required")
         if self.basis == "model_inference" and self.user_confirmed:
             raise ValueError("a confirmed user report must use basis=self_report")
+        if self.mood_rating is not None and self.mood_scale_max != 10:
+            raise ValueError("mood_scale_max=10 is required with mood_rating")
         return self
 
 

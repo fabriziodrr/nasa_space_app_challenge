@@ -13,13 +13,13 @@ Questo documento fissa le decisioni per l'integrazione con il backend Python di 
 | Campo agent | Contratto comune | Origine |
 | --- | --- | --- |
 | `SLEEP_HOURS` | Numero 0–24, ore dichiarate | `self_report` |
-| `SLEEP_QUALITY` | Intero 1–5: 1 molto scarsa, 5 molto buona | `self_report` |
+| `SLEEP_QUALITY` | Intero 1–10: 1 molto scarsa, 10 molto buona | `self_report` |
 | `FATIGUE` | **Intero 1–10: 1 minima, 10 massima stanchezza riferita** | `self_report` |
 | `PHYSICAL_NOTES` | Testo riferito dall'astronauta | `self_report` |
 
-`fatigue_rating` Python è già 1–10; il futuro `FATIGUE` agent userà lo stesso valore senza trasformazioni. `alertness` è una misura distinta e non viene convertita in stanchezza. Una frase ambigua non diventa un numero inventato. Il feedback Python costituisce dichiarazione confermata solo se `basis=self_report`, `user_confirmed=true` e `quality=valid`; l'inferenza del modello non è una dichiarazione della persona.
+`fatigue_rating` Python e `FATIGUE` agent usano 1–10 senza trasformazioni. Anche la qualità del sonno e l'umore sono su 1–10. `alertness` è una misura distinta e non viene convertita in stanchezza. Una frase ambigua non diventa un numero inventato. Il feedback Python costituisce dichiarazione confermata solo se `basis=self_report`, `user_confirmed=true` e `quality=valid`; l'inferenza del modello non è una dichiarazione della persona.
 
-**Migrazione necessaria:** l'agent attuale accetta ancora `FATIGUE` 1–5 e contiene prompt, interfaccia, fixture e regole demo su quella scala. Aggiornare insieme contratti, validazione, estrazione vocale/testuale, UI, prompt, mock, test e documentazione. Usare un contratto versionato e conservare per i record storici la scala originale esplicita: non reinterpretare un vecchio `4/5` come `4/10`, né modificare silenziosamente report o snapshot precedenti. Se la scala storica non è identificabile, indicarla come sconosciuta e non confrontarla numericamente. Le eventuali soglie demo su 1–10 vanno definite e testate esplicitamente; non sono criteri clinici e non si traducono automaticamente dalle vecchie soglie.
+Le osservazioni nuove dell'agent includono `scaleMax: 10`; quelle precedenti senza metadato sono lette con `scaleMax: null` e restano di scala non specificata. Le correzioni di valori richiedono `scaleMax: 10`. Il backend Python richiede `scale_max: 10` per nuove autovalutazioni di qualità del sonno e umore e `mood_scale_max: 10` per l'umore nel feedback; i record precedenti senza metadato sono restituiti con scala nulla. Gli utenti delle API devono aggiornare client e validazioni: questa modifica introduce campi e intervalli nuovi nei contratti esistenti. I dati storici non vengono convertiti. La regola demo per le nuove osservazioni usa stanchezza almeno 8/10 e non applica soglie alle scale ignote: è una scelta illustrativa, non un criterio clinico.
 
 ## Lettura del backend e adattamento
 
@@ -44,7 +44,7 @@ La schedule demo versionata resta l'autorità **della demo** finché non esiste 
 
 ## Sequenza di implementazione e verifica
 
-1. Versionare lo schema della stanchezza 1–10 e gestire le letture storiche 1–5; aggiornare interfaccia, provider, mock, test e documentazione nella stessa modifica.
+1. Aggiornare i client alle scale 1–10 e ai metadati di scala; preservare le letture storiche non identificabili senza convertirle.
 2. Definire schema eseguibile dell'adattatore Python/TypeScript e configurazione server della mappatura demo, mantenendo esplicita l'identità non verificata.
 3. Implementare il provider di lettura, congelare il contesto e testare dati mancanti, invalidi, vecchi, sintetici, fuori ambito e backend non raggiungibile.
 4. Generare report e proposta usando le fonti congelate e autorizzate; verificare separazione fra privato e condiviso e comportamento senza dati sufficienti.

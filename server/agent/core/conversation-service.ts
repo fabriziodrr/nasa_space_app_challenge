@@ -84,6 +84,9 @@ function validatedObservations(
         || new Set(candidate.messageIds).size !== candidate.messageIds.length) throw invalidAiOutput();
     const recordedAt = refs.map((ref) => ref!.createdAt).sort().at(-1)!;
     // Identity and timestamps are assigned by the server, never by model output.
+    if (candidate.field === "SLEEP_QUALITY" || candidate.field === "FATIGUE") {
+      return { ...candidate, scaleMax: 10, id: old?.id ?? newId(), recordedAt };
+    }
     return { ...candidate, id: old?.id ?? newId(), recordedAt };
   });
   return { reply: output.reply, observations };

@@ -98,7 +98,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 { "clientMessageId": "client-msg-1",
-  "text": "Ho dormito quattro ore e mezza. Qualita 2 su 5, stanchezza 4 su 5.",
+  "text": "Ho dormito quattro ore e mezza. Qualita 2 su 10, stanchezza 4 su 10.",
   "inputMode": "TEXT" }
 ```
 

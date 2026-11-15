@@ -10,8 +10,8 @@ type Confirmation = { expectedRevision: number; sharedObservationIds: string[]; 
 type Props = { token: string; sessionId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
   run<T>(operation: () => Promise<T>): Promise<T>; onCheckIn(checkIn: CheckIn): void; onConfirmationPending(value: boolean): void };
 
-const labels: Record<string, string> = { SLEEP_HOURS: "Ore di sonno", SLEEP_QUALITY: "Qualità del sonno (1–5)",
-  FATIGUE: "Stanchezza (1–5)", PHYSICAL_NOTES: "Condizioni fisiche" };
+const labels: Record<string, string> = { SLEEP_HOURS: "Ore di sonno", SLEEP_QUALITY: "Qualità del sonno",
+  FATIGUE: "Stanchezza", PHYSICAL_NOTES: "Condizioni fisiche" };
 const reasonLabels: Record<string, string> = { NO_VALID_TIME: "nessun tempo valido", TOO_SHORT: "misura troppo breve",
   LOW_COVERAGE: "copertura insufficiente", STALE: "misura non recente", INTERRUPTED: "misura interrotta",
   SYNTHETIC_TIME_UNAVAILABLE: "tempo reale non disponibile per il replay sintetico" };
@@ -182,7 +182,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
               const checked = event.target.checked;
               setSharedIds((ids) => checked ? [...ids, item.id] : ids.filter((id) => id !== item.id));
             }} />
-            <span>{labels[item.field] ?? item.field}: {String(item.value)}</span>
+            <span>{labels[item.field] ?? item.field}: {String(item.value)}{(item.field === "SLEEP_QUALITY" || item.field === "FATIGUE") ? (item.scaleMax ? ` / ${item.scaleMax}` : " (scala storica non specificata)") : ""}</span>
           </label>)}
         </fieldset>}
       {selected && <label className={styles.choice}><input type="checkbox" checked={sharedVision} disabled={busy || locked || confirmed}

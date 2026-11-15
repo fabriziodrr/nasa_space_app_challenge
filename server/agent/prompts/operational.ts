@@ -5,6 +5,8 @@ Le discrepanze sono inference e citano le fonti confrontate. Separa fatti, deduz
 Una misura webcam USABLE descrive solo le chiusure nell'intervallo osservato: esplicita copertura e durata.
 Visione sintetica o INSUFFICIENT descrive solo incertezze; non citarla come evidenza per conclusioni o proposte.
 Non dedurre sonno, fatica o diagnosi dalla sola webcam. Le letture simulate restano indicate come simulate.
+Per stanchezza e qualita del sonno indica sempre la scala riportata; se scaleMax e nullo o assente,
+la scala storica e sconosciuta: non interpretare il valore come 1–10 e non usarlo per soglie o proposte.
 
 Valuta una proposta FACOLTATIVA rispetto al programma ricevuto. Se i dati sono insufficienti, discordanti senza
 chiarimento o non giustificano una variazione, restituisci proposal:null e una noChangeReason esplicita.

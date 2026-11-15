@@ -39,7 +39,15 @@ export class CheckInService {
       if (cursor) seenCursors.add(cursor);
     } while (remaining.size && cursor);
     if (remaining.size) throw AgentErrors.invalidState("Le osservazioni devono riferirsi ai messaggi dell'astronauta nella sessione.");
-    return this.repository.updateCheckIn(astronautId, checkInId, request);
+    const observations = request.observations.map((observation) => {
+      if (observation.field !== "SLEEP_QUALITY" && observation.field !== "FATIGUE") return observation;
+      const previous = draft.observations.find((item) => item.id === observation.id);
+      if (previous && previous.field === observation.field && previous.value === observation.value
+          && JSON.stringify(previous.messageIds) === JSON.stringify(observation.messageIds)) return previous;
+      if (observation.scaleMax !== 10) throw AgentErrors.invalidState("Per una nuova valutazione serve la scala esplicita 1–10.");
+      return { ...observation, scaleMax: 10 as const };
+    });
+    return this.repository.updateCheckIn(astronautId, checkInId, { ...request, observations });
   }
 
   async confirm(

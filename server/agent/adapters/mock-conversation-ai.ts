@@ -19,7 +19,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
   async generateOperational({ context, schedule }: Parameters<OperationalAiProvider["generateOperational"]>[0]) {
     const vision = context.vision;
     const findings = context.checkIn.observations.map((o) => ({
-      text: `${o.field}: ${o.value}`, source: "self_report" as const,
+      text: `${o.field}: ${o.value}${o.field === "FATIGUE" || o.field === "SLEEP_QUALITY" ? (o.scaleMax ? ` / ${o.scaleMax}` : " (scala non specificata)") : ""}`, source: "self_report" as const,
       evidence: [{ source: "self_report" as const, observationId: o.id }],
     }));
     const visionFinding = vision?.source === "webcam" && vision.usability === "USABLE" ? [{
@@ -47,7 +47,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
         noChangeReason = "Dati condivisi insufficienti per motivare una variazione: richiedere un approfondimento umano.";
       } else if (discrepancies.length) {
         noChangeReason = "Dati discordanti: occorre chiarire la durata del riposo prima di proporre una variazione.";
-      } else if (fatigue.value >= 4 && poorSleep) {
+      } else if (fatigue.scaleMax === 10 && fatigue.value >= 8 && poorSleep) {
         const activity = schedule.activities.find((a) => a.movable && a.priority !== "CRITICAL"
           && Date.parse(a.startsAt) >= Date.parse(context.checkIn.confirmedAt)
           && Date.parse(a.endsAt) + 1200000 <= Date.parse(a.latestEnd)
@@ -103,10 +103,19 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       if (value >= 0 && value <= 24) upsert("SLEEP_HOURS", value);
     }
     for (const [field, label] of [["SLEEP_QUALITY", "qualita(?: del sonno)?"], ["FATIGUE", "stanchezza"]] as const) {
-      const matches = [...text.matchAll(new RegExp(`\\b${label}\\s*(?:e\\s+|: ?)?(${numberPattern})\\s*(?:su\\s*(?:5|cinque)|/\\s*5)\\b`, "g"))];
+      const matches = [...text.matchAll(new RegExp(`\\b${label}\\s*(?:e\\s+|: ?)?(${numberPattern})\\s*(?:su\\s*(?:10|dieci)|/\\s*10)\\b`, "g"))];
       if (matches.length === 1 && !/\b(?:non|forse|oppure)\b/.test(text)) {
         const value = number(matches[0][1]);
-        if (Number.isInteger(value) && value >= 1 && value <= 5) upsert(field, value);
+        if (Number.isInteger(value) && value >= 1 && value <= 10) upsert(field, value);
+      }
+    }
+    const bare = text.trim().match(new RegExp(`^(${numberPattern})[.!?]?$`));
+    if (bare) {
+      const lastQuestion = [...context.messages].reverse().find((message) => message.role === "ASSISTANT")?.text.toLowerCase() ?? "";
+      const value = number(bare[1]);
+      if (Number.isInteger(value) && value >= 1 && value <= 10) {
+        if (lastQuestion.includes("qualita del sonno da 1 a 10")) upsert("SLEEP_QUALITY", value);
+        else if (lastQuestion.includes("stanco da 1 a 10")) upsert("FATIGUE", value);
       }
     }
     if (/^fisicamente\s*:/i.test(current.text)) {
@@ -116,8 +125,8 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
     const missingFields = ObservationFieldSchema.options.filter((field) => !observations.some((o) => o.field === field));
     const questions: Record<Observation["field"], string> = {
       SLEEP_HOURS: "Quante ore hai dormito?",
-      SLEEP_QUALITY: "Come valuti la qualita del sonno da 1 a 5?",
-      FATIGUE: "Quanto ti senti stanco da 1 a 5?",
+      SLEEP_QUALITY: "Come valuti la qualita del sonno da 1 a 10?",
+      FATIGUE: "Quanto ti senti stanco da 1 a 10?",
       PHYSICAL_NOTES: "Come ti senti fisicamente?",
     };
     const reportedHours = observations.find((o) => o.field === "SLEEP_HOURS")?.value;

@@ -12,7 +12,7 @@ from aegis_data.store import Store
 def test_factory_binds_tools_to_demo_subject(tmp_path, monkeypatch):
     store = Store(tmp_path / "test.sqlite3")
     store.add({"kind": "sleep", "subject_id": "sleep-demo-14d", "observed_at": "2026-11-14T07:00:00Z",
-               "sleep_hours": 6, "sleep_quality": 3, "synthetic": True})
+               "sleep_hours": 6, "sleep_quality": 3, "scale_max": 10, "synthetic": True})
     captured = {}
     def fake_create_agent(**kwargs):
         captured.update(kwargs)

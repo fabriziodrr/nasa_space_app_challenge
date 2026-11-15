@@ -23,7 +23,7 @@ async function setup(kind: "poor" | "rested" | "missing", changeAfterConfirmatio
   const sensors = createDemoContextProviders(kind === "poor" ? "POOR_SLEEP" : "RESTED").sensors;
   const observations = kind === "missing" ? [] : [
     { id: "sleep", field: "SLEEP_HOURS", source: "self_report", value: kind === "poor" ? 4.5 : 8, messageIds: ["m1"], recordedAt: now.toISOString() },
-    { id: "fatigue", field: "FATIGUE", source: "self_report", value: kind === "poor" ? 4 : 1, messageIds: ["m1"], recordedAt: now.toISOString() },
+    { id: "fatigue", field: "FATIGUE", source: "self_report", value: kind === "poor" ? 8 : 1, scaleMax: 10, messageIds: ["m1"], recordedAt: now.toISOString() },
   ];
   await db.prisma.conversationSession.create({ data: { id: "session-plan", astronautId: "astro-1", openedAt: now } });
   await db.prisma.checkIn.create({ data: { id: "check-plan", astronautId: "astro-1", sessionId: "session-plan", revision: 1, status: "DRAFT",
@@ -81,13 +81,16 @@ test("demo policy refuses long rests and changes in the past", () => {
   const validator = new DemoScheduleValidator();
   const schedule = demoProgram("astro-1", "2026-11-14");
   const context: OperationalContext = { checkIn: { id: "c1", astronautId: "astro-1", confirmedAt: now.toISOString(), observations: [
-    { id: "fatigue", source: "self_report", field: "FATIGUE", value: 4, recordedAt: now.toISOString() },
+    { id: "fatigue", source: "self_report", field: "FATIGUE", value: 8, scaleMax: 10, recordedAt: now.toISOString() },
   ] }, sensors: [] };
   const candidate: ProposalCandidate = { rationale: "Test", evidence: [{ source: "self_report", observationId: "fatigue" }], changes: [
     { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-14T09:20:00Z", endsAt: "2026-11-14T10:00:00Z" },
     { type: "ADD_REST", activityId: "rest", title: "Pausa", startsAt: "2026-11-14T09:00:00Z", endsAt: "2026-11-14T09:20:00Z" },
   ] };
   assert.equal(validator.validate({ schedule, context, candidate }).valid, true);
+  assert.equal(validator.validate({ schedule, context: { ...context, checkIn: { ...context.checkIn,
+    observations: [{ id: "fatigue", source: "self_report", field: "FATIGUE", value: 4,
+      scaleMax: null, recordedAt: now.toISOString() }] } }, candidate }).valid, false);
   assert.equal(validator.validate({ schedule, context: { ...context, checkIn: { ...context.checkIn, confirmedAt: "2026-11-14T10:00:00Z" } }, candidate }).valid, false);
   const longPause: ProposalCandidate = { ...candidate, changes: [
     { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-14T09:30:00Z", endsAt: "2026-11-14T10:10:00Z" },

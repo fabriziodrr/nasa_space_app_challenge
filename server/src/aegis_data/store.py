@@ -81,5 +81,11 @@ class Store:
         sql += " ORDER BY observed_at DESC, observation_id DESC LIMIT 1001"
         with self.connection() as conn:
             rows = conn.execute(sql, args).fetchall()
-        return ([{**json.loads(row["payload"]), "recorded_at": row["recorded_at"]}
-                 for row in rows[:1000]], len(rows) > 1000)
+        def preserve_scale(row):
+            payload = json.loads(row["payload"])
+            if payload.get("kind") in ("sleep", "mood") and "scale_max" not in payload:
+                payload["scale_max"] = None
+            if payload.get("kind") == "speech_feedback" and "mood_scale_max" not in payload:
+                payload["mood_scale_max"] = None
+            return {**payload, "recorded_at": row["recorded_at"]}
+        return ([preserve_scale(row) for row in rows[:1000]], len(rows) > 1000)

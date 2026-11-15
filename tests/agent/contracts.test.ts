@@ -93,8 +93,11 @@ test("UTC timestamps reject local times, offsets and invalid dates", () => {
 
 test("subjective scales require explicit numbers in the documented range", () => {
   const fatigue = normal.confirmedCheckIn.observations.find((o) => o.field === "FATIGUE")!;
-  for (const value of [0, 6, 2.5, "4", null]) {
+  for (const value of [0, 11, 2.5, "4", null]) {
     assert.equal(ObservationSchema.safeParse({ ...fatigue, value }).success, false);
+  }
+  for (const field of ["FATIGUE", "SLEEP_QUALITY"]) {
+    for (const value of [1, 6, 10]) assert.equal(ObservationSchema.safeParse({ ...fatigue, field, value, scaleMax: 10 }).success, true);
   }
 });
 

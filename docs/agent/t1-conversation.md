@@ -44,7 +44,7 @@ $session = Invoke-RestMethod -Method Post -Uri "$base/sessions" `
 $sessionId = $session.data.id
 $body = @{
   clientMessageId = 'local-message-1'
-  text = 'Ho dormito 4 ore. Qualita del sonno 2 su 5. Stanchezza 4 su 5.'
+  text = 'Ho dormito 4 ore. Qualita del sonno 2 su 10. Stanchezza 4 su 10.'
   inputMode = 'TEXT'
 } | ConvertTo-Json
 
@@ -61,8 +61,8 @@ Ripetere lo stesso body con lo stesso `clientMessageId` restituisce lo stesso tu
 La modalita mock ha un parser limitato e risposte deterministiche. Forme supportate:
 
 - `Ho dormito 5 ore.` oppure `Ho dormito cinque ore e mezza.`
-- `Qualita del sonno 2 su 5.`
-- `Stanchezza 4 su 5.`
+- `Qualita del sonno 2 su 10.`
+- `Stanchezza 4 su 10.`
 - `Fisicamente: mi sento affaticato.`
 
 Un generico «ho dormito male» non diventa un numero. Formulazioni ambigue o non riconosciute provocano una richiesta di chiarimento. Il mock e pensato per test riproducibili, non per interpretare ogni formulazione italiana.
@@ -187,7 +187,7 @@ const handlers = createConversationHttpHandlers(() => ({
 
 I nomi nell'esempio indicano implementazioni da fornire; non sono moduli gia presenti. L'identita viene risolta a ogni richiesta e passata ai metodi del servizio, non fissata nella sua istanza. Il servizio riceve soltanto `ScheduleReader`, senza `applyApproved`.
 
-Per Fabrizio: usare le tre route del contratto v1 gia implementate; la risposta ai messaggi include sia il testo da mostrare sia la bozza strutturata. Nessun componente React e obbligatorio. Gestire 401/403/404, 409, 429, 502/503/504 e consentire il retry con lo stesso ID. Le risposte private hanno `Cache-Control: no-store`. L'integrazione con cookie usa origine comune; richieste con cookie e un'origine differente vengono rifiutate. Non e configurato CORS permissivo.
+Per Fabrizio: usare le tre route del contratto v1 gia implementate; la risposta ai messaggi include sia il testo da mostrare sia la bozza strutturata. Nessun componente React e obbligatorio. Gestire 401/403/404, 409, 429, 502/1003/1004 e consentire il retry con lo stesso ID. Le risposte private hanno `Cache-Control: no-store`. L'integrazione con cookie usa origine comune; richieste con cookie e un'origine differente vengono rifiutate. Non e configurato CORS permissivo.
 
 ## Verifica
 

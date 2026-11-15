@@ -14,7 +14,7 @@ def store(tmp_path):
 def sleep(**changes):
     return dict(observation_id="sleep-1", subject_id="crew-1", kind="sleep",
                 observed_at="2026-11-14T07:00:00+01:00", sleep_hours=5.5,
-                sleep_quality=2, **changes)
+                sleep_quality=2, scale_max=10, **changes)
 
 
 def pvt(index, rt=250, **changes):
@@ -35,13 +35,26 @@ def test_persistence_utc_and_subject_isolation(store):
 
 @pytest.mark.parametrize("change", [
     {"sleep_hours": -1}, {"sleep_hours": float("nan")},
-    {"sleep_quality": 6}, {"sleep_quality": 2.5},
+    {"sleep_quality": 11}, {"sleep_quality": 2.5},
     {"observed_at": "2026-11-14T07:00:00"}, {"invented_metric": 4},
 ])
 def test_invalid_data_never_persisted(store, change):
     with pytest.raises(ValidationError):
         store.add(sleep() | change)
     assert store.list("crew-1")[0] == []
+
+
+def test_new_and_legacy_scales_remain_distinct(store):
+    import json
+    new = store.add(sleep() | {"sleep_quality": 10})
+    assert new["scale_max"] == 10
+    with store.connection() as conn:
+        payload = json.loads(conn.execute("SELECT payload FROM observations WHERE observation_id=?", ("sleep-1",)).fetchone()[0])
+        payload.pop("scale_max")
+        conn.execute("UPDATE observations SET payload=? WHERE observation_id=?", (json.dumps(payload), "sleep-1"))
+    historical, _ = store.list("crew-1")
+    assert historical[0]["sleep_quality"] == 10
+    assert historical[0]["scale_max"] is None
 
 
 def test_unconfirmed_model_mood_is_rejected(store):

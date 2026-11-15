@@ -18,7 +18,7 @@ Il diario rimane privato. La webcam misura le chiusure delle palpebre nell'inter
 
 Il server consente soltanto una pausa positiva fino a 20 minuti prima di una singola attività futura di missione flessibile, spostata della stessa durata. Verifica finestre, durata, dipendenze, assenza di sovrapposizioni e attività bloccate. Richiede evidenze condivise sul riposo o sulla stanchezza: la visione da sola non basta. All'applicazione ricontrolla approvazione persistita, comando autorizzato, versione e tempo corrente; una finestra già iniziata non viene applicata.
 
-Nel provider **mock** la regola riproducibile è: stanchezza riferita almeno 4/5 e sonno al massimo 6 ore, con fonti coerenti. La durata può essere riferita oppure provenire da un sensore di qualità `GOOD`. Una divergenza di almeno un'ora fra sensore e dichiarazione richiede chiarimento. Queste soglie e la pausa di 20 minuti sono scelte del prototipo, non regole cliniche o NASA. Nemotron valuta il contesto con le stesse restrizioni sulle modifiche, senza garantire una proposta a ogni check-in.
+Nel provider **mock** la regola riproducibile è: stanchezza riferita almeno 8/10 e sonno al massimo 6 ore, con fonti coerenti. La durata può essere riferita oppure provenire da un sensore di qualità `GOOD`. Una divergenza di almeno un'ora fra sensore e dichiarazione richiede chiarimento. Queste soglie e la pausa di 20 minuti sono scelte del prototipo, non regole cliniche o NASA. Nemotron valuta il contesto con le stesse restrizioni sulle modifiche, senza garantire una proposta a ogni check-in.
 
 ### Riferimenti NASA e loro uso
 
@@ -71,7 +71,7 @@ npm.cmd run dev
 
 Lo schema aggiunge il campo opzionale `CheckInContextSnapshot.scheduleJson`. Non serve azzerare il database. Per check-in vecchi senza programma congelato, una nuova proposta richiede un nuovo check-in.
 
-Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 2 su 5. Stanchezza 4 su 5.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
+Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 3 su 10. Stanchezza 8 su 10.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
 
 Gli scenari riproducibili senza dipendere dall'ora reale sono in `tests/agent/planning-flow.test.ts`: database temporanei, orologio fissato prima delle attività, sonno scarso con proposta, riposo adeguato senza proposta, dati insufficienti, approvazione idempotente, rifiuto, permessi e versione obsoleta. `tests/agent/artifacts.test.ts` verifica inoltre che una raccomandazione non valida non elimini il report.
 

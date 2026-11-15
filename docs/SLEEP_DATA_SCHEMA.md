@@ -10,7 +10,7 @@ AEGIS conserva dati riferiti e strumentali con origine distinta. I campi sono un
 | `wake_after_sleep_onset_minutes` | Minuti svegli dopo l'addormentamento | Opzionale, stima dello strumento |
 | `awakenings_count` | Numero di risvegli | Opzionale, stima dello strumento |
 | `sleep_efficiency_percent` | Efficienza riportata dal dispositivo, 0–100% | Opzionale; definizione del produttore da verificare |
-| `sleep_quality` | Valutazione 1–5 della persona | Check-in separato `sleep` |
+| `sleep_quality` | Valutazione 1–10 della persona | Check-in separato `sleep`, con `scale_max` |
 | `fatigue_rating`, `alertness` | Stato riferito 1–10 | Feedback confermato separato |
 
 Ogni rilevazione strumentale richiede dispositivo, metodo, timestamp, qualità dichiarata e flag sintetico. I campi facoltativi mancanti restano `null`: non sono dedotti dal tempo totale. Non si calcolano REM o HRV in assenza di dispositivi e protocolli appropriati.

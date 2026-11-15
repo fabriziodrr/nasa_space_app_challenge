@@ -37,9 +37,12 @@ async function main() {
           const state = await call(`/sessions/${session.id}`);
           if (!state.checkIn?.observations.length) console.log("\nNessuna osservazione registrata nella bozza.\n");
           else {
-            const labels = { SLEEP_HOURS: "Ore di sonno", SLEEP_QUALITY: "Qualità del sonno (1–5)", FATIGUE: "Stanchezza (1–5)", PHYSICAL_NOTES: "Condizioni fisiche" };
+            const labels = { SLEEP_HOURS: "Ore di sonno", SLEEP_QUALITY: "Qualità del sonno", FATIGUE: "Stanchezza", PHYSICAL_NOTES: "Condizioni fisiche" };
             console.log("\nBozza del check-in:");
-            for (const observation of state.checkIn.observations) console.log(`- ${labels[observation.field] ?? observation.field}: ${observation.value}`);
+            for (const observation of state.checkIn.observations) {
+              const scale = ["SLEEP_QUALITY", "FATIGUE"].includes(observation.field) ? (observation.scaleMax ? ` / ${observation.scaleMax}` : " (scala storica non specificata)") : "";
+              console.log(`- ${labels[observation.field] ?? observation.field}: ${observation.value}${scale}`);
+            }
             console.log("La bozza non è ancora confermata né condivisa con Terra.\n");
           }
         } else {
