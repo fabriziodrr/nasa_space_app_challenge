@@ -42,12 +42,11 @@
 .legend { color: #7a8188; font: 800 .65rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .06em; }
 .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; background: #56c6d4; box-shadow: 0 0 0 3px rgba(86, 198, 212, .12); }
 .chartWrap { display: flex; padding: 16px 12px 12px; border: 1px solid rgba(98, 105, 112, .16); border-radius: 12px; background: rgba(255, 255, 255, .31); box-shadow: inset 2px 2px 6px rgba(203, 208, 214, .3), inset -2px -2px 6px rgba(255, 255, 255, .55); }
-.chartGlow, .chartGlow > div { display: block; width: 100%; }
 .axis { flex: 0 0 30px; height: 142px; padding-top: 18px; display: flex; flex-direction: column; justify-content: space-between; color: #969ca1; font: 700 .65rem var(--font-dm-mono), ui-monospace, monospace; }
 .chart { display: flex; flex: 1; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
 .day { min-width: 42px; flex: 1; display: grid; gap: 5px; text-align: center; color: #626970; font: 700 .7rem var(--font-dm-mono), ui-monospace, monospace; }
 .barTrack { height: 120px; display: flex; align-items: flex-end; background: repeating-linear-gradient(to top, rgba(98, 105, 112, .13) 0 1px, transparent 1px 50%); border-bottom: 1px solid rgba(98, 105, 112, .35); }
-.bar { width: 72%; margin: 0 auto; min-height: 2px; background: linear-gradient(#78d7df, #3b1abd); border-radius: 4px 4px 0 0; box-shadow: 0 0 10px rgba(59, 26, 189, .18); animation: bar-rise .7s cubic-bezier(.2, .8, .2, 1) both; transform-origin: bottom; }
+.bar { width: 72%; margin: 0 auto; min-height: 2px; background: linear-gradient(#78d7df, #4b8fba); border-radius: 4px 4px 0 0; box-shadow: 0 0 8px rgba(86, 198, 212, .16); animation: bar-rise .7s cubic-bezier(.2, .8, .2, 1) both; transform-origin: bottom; }
 .day small { color: #8a9095; font-size: .65rem; }
 .infoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
 .infoGrid > div { padding: 14px; border: 1px solid rgba(98, 105, 112, .12); border-radius: 9px; background: rgba(255, 255, 255, .31); }
