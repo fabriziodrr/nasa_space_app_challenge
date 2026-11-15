@@ -1,6 +1,6 @@
 # Setup e avvio del modulo agent (N1)
 
-Questa guida copre inizializzazione del database, dati dimostrativi, scenari simulati e avvio. I contratti e gli accordi di integrazione sono in [contracts-v1.md](./contracts-v1.md).
+Questa guida descrive il bootstrap storico del modulo agent. Per l'avvio integrato corrente di dashboard, backend e visione vedere il [README principale](../../README.md). I contratti e gli accordi di integrazione sono in [contracts-v1.md](./contracts-v1.md).
 
 ## Prerequisiti
 
@@ -46,7 +46,7 @@ Definizioni in `server/agent/simulator/scenarios.ts`; provider simulati in `serv
 npm run dev
 ```
 
-La pagina demo (`/agent-demo`) verra collegata nei task successivi (T4). Per ora il modulo e verificabile via test e via le classi server.
+La demo conversazionale e disponibile su `/voice-demo`; per il flusso integrato avviare anche backend dati e prototipo di visione seguendo il README principale.
 
 ## Verifiche
 

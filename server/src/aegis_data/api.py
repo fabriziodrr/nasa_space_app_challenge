@@ -10,7 +10,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from .agent_tools import AgentDataTools
 from .models import Observation, SpeechFeedback
 from .service import DataService
-from .store import DuplicateObservation, Store
+from .store import DuplicateObservation, create_store
 
 
 class ConversationMessage(BaseModel):
@@ -32,7 +32,7 @@ class IntegratedDemoRequest(BaseModel):
 
 
 def create_app(db_path: str | Path | None = None) -> FastAPI:
-    store = Store(db_path or os.environ.get("AEGIS_DB_PATH", "data/aegis.sqlite3"))
+    store = create_store(db_path or os.environ.get("AEGIS_DATABASE_URL") or os.environ.get("AEGIS_DB_PATH", "data/aegis.sqlite3"))
     service = DataService(store)
     app = FastAPI(title="AEGIS local data API", version="0.1.0")
 

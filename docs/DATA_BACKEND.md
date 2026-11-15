@@ -1,6 +1,6 @@
 # Base dati AEGIS
 
-Questa prima implementazione contiene archivio SQLite, schemi validati, analytics deterministiche, API FastAPI e un adattatore di sola lettura per il compagno. Non include LLM, UI del test PVT, dashboard, voce, visione o sincronizzazione con Terra.
+Il backend dati contiene un archivio SQLite separato, schemi validati, analytics deterministiche e API FastAPI. Il progetto comprende anche dashboard, agent e visione come componenti separati: per il loro avvio integrato vedere il [README principale](../README.md). Il test di reattività rimane un prototipo separato.
 
 Estensione per dati strumentali del sonno e feedback continui dal modulo speech esterno: [SPEECH_DATA_CONTRACT.md](SPEECH_DATA_CONTRACT.md). Include i nuovi tipi `sleep_measurement` e `speech_feedback`, l'endpoint `/v1/speech-feedback` e il campo condiviso `sleep_context`.
 
@@ -8,10 +8,10 @@ Analisi longitudinale e prova sintetica di 14 giorni: [SLEEP_ANALYSIS.md](SLEEP_
 
 ## Avvio locale
 
-Repo di lavoro: `C:\Users\emanu\Desktop\Nasa_space\nasa_space_app_challenge`, branch `emanuel`. Il backend Python si trova in `server/`, separato dal frontend Next.js. Tutti i comandi seguenti si eseguono da quella cartella, con Python 3.12 o successivo:
+Il backend Python si trova in `server/`, separato dal frontend Next.js. Dalla radice del clone, con Python 3.12 o successivo:
 
 ```powershell
-cd C:\Users\emanu\Desktop\Nasa_space\nasa_space_app_challenge\server
+cd server
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m uvicorn aegis_data.api:create_app --factory --host 127.0.0.1 --port 8000

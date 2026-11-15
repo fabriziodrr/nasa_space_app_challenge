@@ -5,8 +5,13 @@ out/
 
 # Local environment and SQLite database
 .env
+.env.*
+!.env.example
+!.env.*.example
 prisma/*.db
 prisma/*.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
 
 # Tooling output
 *.tsbuildinfo
@@ -22,3 +27,11 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 server/data/*.sqlite3*
+
+# Local presentation media and generated working files
+/r1.mp4
+/r2.mp4
+/Registrazione 2026-11-15 132529.mp4
+/presentazione_nasa.pptx
+/output/
+/tmp/

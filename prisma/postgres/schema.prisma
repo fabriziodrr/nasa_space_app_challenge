@@ -1,0 +1,203 @@
+// Persistence models for the agent module (N1/N2).
+// JSON blobs are stored as strings and (de)serialized by adapters/prisma/mappers.ts;
+// the public shape of every blob is validated by the schemas in server/agent/contracts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Demo identity, used only by the simulated IdentityProvider (disabled in production).
+model DemoIdentity {
+  id              String  @id
+  role            String
+  astronautId     String?
+  astronautIdsJson String
+  label           String
+}
+
+model ConversationSession {
+  id          String    @id
+  astronautId String
+  openedAt    DateTime
+  closedAt    DateTime?
+
+  messages ConversationMessage[]
+  checkIns CheckIn[]
+
+  @@index([astronautId])
+}
+
+model ConversationMessage {
+  id        String   @id
+  sessionId String
+  role      String
+  text      String
+  createdAt DateTime
+  inputMode String
+
+  session ConversationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt, id])
+}
+
+model CheckIn {
+  id                     String    @id
+  astronautId            String
+  sessionId              String    @unique
+  revision               Int
+  status                 String
+  observationsJson       String
+  sharedObservationIdsJson String
+  createdAt              DateTime
+  confirmedAt            DateTime?
+
+  session ConversationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([astronautId])
+}
+
+model VisionObservation {
+  id          String @id
+  astronautId String
+  sessionId   String
+  requestKey  String
+  sha256      String
+  summaryJson String
+  importedAt  DateTime
+
+  @@unique([astronautId, sessionId, requestKey])
+  @@index([astronautId, sessionId, importedAt, id])
+}
+
+model VisionSelection {
+  sessionId      String @id
+  astronautId    String
+  observationId  String?
+}
+
+model CheckInContextSnapshot {
+  checkInId        String @id
+  astronautId      String
+  selectionJson    String
+  sensorsJson      String
+  visionJson       String?
+  qualityJson      String
+  scheduleJson     String?
+  confirmedAt      DateTime
+}
+
+// Snapshot of one message turn, keyed by the idempotent client message id.
+model Turn {
+  clientMessageId String   @id
+  sessionId       String
+  astronautId     String
+  requestJson     String
+  resultJson      String
+  createdAt       DateTime
+
+  @@unique([sessionId, clientMessageId])
+  @@index([astronautId, sessionId])
+}
+
+model ScheduleProposal {
+  id                     String    @id
+  astronautId            String
+  checkInId              String    @unique
+  scheduleId             String
+  baseScheduleVersion    Int
+  createdAt              DateTime
+  candidateJson          String
+  status                 String
+  decisionId             String?   @unique
+  appliedScheduleVersion Int?
+  appliedAt              DateTime?
+
+  decision ProposalDecision?
+
+  @@index([astronautId, createdAt, id])
+}
+
+model ProposalDecision {
+  id             String   @id
+  proposalId     String   @unique
+  operatorId     String
+  decision       String
+  comment        String?
+  decidedAt      DateTime
+  idempotencyKey String
+
+  proposal ScheduleProposal @relation(fields: [proposalId], references: [id])
+
+  @@unique([proposalId, idempotencyKey])
+}
+
+model GroundReport {
+  id                 String   @id
+  astronautId        String
+  checkInId          String   @unique
+  generatedAt        DateTime
+  findingsJson       String
+  discrepanciesJson  String
+  uncertaintiesJson  String
+  humanReviewRequired Boolean
+  humanReviewReason  String?
+  proposalId         String?
+
+  @@index([astronautId, generatedAt, id])
+}
+
+model DiaryEntry {
+  id          String   @id
+  astronautId String
+  checkInId   String   @unique
+  date        String
+  text        String
+  revision    Int
+  status      String
+  visibility  String
+  updatedAt   DateTime
+
+  @@index([astronautId, updatedAt, id])
+}
+
+model GenerationClaim {
+  checkInId      String    @id
+  token          String
+  leaseExpiresAt DateTime
+  failed         Boolean   @default(false)
+  completedAt    DateTime?
+  noChangeReason String?
+}
+
+// Authoritative simulated program store (one current snapshot per astronaut/day).
+model ScheduleSnapshot {
+  id             String   @id
+  astronautId    String
+  date           String
+  timeZone       String
+  version        Int
+  dayStartsAt    DateTime
+  dayEndsAt      DateTime
+  activitiesJson String
+
+  @@unique([astronautId, date])
+}
+
+// Durable receipt used to deduplicate an apply operation by proposal + decision.
+model ScheduleApplication {
+  proposalId            String
+  decisionId            String
+  scheduleId            String
+  appliedAt             DateTime
+  resultingVersion      Int
+  resultingActivitiesJson String
+  commandJson           String
+
+  @@id([proposalId, decisionId])
+}

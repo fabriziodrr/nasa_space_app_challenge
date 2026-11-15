@@ -11,6 +11,17 @@ from .models import Observation, utc_iso
 ADAPTER = TypeAdapter(Observation)
 
 
+def create_store(location: str | Path):
+    """Select the database explicitly; a file path keeps the local SQLite store."""
+    value = str(location)
+    if value.startswith(("postgresql://", "postgres://")):
+        from .postgres_store import PostgresStore
+        return PostgresStore(value)
+    if "://" in value:
+        raise ValueError("unsupported data backend URL")
+    return Store(location)
+
+
 class DuplicateObservation(ValueError):
     pass
 
