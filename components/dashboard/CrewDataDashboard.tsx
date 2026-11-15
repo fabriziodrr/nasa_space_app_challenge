@@ -50,7 +50,7 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
 
          <main className={`${styles.dataPanel} ${styles.reveal}`}>
            {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description={`Fictional self-report · ${mood.observed_at}`} profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
-           {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Synthetic sensor data · demonstration" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
+            {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
            {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${trials.length} total trials · synthetic demo`} profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
            {activeView === "vision" && <DataPanelHeader index="04" title="Vision report" description="Selected vision session and data agent context" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
           <div className={styles.panelContent}>
@@ -79,7 +79,7 @@ function DataPanelHeader({ index, title, description, profile, profiles, onProfi
          <h1><TextType text={title} typingSpeed={24} initialDelay={80} /></h1>
           <CrewProfileSelector profile={profile} profiles={profiles} onChange={onProfileChange} placement="header" />
         </div>
-        <p>{description}</p>
+         {description && <p>{description}</p>}
       </div>
     </header>
   );
@@ -217,16 +217,6 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
 
   return (
     <div className={styles.sleepContent}>
-      <div className={styles.sleepActions}>
-        <div className={styles.sleepSource}>
-          <span>SYNTHETIC DEMO</span>
-          <strong>{profile.id}</strong>
-        </div>
-        <div className={styles.sleepActionButtons}>
-          <button type="button" disabled={busy} onClick={() => void loadDemo()}>{busy ? "Loading…" : "Load sensor demo"}</button>
-           <button className={`${styles.refreshButton} ${refreshing ? styles.isRefreshing : ""}`} type="button" disabled={busy || refreshing} onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
-        </div>
-      </div>
       {status && <p className={styles.sleepNotice} role="status">{status}</p>}
       {!latest && <p className={styles.sleepNotice}>No sleep observation in the demo period. Load the sensor demo to begin.</p>}
         <div className={styles.sleepSummary}>
@@ -247,14 +237,16 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
           </div>
           <div className={styles.sleepReadout}>
             <span>RECORDED / UTC</span>
-            <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—"}</strong>
-            <span>{latest?.device ?? "NO OBSERVATION"}</span>
-            <small>{latest ? `${latest.method} · ${latest.observation_id}` : "Load a sensor demo to populate recovery data"}</small>
-          </div>
+           <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—"}</strong>
+           <span>{latest?.device ?? "NO OBSERVATION"}</span>
+           <div className={styles.sleepActionButtons}>
+             <button type="button" disabled={busy} onClick={() => void loadDemo()}>{busy ? "Loading…" : "Load sensor demo"}</button>
+             <button className={`${styles.refreshButton} ${refreshing ? styles.isRefreshing : ""}`} type="button" disabled={busy || refreshing} onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
+           </div>
+         </div>
         </div>
        </div>
        <div className={styles.sleepSensorGrid}>{metrics.map((item, index) => <SpotlightCard className={styles.sleepSensor} spotlightColor="rgba(59, 26, 189, 0.12)" key={item.label} style={{ animationDelay: `${index * 55}ms` }}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></SpotlightCard>)}</div>
-      <p className={styles.sleepFootnote}>Ring length: hours slept relative to the demo reference of 8 h. Color: simulated self-reported sleep quality ({profile.mood.sleep_quality}/10), not sensor-derived. Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
     </div>
   );
 }
