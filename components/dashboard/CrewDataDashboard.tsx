@@ -147,7 +147,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
   const refresh = useCallback(async () => {
     try {
       const end = Date.parse(sample.period_end);
-      const params = new URLSearchParams({ subject: profile.id, start: new Date(end - 14 * 86400000).toISOString(), end: new Date(end + 86400000).toISOString() });
+      const params = new URLSearchParams({ subject: profile.id, start: new Date(end - 14 * 86400000).toISOString(), end: new Date(Date.now() + 1000).toISOString() });
       let response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
       let result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
