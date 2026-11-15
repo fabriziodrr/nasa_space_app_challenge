@@ -49,7 +49,7 @@ export interface ConversationAiProvider {
 export interface OperationalAiProvider {
   // Never receives full transcripts, private diary or unshared observations.
   generateOperational(
-    input: { context: OperationalContext; schedule: ScheduleSnapshot },
+    input: { context: OperationalContext; schedule: ScheduleSnapshot; proposalFeedback?: string[] },
     options?: ProviderOptions,
   ): Promise<OperationalOutput>;
 }

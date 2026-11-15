@@ -19,6 +19,8 @@ function setup(allowProposals = false) {
   let failed = false;
   let badEvidence = false;
   let proposed = false;
+  let retryCandidate: typeof fixture.pendingProposal.candidate | null = null;
+  let feedback: string[] | undefined;
   const repository = {
     async getCheckIn(astronautId: string) { return astronautId === checkIn.astronautId ? checkIn : null; },
     async claimGeneration() { return { checkInId: checkIn.id, token: "claim-1", leaseExpiresAt: "2099-01-01T00:00:00Z" }; },
@@ -32,11 +34,12 @@ function setup(allowProposals = false) {
     sensors: { async read() { return fixture.sensors as SensorReading[]; } },
     schedule: { async getDay() { return fixture.schedule as ScheduleSnapshot; } },
     proposals: new ProposalService(new ScheduleValidatorImpl()),
-    operationalAi: { async generateOperational({ context }) {
+    operationalAi: { async generateOperational({ context, proposalFeedback }) {
       received = context;
+      if (proposalFeedback) feedback = proposalFeedback;
       return {
         report: { findings: [{ text: "Reported sleep", source: "self_report", evidence: [{ source: "self_report", observationId: badEvidence ? "obs-fatigue" : "obs-hours" }] }], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null } },
-        proposal: proposed ? fixture.pendingProposal.candidate : null,
+        proposal: proposed ? (proposalFeedback && retryCandidate ? retryCandidate : fixture.pendingProposal.candidate) : null,
         noChangeReason: proposed ? null : "No change proposed.",
       };
     } },
@@ -45,7 +48,7 @@ function setup(allowProposals = false) {
       return { text: "Personal diary" };
     } },
   });
-  return { service, checkIn, published: () => published, received: () => received, failed: () => failed, makeEvidenceInvalid: () => { badEvidence = true; }, makeProposal: () => { proposed = true; } };
+  return { service, checkIn, published: () => published, received: () => received, failed: () => failed, feedback: () => feedback, correctRetry: (candidate: typeof fixture.pendingProposal.candidate) => { retryCandidate = candidate; }, makeEvidenceInvalid: () => { badEvidence = true; }, makeProposal: () => { proposed = true; } };
 }
 
 test("operational AI receives only explicitly shared observations; diary stays private", async () => {
@@ -89,5 +92,19 @@ test("an invalid recommendation is discarded while the valid report remains avai
   assert.equal(h.published()?.proposal, null);
   assert.ok(h.published()?.noChangeReason);
   assert.equal(h.published()?.report.humanReview.required, true);
+  assert.ok(h.feedback()?.some((item) => item.includes("not shared")));
+  assert.match(h.published()?.report.humanReview.reason ?? "", /not shared/);
   assert.equal(h.published()?.diary.visibility, "PRIVATE");
+});
+
+test("a corrected proposal is validated before publication", async () => {
+  const h = setup(true);
+  const candidate = structuredClone(fixture.pendingProposal.candidate);
+  candidate.evidence = [{ source: "self_report", observationId: "obs-hours" }];
+  h.correctRetry(candidate);
+  h.makeProposal();
+  await h.service.generate(identity, h.checkIn.id);
+  assert.ok(h.feedback()?.length);
+  assert.equal(h.published()?.proposal?.status, "PENDING_REVIEW");
+  assert.equal(h.published()?.noChangeReason, null);
 });

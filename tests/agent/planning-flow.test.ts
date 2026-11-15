@@ -10,6 +10,7 @@ import { DEFAULT_VISION_QUALITY } from "../../server/agent/vision/quality";
 import { ArtifactService } from "../../server/agent/services/artifacts";
 import { ProposalService } from "../../server/agent/services/proposals";
 import { DemoScheduleValidator } from "../../server/agent/services/demo-validator";
+import { repairDemoProposal } from "../../server/agent/services/demo-proposal-repair";
 import { ApprovalService } from "../../server/agent/services/approval";
 import { createProposalHttpHandlers } from "../../server/agent/http/proposal-handlers";
 import type { AgentRuntime } from "../../server/agent/runtime";
@@ -137,6 +138,26 @@ test("demo policy refuses long rests and changes in the past", () => {
     { type: "ADD_REST", activityId: "rest", title: "Pausa", startsAt: "2026-11-14T09:00:00Z", endsAt: "2026-11-14T09:30:00Z" },
   ] };
   assert.equal(validator.validate({ schedule, context, candidate: longPause }).valid, false);
+});
+
+test("demo repair chooses a future flexible activity and validates the result", () => {
+  const schedule = demoProgram("astro-1", "2026-11-14");
+  const confirmedAt = "2026-11-14T10:00:00.000Z";
+  const context: OperationalContext = { checkIn: { id: "c1", astronautId: "astro-1", confirmedAt, observations: [
+    { id: "fatigue", source: "self_report", field: "FATIGUE", value: 8, scaleMax: 10, recordedAt: confirmedAt },
+  ] }, sensors: [] };
+  const candidate: ProposalCandidate = { rationale: "Short rest requested", evidence: [{ source: "self_report", observationId: "fatigue" }], changes: [
+    { type: "ADD_REST", activityId: "rest", title: "Rest", startsAt: "2026-11-14T09:00:00Z", endsAt: "2026-11-14T09:20:00Z" },
+    { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-14T09:20:00Z", endsAt: "2026-11-14T10:00:00Z" },
+  ] };
+  const proposals = new ProposalService(new DemoScheduleValidator());
+  const result = repairDemoProposal(candidate, context, schedule, proposals, Date.parse(confirmedAt));
+  assert.equal(result?.outcome, "proposal");
+  if (result?.outcome === "proposal") {
+    assert.ok(result.proposal.candidate.changes.some((change) => change.type === "MOVE_ACTIVITY" && change.activityId === "science-2"));
+    assert.equal(new DemoScheduleValidator().validate({ schedule, context, candidate: result.proposal.candidate }).valid, true);
+  }
+  assert.equal(repairDemoProposal(candidate, context, schedule, proposals, Date.parse("2026-11-14T15:00:00Z")), null);
 });
 
 test("ground rejection leaves the original schedule untouched", async () => {

@@ -7,6 +7,7 @@ import {
 import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleReader, SensorProvider } from "../ports";
 import { AgentErrors, isAgentError } from "../core/errors";
 import { ProposalService } from "./proposals";
+import { repairDemoProposal } from "./demo-proposal-repair";
 import type { VisionConfirmationService } from "../vision/confirmation";
 
 /** Generates both artifacts from a confirmed check-in using separate privacy boundaries. */
@@ -109,12 +110,30 @@ export class ArtifactService {
       if (operational.proposal) {
         if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Proposal generation is not yet connected to the authoritative schedule.");
         if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("The check-in has no frozen schedule: open a new check-in.");
-        const built = proposals.build(operational.proposal, context, day);
+        let built = proposals.build(operational.proposal, context, day);
+        let declined = false;
+        if (built.outcome === "invalid") {
+          try {
+            const retry = OperationalOutputSchema.parse(await operationalAi.generateOperational({
+              context: structuredClone(context), schedule: structuredClone(day),
+              proposalFeedback: built.violations.map((violation) => violation.message),
+            }));
+            if (retry.proposal) built = proposals.build(retry.proposal, context, day);
+            else if (retry.noChangeReason) { operational.noChangeReason = retry.noChangeReason; declined = true; }
+          } catch (error) {
+            console.error("Agent proposal retry:", isAgentError(error) ? error.code : "error");
+          }
+        }
+        if (built.outcome === "invalid" && !declined) {
+          built = repairDemoProposal(operational.proposal, context, day, proposals) ?? built;
+        }
         if (built.outcome === "proposal") proposal = built.proposal;
         else {
           operational.proposal = null;
-          operational.noChangeReason = "The generated recommendation does not satisfy the schedule constraints; keep the schedule and request a Ground review.";
-          operational.report.humanReview = { required: true, reason: "The automatic proposal does not pass schedule validation." };
+          const reasons = [...new Set(built.violations.map((violation) => violation.message))].slice(0, 5).join(" ");
+          operational.noChangeReason = operational.noChangeReason ?? `The proposed schedule change was rejected: ${reasons}`;
+          operational.report.humanReview = { required: true, reason: `The proposed schedule change was rejected: ${reasons}` };
+          operational.report.uncertainties = [`Schedule validation: ${reasons}`, ...operational.report.uncertainties].slice(0, 20);
         }
       }
       const now = new Date().toISOString();
