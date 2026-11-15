@@ -1,6 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 import { ProposalCandidateSchema, ScheduleApplyCommandSchema, ScheduleSnapshotSchema, type ScheduleApplyCommand, type ScheduleApplyResult, type ScheduleSnapshot } from "../contracts";
 import { SimulatedScheduleProvider } from "./schedule";
+import { AgentError } from "../core/errors";
+import { activitiesOverlap, hasDependencyCycle } from "../lib/schedule";
 
 /** Illustrative UTC day: fixed meals, exercise, contacts and an 8.5 h sleep opportunity. */
 export function demoProgram(astronautId: string, date: string): ScheduleSnapshot {
@@ -34,6 +36,31 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
       dayStartsAt: new Date(program.dayStartsAt), dayEndsAt: new Date(program.dayEndsAt), activitiesJson: JSON.stringify(program.activities),
     } });
     return super.getDay(astronautId, date);
+  }
+
+  /** Ground replaces a demo day through an optimistic version check. */
+  async replaceDay(astronautId: string, expectedVersion: number, raw: ScheduleSnapshot): Promise<ScheduleSnapshot> {
+    const next = ScheduleSnapshotSchema.parse(raw);
+    if (next.astronautId !== astronautId || next.version !== expectedVersion) throw new AgentError("VALIDATION_ERROR", "Programma o versione non coerenti.");
+    const current = await this.getDay(astronautId, next.date);
+    if (current.id !== next.id) throw new AgentError("NOT_FOUND", "Programma non trovato.");
+    if (current.version !== expectedVersion) throw new AgentError("VERSION_CONFLICT", "Il programma è cambiato.", false, current.version);
+    const start = Date.parse(next.dayStartsAt), end = Date.parse(next.dayEndsAt);
+    const invalid = next.activities.some((activity, i) => Date.parse(activity.startsAt) < start || Date.parse(activity.endsAt) > end
+      || activity.dependsOn.some((id) => {
+        const dependency = next.activities.find((item) => item.id === id);
+        return !dependency || Date.parse(dependency.endsAt) > Date.parse(activity.startsAt);
+      }) || next.activities.slice(i + 1).some((other) => activitiesOverlap(activity, other)));
+    if (invalid || hasDependencyCycle(next.activities)) throw new AgentError("VALIDATION_ERROR", "Il programma contiene attività fuori giornata, sovrapposte o dipendenze non valide.");
+    const result = await this.db.scheduleSnapshot.updateMany({ where: { id: current.id, astronautId, version: expectedVersion }, data: {
+      version: { increment: 1 }, timeZone: next.timeZone, dayStartsAt: new Date(next.dayStartsAt),
+      dayEndsAt: new Date(next.dayEndsAt), activitiesJson: JSON.stringify(next.activities),
+    } });
+    if (result.count !== 1) {
+      const latest = await this.getById(current.id);
+      throw new AgentError("VERSION_CONFLICT", "Il programma è cambiato.", false, latest?.version ?? expectedVersion);
+    }
+    return { ...next, version: expectedVersion + 1 };
   }
 
   override async applyApproved(raw: ScheduleApplyCommand): Promise<ScheduleApplyResult> {

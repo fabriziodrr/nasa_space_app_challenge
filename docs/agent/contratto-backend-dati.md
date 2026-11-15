@@ -42,7 +42,7 @@ Alla conferma del check-in, l'agent acquisisce una volta il contesto autorizzato
 
 Il rapporto deterministico Python descrive le fonti disponibili. Il report operativo dell'agent per Terra usa soltanto il contesto congelato e autorizzato, conserva le evidenze e distingue dichiarazioni, sensori, visione e deduzioni. Visione sintetica o insufficiente non è evidenza operativa; la visione non determina da sola sonno, stanchezza o diagnosi. Il diario resta privato.
 
-La schedule demo versionata resta l'autorità **della demo** finché non esiste un provider condiviso. Nessun endpoint schedule è presente nel backend Python attuale. Il futuro `ScheduleProvider` concordato deve fornire lettura per astronauta e data/ID, versione, applicazione dopo decisione di Terra, controllo atomico della versione, deduplicazione durevole per proposta/decisione e riconciliazione degli esiti incerti. Solo `APPLIED` significa programma aggiornato; un rifiuto o una proposta obsoleta non modifica il programma. La selezione della vista nella dashboard non sostituisce l'autorizzazione di Terra.
+La schedule versionata in Prisma è l'autorità condivisa **della demo**: l'agent la usa direttamente e la dashboard può leggerla o aggiornarla usando le API v2 e le credenziali autorizzate. Terra può sostituirla con controllo atomico della versione, oppure approvare una proposta con deduplicazione durevole. Nessun endpoint schedule è presente nel backend Python attuale; la proprietà del programma oltre la demo resta da concordare con il team. Solo `APPLIED` significa proposta applicata; un rifiuto o una proposta obsoleta non modifica il programma. La selezione della vista nella dashboard non sostituisce l'autorizzazione di Terra.
 
 ## Sequenza di implementazione e verifica
 

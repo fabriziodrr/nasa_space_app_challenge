@@ -3,3 +3,4 @@ import { getAgentRuntime } from "@/server/agent/runtime";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const GET = (request: Request) => createProposalHttpHandlers(getAgentRuntime).schedule(request);
+export const PUT = (request: Request) => createProposalHttpHandlers(getAgentRuntime).updateSchedule(request);

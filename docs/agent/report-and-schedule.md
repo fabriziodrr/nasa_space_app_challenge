@@ -37,6 +37,7 @@ Autenticazione `Authorization: Bearer <token>`. In demo usare `AGENT_DEMO_TOKEN`
 | `GET /api/agent/v2/reports?astronautId=astro-1` | Report condivisi, anche con evidenze webcam |
 | `GET /api/agent/v2/proposals?astronautId=astro-1` | Proposte e stato; `cursor` e `limit` opzionali |
 | `GET /api/agent/v2/schedule?astronautId=astro-1&date=2026-11-14` | Programma persistente della data richiesta |
+| `PUT /api/agent/v2/schedule` | Terra imposta il programma condiviso tramite controllo di versione |
 | `POST /api/agent/v2/proposals/:id/decision` | Decisione di Terra |
 
 Le risposte positive contengono `{ data, meta: { contractVersion: "2.0.0", requestId } }`, con `Cache-Control: no-store`. Schemi e tipi importabili dal frontend: `server/agent/contracts/index.ts`, inclusi `ProposalListV2ResponseSchema`, `DecisionV2ResponseSchema` e `ScheduleV2ResponseSchema`.
@@ -53,6 +54,22 @@ Idempotency-Key: decisione-univoca-1
 ```
 
 Per rifiutare usare `REJECT`. `comment` è obbligatorio ma può essere `null`. La risposta contiene `{ decision, proposal, schedule }`: `schedule` è valorizzato soltanto per `APPLIED`. `REJECTED` non cambia il programma; una versione superata produce `409 VERSION_CONFLICT` e `STALE`. Un'approvazione con applicazione fallita restituisce lo stato `APPLY_FAILED`, senza presentarla come applicata. Un timeout non giustifica una seconda richiesta con una chiave diversa: ripetere la richiesta originale.
+
+### Impostare la schedule da Terra
+
+Il programma della demo ha una sola fonte autorevole: `DemoProgramProvider` e il database Prisma dell'agent. Dashboard e altri componenti lo leggono mediante `GET /api/agent/v2/schedule`, con identità autorizzata. Il backend Python dei sensori non è un secondo archivio della schedule. Per modificarla, Terra recupera lo snapshot e invia quello aggiornato:
+
+```http
+PUT /api/agent/v2/schedule
+Authorization: Bearer <token-terra>
+Content-Type: application/json
+
+{ "expectedVersion": 1, "schedule": { ...snapshot_aggiornato_con_version_1 } }
+```
+
+Il corpo illustrato richiede l'oggetto completo restituito dal GET, con `id`, `astronautId`, `date` e `version` invariati; lo schema eseguibile è `UpdateScheduleRequestSchema`. Il server valida attività, confini della giornata, sovrapposizioni e dipendenze e incrementa la versione in modo atomico. Un astronauta riceve `403`; una versione obsoleta riceve `409 VERSION_CONFLICT` con `currentVersion`: ricaricare e rivedere il programma prima di riprovare. Un `PUT` ripetuto dopo il successo con la vecchia versione riceve quindi `409`; dopo un timeout ricaricare la schedule per verificare l'esito. Una proposta precedente diventa `STALE` al tentativo di decisione se la versione è cambiata.
+
+Questa API permette a Fabrizio di collegare la dashboard; la schermata di modifica non è ancora presente. La schedule resta una simulazione locale: la proprietà del programma reale e il sistema di autenticazione definitivo devono essere concordati con il team.
 
 La conferma con scelta webcam usa `POST /api/agent/v2/check-ins/:id/confirm`; i messaggi continuano a usare le API di sessione esistenti. Per il dettaglio di conferma e consenso vedere [I1](./i1-vision-import.md) e lo schema `ConfirmCheckInWithVisionRequestSchema`.
 
@@ -77,4 +94,4 @@ Gli scenari riproducibili senza dipendere dall'ora reale sono in `tests/agent/pl
 
 ## Collegamento successivo
 
-Con Emanuel resta da verificare l'identità comune e concordare l'autorità della schedule, implementando il `ScheduleProvider` condiviso; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può consumare i contratti sopra per mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. Il collegamento attuale al backend Python è in sola lettura.
+Con Emanuel resta da verificare l'identità comune e concordare il sistema che possiederà la schedule oltre la demo; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può consumare i contratti sopra per mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. Il collegamento attuale al backend Python è in sola lettura.

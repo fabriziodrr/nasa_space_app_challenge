@@ -48,6 +48,46 @@ const decision = (actor: string, value: "APPROVE" | "REJECT") => new Request("ht
   body: JSON.stringify({ decision: value, comment: null }),
 });
 
+test("ground updates the shared schedule with a version check and invalidates older proposals", async () => {
+  const h = await setup("poor");
+  try {
+    const before = await h.schedule.getDay("astro-1", "2026-11-14");
+    const proposal = (await h.repository.getSessionState("astro-1", "session-plan"))!.proposal!;
+    const edited = { ...before, activities: before.activities.map((a) => a.id === "science-1" ? { ...a, title: "Campioni aggiornati" } : a) };
+    const request = (actor: string, schedule: typeof before) => new Request("http://localhost/api/agent/v2/schedule", {
+      method: "PUT", headers: { Authorization: `Bearer ${actor}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ expectedVersion: before.version, schedule }),
+    });
+    assert.equal((await h.handlers.updateSchedule(request("astro", edited))).status, 403);
+    const overlap = { ...edited, activities: edited.activities.map((a) => a.id === "science-2" ? { ...a, startsAt: "2026-11-14T16:00:00Z", endsAt: "2026-11-14T16:40:00Z", earliestStart: "2026-11-14T16:00:00Z", latestEnd: "2026-11-14T17:00:00Z" } : a) };
+    assert.equal((await h.handlers.updateSchedule(request("ground", overlap))).status, 400);
+    const saved = await h.handlers.updateSchedule(request("ground", edited));
+    assert.equal(saved.status, 200); assert.equal((await saved.json()).data.version, 2);
+    assert.equal((await h.schedule.getDay("astro-1", "2026-11-14")).activities.find((a) => a.id === "science-1")?.title, "Campioni aggiornati");
+    const replay = await h.handlers.updateSchedule(request("ground", edited));
+    assert.equal(replay.status, 409); assert.equal((await replay.json()).error.currentVersion, 2);
+    assert.equal((await h.handlers.decide(decision("ground", "APPROVE"), proposal.id)).status, 409);
+    assert.equal((await h.repository.getProposal("astro-1", proposal.id))!.status, "STALE");
+  } finally { await h.cleanup(); }
+});
+
+test("concurrent ground updates from the same version cannot both overwrite the shared day", async () => {
+  const h = await setup("rested");
+  try {
+    const schedule = await h.schedule.getDay("astro-1", "2026-11-14");
+    const request = (title: string) => new Request("http://localhost/api/agent/v2/schedule", {
+      method: "PUT", headers: { Authorization: "Bearer ground", "Content-Type": "application/json" },
+      body: JSON.stringify({ expectedVersion: 1, schedule: { ...schedule,
+        activities: schedule.activities.map((a) => a.id === "science-1" ? { ...a, title } : a) } }),
+    });
+    const results = await Promise.all([h.handlers.updateSchedule(request("A")), h.handlers.updateSchedule(request("B"))]);
+    assert.deepEqual(results.map((response) => response.status).sort(), [200, 409]);
+    const stored = await h.schedule.getDay("astro-1", "2026-11-14");
+    assert.equal(stored.version, 2);
+    assert.ok(["A", "B"].includes(stored.activities.find((a) => a.id === "science-1")!.title));
+  } finally { await h.cleanup(); }
+});
+
 test("report proposes a bounded change; astronaut cannot approve; ground applies once", async () => {
   const h = await setup("poor");
   try {
