@@ -40,6 +40,6 @@ const Demo = () => {
   <Series.Sequence name="Report provenance" durationInFrames={3*fps} premountFor={fps}><Crop src="report.jpg" still crop={[180,620,1540,450]}/></Series.Sequence>
   <Series.Sequence name="Applied proposal status" durationInFrames={4*fps} premountFor={fps}><Crop src="applied.jpg" still crop={[180,290,1540,450]}/></Series.Sequence>
   <Series.Sequence name="Updated daily schedule" durationInFrames={4*fps} premountFor={fps}><Crop src="schedule.jpg" still crop={[180,20,1540,970]}/></Series.Sequence>
- </Series></AbsoluteFill>;
+ </Series><div style={{position:'absolute',right:18,bottom:18,padding:'6px 10px',font:'24px Arial, sans-serif',color:'#fff',background:'rgba(0,0,0,0.8)'}}>Contains SI-generated visuals | AI-assisted montage</div></AbsoluteFill>;
 };
 registerRoot(() => <Composition id="SlothDemo" component={Demo} durationInFrames={1740} fps={30} width={1920} height={1080}/>);

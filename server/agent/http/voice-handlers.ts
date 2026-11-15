@@ -81,6 +81,7 @@ export function createVoiceHttpHandlers(getRuntime: () => AgentRuntime) {
       }
       return new Response(Uint8Array.from(output.audio).buffer, { status: 200, headers: {
         "Content-Type": "audio/mpeg", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+        "X-AI-Generated": "true", "X-Audio-Provenance": "Synthetic text-to-speech generated for the SLOTH assistant",
       } });
     }),
   };

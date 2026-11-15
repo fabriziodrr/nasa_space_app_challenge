@@ -14,7 +14,13 @@ The assistant can prepare a report and propose a change to the astronaut's sched
 
 Sensor readings and crew profiles are **synthetic**. Eyelid observations describe only the recorded interval; they do not diagnose fatigue or measure sleep. This prototype is not a medical device, an operational NASA system or a source of NASA scheduling rules.
 
-## Background reference
+## AI / SI use disclosure
+
+AI tools assisted software development, synthetic demonstration data, visual assets and presentation/video preparation. The assistant generates conversational text, reports and suggestions using the configured language model. Its spoken replies use synthetic text-to-speech, including browser speech synthesis or the configured voice provider. Crew profiles and demonstration sensor data are fictional; camera observations and user statements are separate inputs.
+
+The team integrated and tested the prototype. See [AI use and provenance metadata](ai-use.json) and [submission disclosure](docs/AI_USE.md). Generated visual elements are identified in the submission presentation and video. Browser-generated speech is played live rather than delivered as a standalone recording.
+
+## NASA background reference
 
 NASA's [5 Hazards of Human Spaceflight](https://www.nasa.gov/hrp/hazards/) describes isolation and confinement among the hazards astronauts face. This reference provides context for SLOTH's focus on astronaut wellbeing; it is not the source of the demo's synthetic sensor readings.
 

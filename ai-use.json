@@ -1,0 +1,11 @@
+{
+  "project": "SLOTH",
+  "disclosure_basis": "Team declaration and repository inspection, November 2026",
+  "code": {"ai_assisted": true, "description": "AI-assisted code generation, debugging, integration and documentation; integrated and tested by the team."},
+  "data": {"ai_assisted": true, "synthetic": true, "description": "Fictional crew profiles and demonstration sensor data; not NASA astronaut telemetry. Camera observations and user statements retain their own provenance."},
+  "images": {"si_generated_content_present": true, "description": "Generated project branding and mascot assets; may appear within real application screenshots."},
+  "video": {"ai_assisted_editing": true, "source": "Team-recorded application screen captures containing generated visual assets; presentation export has a visible disclosure and container metadata."},
+  "audio": {"synthetic_voice": true, "description": "Assistant text-to-speech via browser speech synthesis or a configured server voice provider. Live browser playback has no exported audio file; server responses include provenance headers."},
+  "branding_review": {"scope": "Manual visual check of project branding and final submission slides/video", "not_a_certification": true},
+  "submission_assets": ["output/presentation/SLOTH_submission.pdf", "output/presentation/SLOTH_submission.pptx", "presentation-video/out/sloth-presentation-disclosed.mp4"]
+}

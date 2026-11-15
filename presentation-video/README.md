@@ -1,5 +1,7 @@
 # S.L.O.T.H. presentation video
 
+For submission use `out/sloth-presentation-disclosed.mp4`: it has a visible SI disclosure and descriptive MP4 metadata. It is a silent, 58-second supplemental video. Use the 7-slide `SLOTH_submission.pdf` for the required demo. The composition also includes the visible disclosure for future renders. See `../docs/AI_USE.md` for provenance.
+
 Editable Remotion montage, 58 seconds, 16:9, silent. The source recordings contain different demo sessions: the montage illustrates features and does not present them as one continuous clinical assessment. The applied-status shot shows an existing applied proposal, not a newly filmed approval click.
 
 Final presentation file: `out/sloth-presentation.mp4` (1280×720, 30 fps, H.264, 58 seconds, no audio). The final file was fully decoded without errors. The opening was rendered again in Remotion to hold the original logo for three seconds, and joined to the remaining Remotion render with FFmpeg; the editable composition contains that corrected opening.
