@@ -431,6 +431,11 @@ button:focus-visible {
   flex: 1;
 }
 
+.dashboard-shell__data-panel {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+}
+
 .human-vitals-dashboard__body > .human-vitals-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

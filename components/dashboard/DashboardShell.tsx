@@ -6,6 +6,8 @@ import { RotateCcw } from "lucide-react";
 import { HumanVitalsDashboard } from "@/components/dashboard/HumanVitalsDashboard";
 import { CrewDataDashboard } from "@/components/dashboard/CrewDataDashboard";
 import { MissionDashboard } from "@/components/dashboard/MissionDashboard";
+import { SleepDataPanel } from "@/components/dashboard/SleepDataPanel";
+import { DataAgentPanel } from "@/components/dashboard/DataAgentPanel";
 import { PillNav } from "@/components/reactbits/PillNav";
 import { TextType } from "@/components/reactbits/TextType";
 import { DashboardIcon } from "@/components/dashboard/DashboardIcon";
@@ -17,7 +19,7 @@ type DashboardView = "houston" | "iss";
 /** Shared frame for the two S.L.O.T.H. mission operations perspectives. */
 export function DashboardShell() {
   const [activeView, setActiveView] = useState<DashboardView>("houston");
-  const [activeSection, setActiveSection] = useState<"human-vitals" | "crew-data" | "mission">("human-vitals");
+  const [activeSection, setActiveSection] = useState<"human-vitals" | "crew-data" | "mission" | "sleep-history" | "data-agent">("human-vitals");
   const [resetToken, setResetToken] = useState(0);
   const [bodyVariant, setBodyVariant] = useState<BodyVariant>("male");
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -45,9 +47,19 @@ export function DashboardShell() {
           items={[
             { label: "Houston", active: activeView === "houston", onClick: () => transitionTo(() => { setActiveView("houston"); setActiveSection("human-vitals"); }), icon: <DashboardIcon name="grid" size={14} />, menu: (
               <div className="pill-nav__menu-panel">
-                <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => setActiveSection("crew-data"))}>
+                <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("houston"); setActiveSection("crew-data"); })}>
                   <span className="pill-nav__submenu-icon"><DashboardIcon name="crew" size={15} /></span>
                   <span className="pill-nav__submenu-copy"><strong>Crew Data</strong><small>Readiness &amp; recovery</small></span>
+                  <DashboardIcon name="chevron" size={13} />
+                </button>
+                <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("houston"); setActiveSection("sleep-history"); })}>
+                  <span className="pill-nav__submenu-icon"><DashboardIcon name="activity" size={15} /></span>
+                  <span className="pill-nav__submenu-copy"><strong>Sleep history</strong><small>Sleep analysis</small></span>
+                  <DashboardIcon name="chevron" size={13} />
+                </button>
+                <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("houston"); setActiveSection("data-agent"); })}>
+                  <span className="pill-nav__submenu-icon"><DashboardIcon name="activity" size={15} /></span>
+                  <span className="pill-nav__submenu-copy"><strong>Data agent</strong><small>Sleep &amp; vision</small></span>
                   <DashboardIcon name="chevron" size={13} />
                 </button>
                 <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("houston"); setActiveSection("mission"); })}>
@@ -80,7 +92,8 @@ export function DashboardShell() {
         />
         {activeSection === "human-vitals" ? <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} />
           : activeSection === "crew-data" ? <CrewDataDashboard onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />
-          : <MissionDashboard key={activeView} perspective={activeView} onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />}
+          : activeSection === "mission" ? <MissionDashboard key={activeView} perspective={activeView} onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />
+          : <div className="dashboard-shell__data-panel">{activeSection === "sleep-history" ? <SleepDataPanel /> : <DataAgentPanel />}</div>}
       </main>
       <DashboardTransition visible={isTransitioning} />
     </div>
