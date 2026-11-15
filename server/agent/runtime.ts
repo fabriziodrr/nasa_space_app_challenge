@@ -39,6 +39,7 @@ function createDemoRuntime() {
   return {
     identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN),
     repository,
+    visionQuality,
     visionObservations,
     visionConfirmation,
     approval: new ApprovalService(repository, schedule),
