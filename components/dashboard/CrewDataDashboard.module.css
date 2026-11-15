@@ -84,9 +84,9 @@
 .sleepSource span { color: #8a9095; font: 800 9px var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .12em; }
 .sleepSource strong { color: #3f454a; font: 800 11px var(--font-dm-mono), ui-monospace, monospace; }
 .sleepActionButtons { display: flex; flex-wrap: wrap; gap: 8px; }
-.sleepActions button, .visionControls button { padding: 8px 12px; border: 1px solid rgba(59, 26, 189, .3); border-radius: 6px; color: #3b1abd; background: transparent; cursor: pointer; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; }
-.sleepActions button:hover, .visionControls button:hover { background: rgba(59, 26, 189, .08); }
-.sleepActions button:disabled, .visionControls button:disabled { opacity: .5; }
+.sleepActions button, .sleepActionButtons button, .visionControls button { padding: 8px 12px; border: 1px solid rgba(59, 26, 189, .3); border-radius: 6px; color: #3b1abd; background: transparent; cursor: pointer; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; }
+.sleepActions button:hover, .sleepActionButtons button:hover, .visionControls button:hover { background: rgba(59, 26, 189, .08); }
+.sleepActions button:disabled, .sleepActionButtons button:disabled, .visionControls button:disabled { opacity: .5; }
 .isRefreshing svg { animation: refresh-spin .85s linear infinite; }
 .refreshButton { display: inline-grid; width: 40px; height: 40px; padding: 0 !important; place-items: center; border-radius: 50% !important; }
 .refreshButton svg { transition: transform .35s ease; }
@@ -101,9 +101,12 @@
 .sleepContent .sleepDate { margin: 8px 0 10px; font-size: clamp(17px, 2.2vw, 25px); }
 .sleepReadout small { display: block; max-width: 290px; margin-top: 10px; color: #a0a5a9; font: 700 9px/1.5 var(--font-dm-mono), ui-monospace, monospace; }
 .sleepSensorGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.sleepSensor { display: grid; align-content: center; gap: 5px; min-height: 74px; min-width: 0; padding: 10px 13px; border: 1px solid rgba(98, 105, 112, .16); border-radius: 8px; background: rgba(255, 255, 255, .35); animation: card-reveal .55s cubic-bezier(.2, .8, .2, 1) both; }
+.sleepSensor { display: block; min-height: 74px; min-width: 0; padding: 0; border: 1px solid rgba(98, 105, 112, .16); border-radius: 8px; background: rgba(255, 255, 255, .35); animation: card-reveal .55s cubic-bezier(.2, .8, .2, 1) both; }
+.sleepSensor :global(.spotlight-card__content) { display: grid; min-height: 74px; align-content: center; gap: 5px; padding: 10px 13px; box-sizing: border-box; }
 .sleepSensor span, .sleepSensor small { color: #8a9095; font: 700 10px/1.4 var(--font-dm-mono), ui-monospace, monospace; overflow-wrap: anywhere; }
-.sleepSensor strong { color: #3b1abd; font: 800 18px var(--font-dm-mono), ui-monospace, monospace; overflow-wrap: anywhere; }
+.sleepSensor span { letter-spacing: .02em; }
+.sleepSensor strong { color: #3b1abd; font: 800 18px/1.15 var(--font-dm-mono), ui-monospace, monospace; overflow-wrap: anywhere; }
+.sleepSensor small { color: #a0a5a9; }
 .sleepFootnote, .sleepNotice { color: #777e84; font: 700 10px/1.5 var(--font-dm-mono), ui-monospace, monospace; }
 .sleepNotice { margin: 0; padding: 8px 10px; border-left: 2px solid #d6a744; }
 .sleepFootnote { margin-top: 18px; }
@@ -141,6 +144,8 @@
 .sleepReadout { position: relative; min-width: 100px; padding-left: 18px; border-left: 1px solid rgba(98, 105, 112, .15); cursor: help; }
 .sleepReadout span { display: block; color: #8a9095; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
 .sleepReadout strong { display: block; margin-top: 9px; color: #272c31; font: 800 30px var(--font-dm-mono), ui-monospace, monospace; }
+.sleepReadout .sleepActionButtons { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.sleepReadout .sleepActionButtons button:first-child { padding: 7px 10px; font-size: 9px; }
 
 .vigilanceLayout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; align-items: center; min-height: 0; flex: 1; gap: 30px; }
 .reactionChart { display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; justify-content: center; }
