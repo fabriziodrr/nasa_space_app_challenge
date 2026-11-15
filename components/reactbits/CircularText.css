@@ -17,6 +17,9 @@
 }
 
 .circular-text__tilt {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   transform-style: preserve-3d;
   transform: rotateX(var(--circular-tilt));
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
@@ -27,6 +30,8 @@
 }
 
 .circular-text__plane {
+  position: absolute;
+  inset: 0;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
