@@ -27,7 +27,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       source: "vision" as const, evidence: [{ source: "vision" as const, visionObservationId: vision.id }],
     }] : [];
     const sensorFindings = context.sensors.filter((item) => item.quality !== "UNAVAILABLE").map((item) => ({
-      text: `Sensore${item.simulated ? " simulato" : ""} ${item.metric}: ${item.value} ${item.unit}, osservato ${item.observedAt}; qualità ${item.quality}${item.provenance ? `; periodo ${item.provenance.periodStart} – ${item.provenance.periodEnd}; soggetto demo non verificato` : ""}.`,
+      text: `Sensore${item.simulated ? " simulato" : ""} ${item.metric}: ${item.value} ${item.unit}, osservato ${item.observedAt}; qualità ${item.quality}${item.provenance ? `; periodo ${item.provenance.periodStart} – ${item.provenance.periodEnd}; dispositivo ${item.provenance.deviceId}; metodo ${item.provenance.method}${item.provenance.aggregation ? `; aggregazione ${item.provenance.aggregation}` : ""}; soggetto demo non verificato` : ""}.`,
       source: "sensor" as const, evidence: [{ source: "sensor" as const, sensorReadingId: item.id }],
     }));
     const statedSleep = context.checkIn.observations.find((o) => o.field === "SLEEP_HOURS");

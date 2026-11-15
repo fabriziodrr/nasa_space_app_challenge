@@ -10,12 +10,20 @@ AEGIS conserva dati riferiti e strumentali con origine distinta. I campi sono un
 | `wake_after_sleep_onset_minutes` | Minuti svegli dopo l'addormentamento | Opzionale, stima dello strumento |
 | `awakenings_count` | Numero di risvegli | Opzionale, stima dello strumento |
 | `sleep_efficiency_percent` | Efficienza riportata dal dispositivo, 0–100% | Opzionale; definizione del produttore da verificare |
+| `sleep_stages.rem_minutes` | Durata REM stimata in minuti | Opzionale, sensore EEG o simulazione EEG dichiarati |
+| `heart_rate_variability.value_ms` | Variabilità cardiaca in millisecondi | Opzionale; dispositivo, metodo e aggregazione espliciti |
 | `sleep_quality` | Valutazione 1–10 della persona | Check-in separato `sleep`, con `scale_max` |
 | `fatigue_rating`, `alertness` | Stato riferito 1–10 | Feedback confermato separato |
 
 Ogni rilevazione strumentale richiede dispositivo, metodo, timestamp, qualità dichiarata e flag sintetico. I campi facoltativi mancanti restano `null`: non sono dedotti dal tempo totale. Non si calcolano REM o HRV in assenza di dispositivi e protocolli appropriati.
 
 La [ricerca NASA sulla actigrafia](https://ntrs.nasa.gov/citations/20220014774) considera durata, tempo sveglio dopo l'addormentamento ed efficienza; [NASA descrive anche questionari sulla qualità percepita](https://www.nasa.gov/humans-in-space/spaceflight-standard-measures-characterizing-how-humans-adapt-in-space/). Questi precedenti motivano i campi, ma non validano gli strumenti o gli algoritmi AEGIS. I dati storici sintetici già presenti rimangono compatibili con i nuovi campi opzionali.
+
+NASA descrive l'esperimento ESA [Dreams](https://www.nasa.gov/humans-in-space/science-in-space-week-of-sept-15-2023-sleep-on-station/), con fascia EEG e informazioni sulle fasi del sonno; una [dimostrazione SpaceWear](https://www.nasa.gov/blogs/stationreport/2023/09/19/iss-daily-summary-report-9-19-2023/) ha raccolto anche variabilità cardiaca. Questi sono esempi di studi, non la prova che ogni navicella abbia sensori permanenti o che AEGIS vi sia collegato. Il metodo RMSSD e l'aggregazione nel campione sono scelte fittizie, non valori ufficiali NASA.
+
+Il file [nasa_sensor_demo.json](../server/examples/nasa_sensor_demo.json) contiene una notte interamente sintetica: REM, HRV e gli altri valori sono inventati per mostrare il flusso. In **Crew Data → Sleep recovery**, usare **Load sensor demo** e **Refresh**. Se il campione esiste già, non viene sovrascritto. L'agente dati inoltra le misure nel proprio rapporto; non attribuisce soglie cliniche né modifica una diagnosi o il punteggio di fatica.
+
+Con `AGENT_SENSOR_PROVIDER=python`, anche l'agent conversazionale può ricevere latenza, tempo sveglio, efficienza, REM e HRV quando presenti nello snapshot valido: REM e HRV conservano il proprio dispositivo e metodo e HRV anche l'aggregazione. I campi assenti non producono misure. L'identità del soggetto demo resta non verificata e tali dati non sono utilizzabili come evidenza per proporre modifiche alla schedule.
 
 ## Contesto intermedio
 

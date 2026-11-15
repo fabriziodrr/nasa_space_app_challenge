@@ -20,7 +20,9 @@ test("confirmed Python context is frozen and later used by the ground report", a
     return Response.json({ subject_id: "sleep-demo-14d", synthetic: true, snapshot_id: "snap-1", as_of: "2026-11-15T05:00:00Z", truncated: false,
       sleep_context: { latest_measurement: { observation_id: "night-1", subject_id: "sleep-demo-14d", synthetic: true,
         quality: "valid", source: "instrument", observed_at: "2026-11-15T05:00:00Z", period_start: "2026-11-14T20:00:00Z",
-        period_end: "2026-11-15T04:00:00Z", device_id: "watch", method: "demo", sleep_hours: sleepHours, awakenings_count: null } } });
+        period_end: "2026-11-15T04:00:00Z", device_id: "watch", method: "demo", sleep_hours: sleepHours, awakenings_count: null,
+        sleep_stages: { device_id: "eeg", method: "simulated_eeg", rem_minutes: 78 },
+        heart_rate_variability: { device_id: "ecg", method: "simulated_rmssd", value_ms: 42, aggregation: "nightly" } } } });
   } });
   try {
     const repository = new PrismaAgentRepository(db.prisma);
@@ -43,6 +45,8 @@ test("confirmed Python context is frozen and later used by the ground report", a
     assert.equal(context.sensors[0].provenance?.snapshotId, "snap-1"); assert.equal(calls, 1);
     const report = (await repository.listReports({ astronautId: "astro-1", limit: 20 })).items[0];
     assert.ok(report.findings.some((finding) => finding.source === "sensor" && finding.text.includes("5.5")));
+    assert.ok(report.findings.some((finding) => finding.source === "sensor" && finding.text.includes("REM_DURATION: 78") && finding.text.includes("simulated_eeg")));
+    assert.ok(report.findings.some((finding) => finding.source === "sensor" && finding.text.includes("HEART_RATE_VARIABILITY: 42") && finding.text.includes("nightly")));
     assert.ok(report.uncertainties.some((item) => item.includes("identità non verificata")));
     assert.equal((await repository.getSessionState("astro-1", "session-py"))!.proposal, null);
     offline = true;

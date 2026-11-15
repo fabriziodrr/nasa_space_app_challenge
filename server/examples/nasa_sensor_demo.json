@@ -1,0 +1,22 @@
+[
+  {
+    "kind": "sleep_measurement",
+    "observation_id": "fictional-nasa-inspired-night-v1",
+    "subject_id": "sleep-demo-14d",
+    "observed_at": "2026-11-15T07:00:00Z",
+    "synthetic": true,
+    "quality": "valid",
+    "source": "instrument",
+    "device_id": "demo-actigraph",
+    "method": "simulated_actigraphy",
+    "period_start": "2026-11-14T23:00:00Z",
+    "period_end": "2026-11-15T07:00:00Z",
+    "sleep_hours": 6.2,
+    "sleep_latency_minutes": 25,
+    "wake_after_sleep_onset_minutes": 48,
+    "awakenings_count": 3,
+    "sleep_efficiency_percent": 77.5,
+    "sleep_stages": { "device_id": "demo-eeg-headband", "method": "simulated_eeg", "rem_minutes": 78 },
+    "heart_rate_variability": { "device_id": "demo-ecg-wearable", "method": "simulated_rmssd", "value_ms": 42, "aggregation": "fictional nightly summary" }
+  }
+]

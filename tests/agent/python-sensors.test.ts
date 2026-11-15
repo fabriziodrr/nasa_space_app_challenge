@@ -27,6 +27,30 @@ test("Python sleep readings preserve snapshot and provenance without inventing a
   assert.equal(readings[0].provenance?.observedId, "night-1");
 });
 
+test("new sleep measurements reach the agent with their own source and aggregation", async () => {
+  const readings = await provider(payload({ ...measurement, sleep_latency_minutes: 0,
+    wake_after_sleep_onset_minutes: 48, sleep_efficiency_percent: 77.5,
+    sleep_stages: { device_id: "eeg-1", method: "simulated_eeg", rem_minutes: 78 },
+    heart_rate_variability: { device_id: "ecg-1", method: "simulated_rmssd", value_ms: 42, aggregation: "nightly" },
+  })).read("astro-1", window);
+  assert.deepEqual(readings.map((r) => [r.metric, r.value]), [
+    ["SLEEP_DURATION", 5.5], ["SLEEP_INTERRUPTION_COUNT", 2], ["SLEEP_LATENCY", 0],
+    ["WAKE_AFTER_SLEEP_ONSET", 48], ["SLEEP_EFFICIENCY", 77.5], ["REM_DURATION", 78], ["HEART_RATE_VARIABILITY", 42],
+  ]);
+  const rem = readings.find((r) => r.metric === "REM_DURATION");
+  const hrv = readings.find((r) => r.metric === "HEART_RATE_VARIABILITY");
+  assert.equal(rem?.provenance?.deviceId, "eeg-1");
+  assert.equal(rem?.provenance?.method, "simulated_eeg");
+  assert.equal(hrv?.provenance?.deviceId, "ecg-1");
+  assert.equal(hrv?.provenance?.method, "simulated_rmssd");
+  assert.equal(hrv?.provenance?.aggregation, "nightly");
+  assert.ok(readings.every((r) => r.quality === "DEGRADED" && r.provenance?.identityLink === "demo_only_unverified"));
+  const [invalid] = await provider(payload({ ...measurement, sleep_stages: {
+    device_id: "eeg-1", method: "simulated_eeg", rem_minutes: 400,
+  } })).read("astro-1", window);
+  assert.equal(invalid.provenance?.status, "INVALID");
+});
+
 test("missing, stale, future, wrong-identity and non-synthetic data never become measurements", async () => {
   for (const [data, status] of [
     [payload(null), "MISSING"],

@@ -9,7 +9,14 @@ const Measurement = z.object({
   observed_at: z.iso.datetime({ offset: true }), period_start: z.iso.datetime({ offset: true }),
   period_end: z.iso.datetime({ offset: true }), device_id: z.string().min(1).max(100), method: z.string().min(1).max(100),
   sleep_hours: z.number().min(0).max(24), awakenings_count: z.number().int().min(0).max(500).nullable().optional(),
-});
+  sleep_latency_minutes: z.number().min(0).max(2880).nullable().optional(),
+  wake_after_sleep_onset_minutes: z.number().min(0).max(2880).nullable().optional(),
+  sleep_efficiency_percent: z.number().min(0).max(100).nullable().optional(),
+  sleep_stages: z.object({ device_id: z.string().min(1).max(100), method: z.enum(["eeg", "simulated_eeg"]),
+    rem_minutes: z.number().min(0).max(1440) }).nullable().optional(),
+  heart_rate_variability: z.object({ device_id: z.string().min(1).max(100), method: z.enum(["rmssd", "simulated_rmssd"]),
+    value_ms: z.number().positive().max(1000), aggregation: z.string().min(1).max(100) }).nullable().optional(),
+}).refine((value) => !value.sleep_stages || value.sleep_stages.rem_minutes <= value.sleep_hours * 60);
 const Context = z.object({ subject_id: z.string(), synthetic: z.literal(true), snapshot_id: z.string().min(1).max(128), as_of: z.iso.datetime({ offset: true }).nullable(),
   truncated: z.boolean(), sleep_context: z.object({ latest_measurement: Measurement.nullable() }) });
 
@@ -71,6 +78,19 @@ export class PythonSensorProvider implements SensorProvider {
         metric: "SLEEP_DURATION", value: reading.sleep_hours, unit: "h" })];
       if (reading.awakenings_count != null) result.push(SensorReadingSchema.parse({ ...common,
         id: `${reading.observation_id}_awakenings`, metric: "SLEEP_INTERRUPTION_COUNT", value: reading.awakenings_count, unit: "count" }));
+      if (reading.sleep_latency_minutes != null) result.push(SensorReadingSchema.parse({ ...common,
+        id: `${reading.observation_id}_latency`, metric: "SLEEP_LATENCY", value: reading.sleep_latency_minutes, unit: "min" }));
+      if (reading.wake_after_sleep_onset_minutes != null) result.push(SensorReadingSchema.parse({ ...common,
+        id: `${reading.observation_id}_wake`, metric: "WAKE_AFTER_SLEEP_ONSET", value: reading.wake_after_sleep_onset_minutes, unit: "min" }));
+      if (reading.sleep_efficiency_percent != null) result.push(SensorReadingSchema.parse({ ...common,
+        id: `${reading.observation_id}_efficiency`, metric: "SLEEP_EFFICIENCY", value: reading.sleep_efficiency_percent, unit: "%" }));
+      if (reading.sleep_stages) result.push(SensorReadingSchema.parse({ ...common,
+        provenance: { ...common.provenance, deviceId: reading.sleep_stages.device_id, method: reading.sleep_stages.method },
+        id: `${reading.observation_id}_rem`, metric: "REM_DURATION", value: reading.sleep_stages.rem_minutes, unit: "min" }));
+      if (reading.heart_rate_variability) result.push(SensorReadingSchema.parse({ ...common,
+        provenance: { ...common.provenance, deviceId: reading.heart_rate_variability.device_id,
+          method: reading.heart_rate_variability.method, aggregation: reading.heart_rate_variability.aggregation },
+        id: `${reading.observation_id}_hrv`, metric: "HEART_RATE_VARIABILITY", value: reading.heart_rate_variability.value_ms, unit: "ms" }));
       return result;
     } catch { return missing("UNAVAILABLE"); }
   }
