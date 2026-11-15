@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import demoObservations from "@/server/examples/synthetic.json";
+import sensorDemo from "@/server/examples/nasa_sensor_demo.json";
 import { CountUp } from "@/components/reactbits/CountUp";
 import styles from "./CrewDataDashboard.module.css";
 
@@ -12,7 +13,9 @@ type Observation =
   | { kind: "mood"; subject_id: string; observed_at: string; synthetic: boolean; confirmed: boolean; mood_rating: number; alertness: number }
   | { kind: "vigilance"; subject_id: string; observed_at: string; synthetic: boolean; device_id: string; trials: Trial[] };
 type VigilanceObservation = Extract<Observation, { kind: "vigilance" }>;
-type DataView = "cognitive" | "sleep" | "vigilance";
+type DataView = "cognitive" | "sleep" | "vigilance" | "vision";
+type SleepPoint = { period_end: string; observation_id: string; sleep_hours: number; sleep_efficiency_percent?: number | null; awakenings_count?: number | null; sleep_latency_minutes?: number | null; wake_after_sleep_onset_minutes?: number | null; sleep_stages?: { rem_minutes: number; method: string } | null; heart_rate_variability?: { value_ms: number; method: string } | null };
+type SleepAnalysis = { groups: { device_id: string; method: string; series: SleepPoint[] }[]; truncated: boolean };
 
 const observations = demoObservations as unknown as Observation[];
 const latest = <T extends Observation["kind"]>(kind: T) => [...observations].reverse().find((item) => item.kind === kind) as Extract<Observation, { kind: T }> | undefined;
@@ -46,18 +49,21 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
             <DataViewButton active={activeView === "cognitive"} index="01" label="Cognitive state" detail="Alertness · mood" onClick={() => setActiveView("cognitive")} />
             <DataViewButton active={activeView === "sleep"} index="02" label="Sleep recovery" detail="Duration · quality" onClick={() => setActiveView("sleep")} />
             <DataViewButton active={activeView === "vigilance"} index="03" label="Vigilance test" detail="Reaction · trials" onClick={() => setActiveView("vigilance")} />
+            <DataViewButton active={activeView === "vision"} index="04" label="Vision report" detail="Session · data agent" onClick={() => setActiveView("vision")} />
           </nav>
-          <div className={styles.sidebarFooter}>3 ACTIVE STREAMS</div>
+          <div className={styles.sidebarFooter}>DEMO DATA VIEWS</div>
         </aside>
 
         <main className={styles.dataPanel}>
           {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description="Alertness, mood and recovery quality" />}
-          {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Recorded duration against an 8 hour reference" />}
+          {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Synthetic sensor data · demonstration" />}
           {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${vigilance?.trials.length ?? 0} total trials`} />}
+          {activeView === "vision" && <DataPanelHeader index="04" title="Vision report" description="Selected vision session and data agent context" />}
           <div className={styles.panelContent}>
             {activeView === "cognitive" && <CognitiveBars alertness={mood?.alertness ?? null} mood={mood?.mood_rating ?? null} sleepQuality={sleep?.sleep_quality ?? null} />}
-            {activeView === "sleep" && <SleepRecovery hours={sleep?.sleep_hours ?? null} quality={sleep?.sleep_quality ?? null} />}
+            {activeView === "sleep" && <SleepRecovery />}
             {activeView === "vigilance" && <div className={styles.vigilanceLayout}><ReactionChart trials={vigilance?.trials ?? []} /><TrialSummary responses={responses.length} falseStarts={falseStarts} missed={missed} lapses={lapses} medianReaction={median(responses)} /></div>}
+            {activeView === "vision" && <VisionReport />}
           </div>
         </main>
       </div>
@@ -72,6 +78,39 @@ function DataViewButton({ active, index, label, detail, onClick }: { active: boo
 
 function DataPanelHeader({ index, title, description }: { index: string; title: string; description: string }) {
   return <header className={styles.panelHeader}><span>{index} / DATA STREAM</span><h1>{title}</h1><p>{description}</p></header>;
+}
+
+type VisionDataReport = { schema_version: string; sleep: { observation: { sleep_hours: number } | null }; reported_state: { observation: { fatigue_rating: number | null } | null }; vision: { status: string; observation: { source: string; usability: string; coverage: number | null; closureFraction: number | null; reasons: string[] } | null } };
+
+function VisionReport() {
+  const [session, setSession] = useState("");
+  const [token, setToken] = useState("");
+  const [report, setReport] = useState<VisionDataReport | null>(null);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function load(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setReport(null); setMessage("");
+    try {
+      const response = await fetch("/api/demo-data-agent", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ vision_session_id: session }), cache: "no-store" });
+      if (!response.ok) throw new Error(response.status === 401 ? "Token demo non riconosciuto." : "Rapporto non disponibile: verifica sessione e servizi locali.");
+      const result: VisionDataReport = await response.json();
+      if (result.schema_version !== "data-agent-demo-1") throw new Error("Formato del rapporto non riconosciuto.");
+      setReport(result);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Errore nel caricamento."); }
+    finally { setBusy(false); }
+  }
+  const eye = report?.vision.observation;
+  return <div className={styles.sleepContent}>
+    <form className={styles.visionControls} onSubmit={(event) => void load(event)}>
+      <label>Vision session<input value={session} onChange={(event) => setSession(event.target.value)} required /></label>
+      <label>Demo token<input value={token} onChange={(event) => setToken(event.target.value)} type="password" autoComplete="off" required /></label>
+      <button type="submit" disabled={busy}>Load report</button>
+    </form>
+    {message && <p className={styles.sleepNotice} role="alert">{message}</p>}
+    {report && <><div className={styles.sleepSensorGrid} aria-live="polite">
+      {[{ label: "Synthetic sleep", value: report.sleep.observation ? `${report.sleep.observation.sleep_hours} h` : "—" }, { label: "Reported fatigue", value: report.reported_state.observation?.fatigue_rating != null ? `${report.reported_state.observation.fatigue_rating} / 10` : "—" }, { label: "Vision quality", value: eye?.usability ?? report.vision.status }, { label: "Vision coverage", value: eye?.coverage != null ? `${(eye.coverage * 100).toFixed(1)}%` : "—" }, { label: "Eye closure fraction", value: eye?.closureFraction != null ? `${(eye.closureFraction * 100).toFixed(1)}%` : "—" }, { label: "Vision source", value: eye?.source ?? "—" }].map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}
+    </div><p className={styles.sleepFootnote}>Sleep data are simulated. Identities are not linked; observations do not constitute a diagnosis.{eye?.reasons?.length ? ` Vision limits: ${eye.reasons.join(", ")}.` : ""}</p></>}
+  </div>;
 }
 
 function CognitiveBars({ alertness, mood, sleepQuality }: { alertness: number | null; mood: number | null; sleepQuality: number | null }) {
@@ -101,21 +140,70 @@ function CognitiveBars({ alertness, mood, sleepQuality }: { alertness: number | 
   );
 }
 
-function SleepRecovery({ hours, quality }: { hours: number | null; quality: number | null }) {
+function SleepRecovery() {
+  const [analysis, setAnalysis] = useState<SleepAnalysis | null>(null);
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const refresh = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ subject: "sleep-demo-14d", start: "2026-11-01T00:00:00Z", end: "2026-11-16T00:00:00Z" });
+      const response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
+      setAnalysis(result);
+      setStatus(result.truncated ? "Partial results: backend limit reached." : "");
+    } catch (error) {
+      setAnalysis(null);
+      setStatus(error instanceof Error ? error.message : "Unable to load sleep data.");
+    }
+  }, []);
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  async function loadDemo() {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sensorDemo) });
+      const result = await response.json();
+      if (!response.ok && response.status !== 409) throw new Error(result.error || "Unable to import demo data.");
+      await refresh();
+      if (response.status === 409) setStatus("Demo observation already loaded.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Unable to import demo data."); }
+    finally { setBusy(false); }
+  }
+
+  const latest = analysis?.groups.flatMap((group) => group.series.map((point) => ({ ...point, device: group.device_id, method: group.method })))
+    .sort((a, b) => Date.parse(b.period_end) - Date.parse(a.period_end) || b.observation_id.localeCompare(a.observation_id))[0];
+  const hours = latest?.sleep_hours ?? null;
   const progress = hours === null ? 0 : Math.min(100, (hours / 8) * 100);
   const circumference = 2 * Math.PI * 48;
+  const format = (value: number | null | undefined, unit = "") => value == null ? "—" : `${value}${unit}`;
+  const metrics = [
+    { label: "REM", value: format(latest?.sleep_stages?.rem_minutes, " min"), detail: latest?.sleep_stages?.method ?? "Unavailable" },
+    { label: "HRV", value: format(latest?.heart_rate_variability?.value_ms, " ms"), detail: latest?.heart_rate_variability?.method ?? "Unavailable" },
+    { label: "Sleep efficiency", value: format(latest?.sleep_efficiency_percent, "%"), detail: "Device estimate" },
+    { label: "Awakenings", value: format(latest?.awakenings_count), detail: "Recorded count" },
+    { label: "Sleep latency", value: format(latest?.sleep_latency_minutes, " min"), detail: "Device estimate" },
+    { label: "Wake after sleep onset", value: format(latest?.wake_after_sleep_onset_minutes, " min"), detail: "Device estimate" },
+  ];
 
   return (
-    <div className={styles.sleepChart}>
+    <div className={styles.sleepContent}>
+      <div className={styles.sleepActions}><span>SYNTHETIC DEMO · SLEEP-DEMO-14D</span><button type="button" disabled={busy} onClick={() => void loadDemo()}>Load sensor demo</button><button type="button" onClick={() => void refresh()}>Refresh</button></div>
+      {status && <p className={styles.sleepNotice} role="status">{status}</p>}
+      {!latest && <p className={styles.sleepNotice}>No sleep observation in the demo period. Load the sensor demo to begin.</p>}
+      <div className={styles.sleepChart}>
       <div className={styles.chartIntro}><span className={styles.chartLabel} tabIndex={0} data-tooltip="Recorded sleep compared with an 8 hour reference window.">RECOVERY / SLEEP</span></div>
-      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded · quality ${quality ?? "—"} / 5`}>
+      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded`}>
         <svg viewBox="0 0 120 120" role="img" aria-label={`Sleep duration ${hours ?? "unavailable"} hours`}>
           <circle className={styles.ringTrack} cx="60" cy="60" r="48" />
           <circle className={styles.ringValue} cx="60" cy="60" r="48" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} />
         </svg>
         <div className={styles.ringLabel}><strong><AnimatedValue value={hours} /><small> h</small></strong><span>duration</span></div>
       </div>
-      <div className={styles.sleepReadout} data-tooltip="Self-reported sleep quality on a five point scale." tabIndex={0}><span>quality / 5</span><strong><AnimatedValue value={quality} /></strong></div>
+      <div className={styles.sleepReadout}><span>recorded / UTC</span><strong className={styles.sleepDate}>{latest ? latest.period_end.slice(0, 10) : "—"}</strong><span>{latest?.device ?? "NO OBSERVATION"}</span></div>
+      </div>
+      <div className={styles.sleepSensorGrid}>{metrics.map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div>)}</div>
+      <p className={styles.sleepFootnote}>Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
     </div>
   );
 }

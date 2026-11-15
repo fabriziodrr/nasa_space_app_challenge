@@ -62,3 +62,23 @@ def test_data_analysis_api_requires_demo_token(tmp_path, monkeypatch):
         assert response.status_code == 200
         assert response.json()["vision"]["status"] == "not_selected"
         assert response.json()["sleep"]["observation"]["sleep_hours"] == 5.5
+
+
+def test_sensor_demo_flows_to_agent_and_rejects_inconsistent_rem(tmp_path):
+    import json
+    from pathlib import Path
+    store = Store(tmp_path / "sensor.sqlite3")
+    rows = json.loads((Path(__file__).parents[1] / "examples/nasa_sensor_demo.json").read_text())
+    store.add_many(rows)
+    service = DataService(store)
+    report = run_data_agent(IntegratedContext(AgentDataTools(service, "sleep-demo-14d", synthetic=True),
+                                             Reader({"status": "not_selected", "observation": None})))
+    measurement = report["sleep"]["observation"]
+    assert measurement["sleep_stages"]["rem_minutes"] == 78
+    assert measurement["heart_rate_variability"]["value_ms"] == 42
+    assert measurement["awakenings_count"] == 3
+    assert report["sleep"]["synthetic"] is True
+    with pytest.raises(ValueError):
+        store.add(rows[0] | {"observation_id": "invalid-rem", "sleep_stages": {"device_id": "test", "method": "simulated_eeg", "rem_minutes": 500}})
+    with pytest.raises(ValueError):
+        store.add(rows[0] | {"observation_id": "fake-real", "synthetic": False})

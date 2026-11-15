@@ -78,6 +78,12 @@ def analyze_sleep(store: Store, subject_id: str, start: datetime, end: datetime,
             series.append({"day_utc": ended.date().isoformat(), "observation_id": row["observation_id"],
                            "period_start": row["period_start"], "period_end": row["period_end"],
                            "sleep_hours": row["sleep_hours"],
+                           "sleep_latency_minutes": row.get("sleep_latency_minutes"),
+                           "wake_after_sleep_onset_minutes": row.get("wake_after_sleep_onset_minutes"),
+                           "awakenings_count": row.get("awakenings_count"),
+                           "sleep_efficiency_percent": row.get("sleep_efficiency_percent"),
+                           "sleep_stages": row.get("sleep_stages"),
+                           "heart_rate_variability": row.get("heart_rate_variability"),
                            "feedback_id": report["observation_id"] if report else None})
             if report:
                 pairs.append({"sleep_observation_id": row["observation_id"],
