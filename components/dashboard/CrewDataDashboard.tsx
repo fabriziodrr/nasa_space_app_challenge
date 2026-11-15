@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
@@ -34,8 +34,8 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
       <div className={styles.dataShell}>
         <aside className={styles.sidebar} aria-label="Crew data categories">
           <div className={styles.sidebarHeader}>
-            <button className={styles.backButton} type="button" onClick={onBack}>
-              <span>Dashboard</span>
+            <button className={styles.backButton} type="button" onClick={onBack} aria-label="Back to dashboard" title="Back to dashboard">
+              <ArrowLeft size={15} aria-hidden="true" />
             </button>
             <span>CREW DATA</span>
           </div>
