@@ -8,6 +8,7 @@ import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleR
 import { AgentErrors, isAgentError } from "../core/errors";
 import { ProposalService } from "./proposals";
 import { repairDemoProposal } from "./demo-proposal-repair";
+import { applyScheduleChanges } from "../lib/schedule";
 import type { VisionConfirmationService } from "../vision/confirmation";
 
 /** Generates both artifacts from a confirmed check-in using separate privacy boundaries. */
@@ -126,6 +127,11 @@ export class ArtifactService {
         }
         if (built.outcome === "invalid" && !declined) {
           built = repairDemoProposal(operational.proposal, context, day, proposals) ?? built;
+        }
+        if (built.outcome === "proposal" && schedule.findSharedResourceConflicts) {
+          const conflicts = await schedule.findSharedResourceConflicts(applyScheduleChanges(day, built.proposal.candidate.changes));
+          if (conflicts.length) built = { outcome: "invalid", violations: [{ code: "OVERLAP", activityId: null,
+            message: `Shared resource conflict: ${conflicts.join(", ")}.` }] };
         }
         if (built.outcome === "proposal") proposal = built.proposal;
         else {

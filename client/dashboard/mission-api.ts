@@ -4,7 +4,7 @@ import { DecisionV2ResponseSchema, GroundReportSchema, IdSchema, ProposalListV2R
 
 const ReportsSchema = successV2Schema(z.strictObject({ items: z.array(GroundReportSchema).max(100), nextCursor: IdSchema.nullable() }));
 export class MissionApiError extends Error {
-  constructor(public readonly status: number, public readonly code: string) { super(code); }
+  constructor(public readonly status: number, public readonly code: string, public readonly detail?: string) { super(code); }
 }
 
 async function call(path: string, token: string, init: RequestInit = {}) {
@@ -14,8 +14,8 @@ async function call(path: string, token: string, init: RequestInit = {}) {
   const response = await fetch(`/api/agent/v2${path}`, { ...init, headers, cache: "no-store", signal: AbortSignal.timeout(30000) });
   const body: unknown = await response.json();
   if (!response.ok) {
-    const error = z.object({ error: z.object({ code: z.string() }) }).safeParse(body);
-    throw new MissionApiError(response.status, error.success ? error.data.error.code : "UNKNOWN");
+    const error = z.object({ error: z.object({ code: z.string(), message: z.string().optional() }) }).safeParse(body);
+    throw new MissionApiError(response.status, error.success ? error.data.error.code : "UNKNOWN", error.success ? error.data.error.message : undefined);
   }
   return body;
 }

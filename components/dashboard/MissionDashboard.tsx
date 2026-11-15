@@ -21,6 +21,7 @@ const demoTitles: Record<string, string> = { Colazione: "Breakfast", Pranzo: "Lu
 const activityTitle = (title: string) => demoTitles[title] ?? title;
 function message(error: unknown) {
   if (error instanceof MissionApiError) {
+    if (error.detail?.startsWith("Shared resource conflict:")) return error.detail;
     if (error.status === 401) return "Token not recognized.";
     if (error.status === 403) return "Decision not authorized. Use the AGENT_GROUND_TOKEN configured on the server, reload the data and try again.";
     if (error.status === 404) return "Resource unavailable for this astronaut.";
@@ -117,7 +118,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
         if (result.schedule.date === date) { setSchedule(result.schedule); setDraft(structuredClone(result.schedule)); }
         remember(proposal.id, null); setNotice("Proposal approved and schedule updated.");
       } else if (result.proposal.status === "REJECTED") { remember(proposal.id, null); setNotice("Proposal rejected; the schedule is unchanged."); }
-      else if (result.proposal.status === "APPLY_FAILED") { remember(proposal.id, null); setNotice("The proposal could not be applied. Request a new assessment."); }
+      else if (result.proposal.status === "APPLY_FAILED") { remember(proposal.id, null); setNotice("The proposal could not be applied. Check the schedule and shared resources, then request a new assessment."); }
       else setNotice("Decision recorded; the update is not yet confirmed. Repeat the same action to verify its outcome.");
     } catch (error) {
       if (error instanceof MissionApiError && error.status === 409 && error.code === "VERSION_CONFLICT") {
@@ -156,7 +157,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
         {dirty && !conflict && <p>Save or discard changes before changing the selection. <button type="button" disabled={busy} onClick={() => setDraft(structuredClone(schedule))}>Discard changes</button></p>}
         {conflict && <p className={styles.notice}>Reload data before making further changes.</p>}
         {!ground && <ol className={styles.list}>{schedule.activities.map((activity) => <li key={activity.id}><strong>{activityTitle(activity.title)}</strong><span>{format(activity.startsAt)} – {format(activity.endsAt)}</span></li>)}</ol>}
-        {ground && draft && <><p>Edit activities and save the complete schedule. Dates and times are UTC.</p>
+        {ground && draft && <><p>Edit activities and save the complete schedule. Dates and times are UTC. Shared resource IDs must match across crew schedules; leave blank when none are assigned.</p>
           {draft.activities.map((activity, index) => <fieldset className={styles.activity} key={activity.id} disabled={busy || conflict}>
             <legend>Activity {index + 1}</legend>
             <label>Name<input value={activityTitle(activity.title)} onChange={(e) => changeActivity(index, { title: e.target.value })} /></label>
@@ -166,6 +167,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
             <label>Latest end<input type="datetime-local" value={inputTime(activity.latestEnd)} onChange={(e) => changeActivity(index, { latestEnd: utcTime(e.target.value) })} /></label>
             <label>Type<select value={activity.kind} onChange={(e) => changeActivity(index, { kind: e.target.value as ScheduleActivity["kind"] })}>{["MISSION", "EXERCISE", "MEAL", "REST", "PERSONAL"].map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>Priority<select value={activity.priority} onChange={(e) => changeActivity(index, { priority: e.target.value as ScheduleActivity["priority"] })}>{["LOW", "NORMAL", "CRITICAL"].map((value) => <option key={value}>{value}</option>)}</select></label>
+            <label>Shared resource IDs (comma separated)<input key={`${activity.id}-${(activity.sharedResources ?? []).join(",")}`} defaultValue={(activity.sharedResources ?? []).join(", ")} onBlur={(e) => changeActivity(index, { sharedResources: e.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} placeholder="e.g. lab-terminal" /></label>
             <label className={styles.check}><input type="checkbox" checked={activity.movable} onChange={(e) => changeActivity(index, { movable: e.target.checked })} /> Movable</label>
             <button type="button" onClick={() => setDraft({ ...draft, activities: draft.activities.filter((_, i) => i !== index) })}>Remove</button>
           </fieldset>)}

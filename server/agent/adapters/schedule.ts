@@ -8,6 +8,7 @@ import { ScheduleActivitySchema, type ScheduleApplyCommand, type ScheduleApplyRe
 import type { ScheduleProvider } from "../ports";
 import { AgentErrors } from "../core/errors";
 import { applyScheduleChanges } from "../lib/schedule";
+import { sharedResourceConflicts } from "../lib/shared-resources";
 import { scheduleFromRow, toIso, toJson, type ScheduleRow } from "./prisma/mappers";
 
 export class SimulatedScheduleProvider implements ScheduleProvider {
@@ -26,6 +27,12 @@ export class SimulatedScheduleProvider implements ScheduleProvider {
   async getById(scheduleId: string): Promise<ScheduleSnapshot | null> {
     const row = await this.prisma.scheduleSnapshot.findUnique({ where: { id: scheduleId } });
     return row ? scheduleFromRow(row) : null;
+  }
+
+  async findSharedResourceConflicts(schedule: ScheduleSnapshot): Promise<string[]> {
+    const rows = await this.prisma.scheduleSnapshot.findMany({ where: { astronautId: { not: schedule.astronautId },
+      dayStartsAt: { lt: new Date(schedule.dayEndsAt) }, dayEndsAt: { gt: new Date(schedule.dayStartsAt) } } });
+    return sharedResourceConflicts(schedule, rows.map(scheduleFromRow));
   }
 
   async applyApproved(command: ScheduleApplyCommand): Promise<ScheduleApplyResult> {
@@ -67,6 +74,11 @@ export class SimulatedScheduleProvider implements ScheduleProvider {
 
       const current = scheduleFromRow(schedule);
       const next = applyScheduleChanges(current, command.changes);
+      const peers = await tx.scheduleSnapshot.findMany({ where: { astronautId: { not: current.astronautId },
+        dayStartsAt: { lt: new Date(current.dayEndsAt) }, dayEndsAt: { gt: new Date(current.dayStartsAt) } } });
+      const conflicts = sharedResourceConflicts(next, peers.map(scheduleFromRow));
+      if (conflicts.length) return { outcome: "FAILED", retryable: false,
+        reason: `Shared resource conflict: ${conflicts.join(", ")}.` } satisfies ScheduleApplyResult;
       const appliedAt = new Date();
       await tx.scheduleSnapshot.update({
         where: { id: command.scheduleId },

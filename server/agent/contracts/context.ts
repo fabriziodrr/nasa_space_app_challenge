@@ -50,6 +50,7 @@ export const ScheduleActivitySchema = z.strictObject({
   priority: z.enum(["CRITICAL", "NORMAL", "LOW"]),
   movable: z.boolean(),
   dependsOn: z.array(IdSchema).max(100),
+  sharedResources: z.array(IdSchema).max(30).refine((items) => new Set(items).size === items.length).optional(),
   earliestStart: TimestampSchema,
   latestEnd: TimestampSchema,
 }).refine((activity) =>

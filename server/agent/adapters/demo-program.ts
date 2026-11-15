@@ -3,6 +3,8 @@ import { ProposalCandidateSchema, ScheduleApplyCommandSchema, ScheduleSnapshotSc
 import { SimulatedScheduleProvider } from "./schedule";
 import { AgentError } from "../core/errors";
 import { activitiesOverlap, hasDependencyCycle } from "../lib/schedule";
+import { sharedResourceConflicts } from "../lib/shared-resources";
+import { scheduleFromRow } from "./prisma/mappers";
 
 /** Illustrative UTC day: fixed meals, exercise, contacts and an 8.5 h sleep opportunity. */
 export function demoProgram(astronautId: string, date: string): ScheduleSnapshot {
@@ -52,10 +54,16 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
         return !dependency || Date.parse(dependency.endsAt) > Date.parse(activity.startsAt);
       }) || next.activities.slice(i + 1).some((other) => activitiesOverlap(activity, other)));
     if (invalid || hasDependencyCycle(next.activities)) throw new AgentError("VALIDATION_ERROR", "Il programma contiene attività fuori giornata, sovrapposte o dipendenze non valide.");
-    const result = await this.db.scheduleSnapshot.updateMany({ where: { id: current.id, astronautId, version: expectedVersion }, data: {
-      version: { increment: 1 }, timeZone: next.timeZone, dayStartsAt: new Date(next.dayStartsAt),
-      dayEndsAt: new Date(next.dayEndsAt), activitiesJson: JSON.stringify(next.activities),
-    } });
+    const result = await this.db.$transaction(async (tx) => {
+      const peers = await tx.scheduleSnapshot.findMany({ where: { astronautId: { not: astronautId },
+        dayStartsAt: { lt: new Date(next.dayEndsAt) }, dayEndsAt: { gt: new Date(next.dayStartsAt) } } });
+      const conflicts = sharedResourceConflicts(next, peers.map(scheduleFromRow));
+      if (conflicts.length) throw new AgentError("VALIDATION_ERROR", `Shared resource conflict: ${conflicts.join(", ")}.`);
+      return tx.scheduleSnapshot.updateMany({ where: { id: current.id, astronautId, version: expectedVersion }, data: {
+        version: { increment: 1 }, timeZone: next.timeZone, dayStartsAt: new Date(next.dayStartsAt),
+        dayEndsAt: new Date(next.dayEndsAt), activitiesJson: JSON.stringify(next.activities),
+      } });
+    });
     if (result.count !== 1) {
       const latest = await this.getById(current.id);
       throw new AgentError("VERSION_CONFLICT", "Il programma è cambiato.", false, latest?.version ?? expectedVersion);
