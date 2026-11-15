@@ -86,6 +86,9 @@
 .sleepActions button, .visionControls button { padding: 8px 12px; border: 1px solid rgba(59, 26, 189, .3); border-radius: 6px; color: #3b1abd; background: transparent; cursor: pointer; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; }
 .sleepActions button:hover, .visionControls button:hover { background: rgba(59, 26, 189, .08); }
 .sleepActions button:disabled, .visionControls button:disabled { opacity: .5; }
+.refreshButton { display: inline-grid; width: 40px; height: 40px; padding: 0 !important; place-items: center; border-radius: 50% !important; }
+.refreshButton svg { transition: transform .35s ease; }
+.refreshButton:hover svg { transform: rotate(-45deg); }
 .sleepActions button:focus-visible, .visionControls button:focus-visible, .visionControls input:focus-visible { outline: 2px solid #6e5ce7; outline-offset: 2px; }
 .sleepContent .sleepChart { display: grid; min-height: 150px; grid-template-columns: minmax(150px, .8fr) minmax(0, 1.2fr); align-items: center; justify-content: initial; gap: clamp(28px, 5vw, 72px); padding: 8px 10px 4px; }
 .sleepSummary { display: grid; min-height: 220px; flex: 0 0 auto; grid-template-rows: auto minmax(0, 1fr); padding: 14px 20px 12px; border: 1px solid rgba(98, 105, 112, .14); border-radius: 12px; background: rgba(255, 255, 255, .28); box-shadow: 3px 3px 9px rgba(203, 208, 214, .3), -3px -3px 9px rgba(255, 255, 255, .58); }
