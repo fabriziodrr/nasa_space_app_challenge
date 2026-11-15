@@ -2,23 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import demoObservations from "@/server/examples/synthetic.json";
-import sensorDemo from "@/server/examples/nasa_sensor_demo.json";
+import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
 import styles from "./CrewDataDashboard.module.css";
 
 type Trial = { status: "response" | "false_start" | "missed"; rt_ms?: number };
-type Observation =
-  | { kind: "sleep"; subject_id: string; observed_at: string; synthetic: boolean; sleep_hours: number; sleep_quality: number }
-  | { kind: "mood"; subject_id: string; observed_at: string; synthetic: boolean; confirmed: boolean; mood_rating: number; alertness: number }
-  | { kind: "vigilance"; subject_id: string; observed_at: string; synthetic: boolean; device_id: string; trials: Trial[] };
-type VigilanceObservation = Extract<Observation, { kind: "vigilance" }>;
 type DataView = "cognitive" | "sleep" | "vigilance" | "vision";
 type SleepPoint = { period_end: string; observation_id: string; sleep_hours: number; sleep_efficiency_percent?: number | null; awakenings_count?: number | null; sleep_latency_minutes?: number | null; wake_after_sleep_onset_minutes?: number | null; sleep_stages?: { rem_minutes: number; method: string } | null; heart_rate_variability?: { value_ms: number; method: string } | null };
 type SleepAnalysis = { groups: { device_id: string; method: string; series: SleepPoint[] }[]; truncated: boolean };
-
-const observations = demoObservations as unknown as Observation[];
-const latest = <T extends Observation["kind"]>(kind: T) => [...observations].reverse().find((item) => item.kind === kind) as Extract<Observation, { kind: T }> | undefined;
 
 function median(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -27,12 +18,13 @@ function median(values: number[]) {
 
 export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
   const [activeView, setActiveView] = useState<DataView>("cognitive");
-  const sleep = latest("sleep") as Extract<Observation, { kind: "sleep" }> | undefined;
-  const mood = latest("mood") as Extract<Observation, { kind: "mood" }> | undefined;
-  const vigilance = latest("vigilance") as VigilanceObservation | undefined;
-  const responses = vigilance?.trials.filter((trial) => trial.status === "response" && trial.rt_ms !== undefined && trial.rt_ms >= 100).map((trial) => trial.rt_ms as number) ?? [];
-  const falseStarts = vigilance?.trials.filter((trial) => trial.status === "false_start" || (trial.status === "response" && trial.rt_ms !== undefined && trial.rt_ms < 100)).length ?? 0;
-  const missed = vigilance?.trials.filter((trial) => trial.status === "missed").length ?? 0;
+  const [profileId, setProfileId] = useState(demoCrew[0].id);
+  const profile = demoCrew.find((item) => item.id === profileId) ?? demoCrew[0];
+  const mood = profile.mood;
+  const trials = profile.trials;
+  const responses = trials.filter((trial) => trial.status === "response" && trial.rt_ms !== undefined && trial.rt_ms >= 100).map((trial) => trial.rt_ms as number);
+  const falseStarts = trials.filter((trial) => trial.status === "false_start" || (trial.status === "response" && trial.rt_ms !== undefined && trial.rt_ms < 100)).length;
+  const missed = trials.filter((trial) => trial.status === "missed").length;
   const lapses = responses.filter((value) => value >= 500).length;
   return (
     <section className={styles.workspace} aria-label="Crew readiness data">
@@ -55,14 +47,15 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
         </aside>
 
         <main className={styles.dataPanel}>
-          {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description="Alertness, mood and recovery quality" />}
+          <div className={styles.crewSelector}><label htmlFor="demo-crew">CREW PROFILE / SYNTHETIC DEMO</label><select id="demo-crew" value={profile.id} onChange={(event) => setProfileId(event.target.value)}>{demoCrew.map((member) => <option key={member.id} value={member.id}>{member.name} · {member.role}</option>)}</select><span>{profile.id} · fictional profile</span></div>
+          {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description={`Fictional self-report · ${mood.observed_at}`} />}
           {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Synthetic sensor data · demonstration" />}
-          {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${vigilance?.trials.length ?? 0} total trials`} />}
+          {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${trials.length} total trials · synthetic demo`} />}
           {activeView === "vision" && <DataPanelHeader index="04" title="Vision report" description="Selected vision session and data agent context" />}
           <div className={styles.panelContent}>
-            {activeView === "cognitive" && <CognitiveBars alertness={mood?.alertness ?? null} mood={mood?.mood_rating ?? null} sleepQuality={sleep?.sleep_quality ?? null} />}
-            {activeView === "sleep" && <SleepRecovery />}
-            {activeView === "vigilance" && <div className={styles.vigilanceLayout}><ReactionChart trials={vigilance?.trials ?? []} /><TrialSummary responses={responses.length} falseStarts={falseStarts} missed={missed} lapses={lapses} medianReaction={median(responses)} /></div>}
+            {activeView === "cognitive" && <CognitiveBars alertness={mood.alertness} mood={mood.mood_rating} sleepQuality={mood.sleep_quality} />}
+            {activeView === "sleep" && <SleepRecovery key={profile.id} profile={profile} />}
+            {activeView === "vigilance" && <div className={styles.vigilanceLayout}><ReactionChart trials={trials} /><TrialSummary responses={responses.length} falseStarts={falseStarts} missed={missed} lapses={lapses} medianReaction={median(responses)} /></div>}
             {activeView === "vision" && <VisionReport />}
           </div>
         </main>
@@ -101,6 +94,7 @@ function VisionReport() {
   }
   const eye = report?.vision.observation;
   return <div className={styles.sleepContent}>
+    <p className={styles.sleepNotice}>The selected crew profile is not linked to this vision session or the agent&apos;s fixed sleep subject.</p>
     <form className={styles.visionControls} onSubmit={(event) => void load(event)}>
       <label>Vision session<input value={session} onChange={(event) => setSession(event.target.value)} required /></label>
       <label>Demo token<input value={token} onChange={(event) => setToken(event.target.value)} type="password" autoComplete="off" required /></label>
@@ -140,29 +134,39 @@ function CognitiveBars({ alertness, mood, sleepQuality }: { alertness: number | 
   );
 }
 
-function SleepRecovery() {
+function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
   const [analysis, setAnalysis] = useState<SleepAnalysis | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const refresh = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ subject: "sleep-demo-14d", start: "2026-11-01T00:00:00Z", end: "2026-11-16T00:00:00Z" });
-      const response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
-      const result = await response.json();
+      const params = new URLSearchParams({ subject: profile.id, start: "2026-11-01T00:00:00Z", end: "2026-11-16T00:00:00Z" });
+      let response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
+      let result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
+      if (!result.groups.some((group: SleepAnalysis["groups"][number]) => group.series.some((point) => point.observation_id === profile.sleep.observation_id))) {
+        const imported = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([profile.sleep]) });
+        if (!imported.ok && imported.status !== 409) {
+          const error = await imported.json();
+          throw new Error(error.error || "Unable to import demo data.");
+        }
+        response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
+        result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
+      }
       setAnalysis(result);
       setStatus(result.truncated ? "Partial results: backend limit reached." : "");
     } catch (error) {
       setAnalysis(null);
       setStatus(error instanceof Error ? error.message : "Unable to load sleep data.");
     }
-  }, []);
+  }, [profile.id, profile.sleep]);
   useEffect(() => { void refresh(); }, [refresh]);
 
   async function loadDemo() {
     setBusy(true);
     try {
-      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sensorDemo) });
+      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([profile.sleep]) });
       const result = await response.json();
       if (!response.ok && response.status !== 409) throw new Error(result.error || "Unable to import demo data.");
       await refresh();
@@ -175,6 +179,8 @@ function SleepRecovery() {
     .sort((a, b) => Date.parse(b.period_end) - Date.parse(a.period_end) || b.observation_id.localeCompare(a.observation_id))[0];
   const hours = latest?.sleep_hours ?? null;
   const progress = hours === null ? 0 : Math.min(100, (hours / 8) * 100);
+  const qualityColors = ["#c84242", "#df8140", "#cba033", "#81a743", "#398b54"];
+  const qualityColor = qualityColors[Math.max(0, Math.min(4, Math.round(profile.mood.sleep_quality) - 1))];
   const circumference = 2 * Math.PI * 48;
   const format = (value: number | null | undefined, unit = "") => value == null ? "—" : `${value}${unit}`;
   const metrics = [
@@ -188,22 +194,22 @@ function SleepRecovery() {
 
   return (
     <div className={styles.sleepContent}>
-      <div className={styles.sleepActions}><span>SYNTHETIC DEMO · SLEEP-DEMO-14D</span><button type="button" disabled={busy} onClick={() => void loadDemo()}>Load sensor demo</button><button type="button" onClick={() => void refresh()}>Refresh</button></div>
+      <div className={styles.sleepActions}><span>SYNTHETIC DEMO · {profile.id}</span><button type="button" disabled={busy} onClick={() => void loadDemo()}>Load sensor demo</button><button type="button" onClick={() => void refresh()}>Refresh</button></div>
       {status && <p className={styles.sleepNotice} role="status">{status}</p>}
       {!latest && <p className={styles.sleepNotice}>No sleep observation in the demo period. Load the sensor demo to begin.</p>}
       <div className={styles.sleepChart}>
       <div className={styles.chartIntro}><span className={styles.chartLabel} tabIndex={0} data-tooltip="Recorded sleep compared with an 8 hour reference window.">RECOVERY / SLEEP</span></div>
-      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded`}>
+      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded; color: simulated self-reported sleep quality ${profile.mood.sleep_quality}/5`}>
         <svg viewBox="0 0 120 120" role="img" aria-label={`Sleep duration ${hours ?? "unavailable"} hours`}>
           <circle className={styles.ringTrack} cx="60" cy="60" r="48" />
-          <circle className={styles.ringValue} cx="60" cy="60" r="48" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} />
+          <circle className={styles.ringValue} cx="60" cy="60" r="48" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ stroke: qualityColor, filter: "none" }} />
         </svg>
         <div className={styles.ringLabel}><strong><AnimatedValue value={hours} /><small> h</small></strong><span>duration</span></div>
       </div>
       <div className={styles.sleepReadout}><span>recorded / UTC</span><strong className={styles.sleepDate}>{latest ? latest.period_end.slice(0, 10) : "—"}</strong><span>{latest?.device ?? "NO OBSERVATION"}</span></div>
       </div>
       <div className={styles.sleepSensorGrid}>{metrics.map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div>)}</div>
-      <p className={styles.sleepFootnote}>Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
+      <p className={styles.sleepFootnote}>Ring length: hours slept relative to the demo reference of 8 h. Color: simulated self-reported sleep quality ({profile.mood.sleep_quality}/5), not sensor-derived. Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
     </div>
   );
 }
