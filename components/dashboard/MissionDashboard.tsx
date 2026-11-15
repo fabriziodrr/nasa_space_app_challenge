@@ -22,7 +22,7 @@ const activityTitle = (title: string) => demoTitles[title] ?? title;
 function message(error: unknown) {
   if (error instanceof MissionApiError) {
     if (error.status === 401) return "Token not recognized.";
-    if (error.status === 403) return "This action is reserved for ground control.";
+    if (error.status === 403) return "Decision not authorized. Use the AGENT_GROUND_TOKEN configured on the server, reload the data and try again.";
     if (error.status === 404) return "Resource unavailable for this astronaut.";
     if (error.status === 409) return "The schedule or proposal has changed. Reload the data before continuing.";
     if (error.status === 400) return "Invalid data: check times, allowed windows and overlaps.";
@@ -185,6 +185,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
           {reportCursor && <button type="button" disabled={busy} onClick={() => void more("reports")}>Load more reports</button>}
         </section>
         <section className={styles.card}><span className={styles.kicker}>HUMAN REVIEW</span><h2>Schedule proposals</h2>
+          {notice && <p className={styles.notice} role="status">{notice}</p>}
           {draft && JSON.stringify(draft) !== JSON.stringify(schedule) && <p>Save or reload the schedule before deciding on proposals.</p>}
           {!proposals.length && <p>No proposals available.</p>}
           {proposals.map((proposal) => {
