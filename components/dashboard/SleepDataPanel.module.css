@@ -2,6 +2,7 @@
 .heading, .groupTitle, .chartHeader { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; }
 .heading { padding-bottom: 24px; border-bottom: 1px solid rgba(98, 105, 112, .14); }
 .heading h2 { margin: 8px 0; color: #272c31; font-size: clamp(1.7rem, 3vw, 2.35rem); letter-spacing: -.055em; }
+.heading h2 .text-type { display: inline-block; }
 .heading p, .chartHeader p { margin: 5px 0; color: #7a8188; font-size: .87rem; }
 .kicker, .sectionLabel { color: #3b1abd; font: 800 .66rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .13em; }
 .headingActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -16,6 +17,7 @@
 .refreshButton svg { transition: transform .35s ease; }
 .refreshButton:hover svg { transform: rotate(-45deg); }
 .panel button:disabled { opacity: .5; cursor: wait; }
+.isRefreshing svg { animation: refresh-spin .85s linear infinite; }
 .panel button:focus-visible, .panel input:focus-visible, .panel summary:focus-visible { outline: 2px solid #6e5ce7; outline-offset: 3px; }
 .upload { display: grid; min-width: min(100%, 290px); gap: 6px; }
 .uploadLabel { color: #6d747b; font: 800 .66rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .04em; }
@@ -31,7 +33,7 @@
 .groupTitle h3, .chartHeader h3 { margin: 6px 0 0; color: #272c31; font-size: 1.15rem; letter-spacing: -.03em; }
 .source { color: #7a8188; font: 700 .68rem var(--font-dm-mono), ui-monospace, monospace; overflow-wrap: anywhere; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0 28px; }
-.metrics div { display: grid; align-content: start; gap: 9px; min-height: 112px; padding: 17px; min-width: 0; border: 1px solid rgba(98, 105, 112, .14); border-radius: 11px; background: rgba(255, 255, 255, .38); box-shadow: 3px 3px 8px rgba(203, 208, 214, .38), -3px -3px 8px rgba(255, 255, 255, .62); }
+.metricCard { display: grid; align-content: start; gap: 9px; min-height: 112px; padding: 17px; min-width: 0; border: 1px solid rgba(98, 105, 112, .14); border-radius: 11px; background: rgba(255, 255, 255, .38); box-shadow: 3px 3px 8px rgba(203, 208, 214, .38), -3px -3px 8px rgba(255, 255, 255, .62); animation: card-reveal .55s cubic-bezier(.2, .8, .2, 1) both; }
 .metrics span { color: #7a8188; font: 800 .66rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .04em; }
 .metrics strong { color: #272c31; font: 800 clamp(1.25rem, 2vw, 1.7rem) var(--font-dm-mono), ui-monospace, monospace; text-transform: capitalize; overflow-wrap: anywhere; }
 .metrics strong small { font-size: .75rem; font-weight: 700; color: #7a8188; }
@@ -40,6 +42,7 @@
 .legend { color: #7a8188; font: 800 .65rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .06em; }
 .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; background: #56c6d4; box-shadow: 0 0 0 3px rgba(86, 198, 212, .12); }
 .chartWrap { display: flex; padding: 16px 12px 12px; border: 1px solid rgba(98, 105, 112, .16); border-radius: 12px; background: rgba(255, 255, 255, .31); box-shadow: inset 2px 2px 6px rgba(203, 208, 214, .3), inset -2px -2px 6px rgba(255, 255, 255, .55); }
+.chartGlow, .chartGlow > div { display: block; width: 100%; }
 .axis { flex: 0 0 30px; height: 142px; padding-top: 18px; display: flex; flex-direction: column; justify-content: space-between; color: #969ca1; font: 700 .65rem var(--font-dm-mono), ui-monospace, monospace; }
 .chart { display: flex; flex: 1; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
 .day { min-width: 42px; flex: 1; display: grid; gap: 5px; text-align: center; color: #626970; font: 700 .7rem var(--font-dm-mono), ui-monospace, monospace; }
@@ -56,5 +59,9 @@
 .tableDetails th, .tableDetails td { padding: 9px; border-bottom: 1px solid rgba(98, 105, 112, .14); }
 .tableDetails th { color: #3f454a; font: 800 .66rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .04em; }
 @keyframes bar-rise { from { opacity: .3; transform: scaleY(0); } to { opacity: 1; transform: scaleY(1); } }
+.reveal { animation: card-reveal .55s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes card-reveal { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .reveal, .metricCard, .bar, .isRefreshing svg { animation: none; } }
 @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 540px) { .panel { margin: 10px 0; padding: 18px; } .infoGrid { grid-template-columns: 1fr; } .controls { align-items: stretch; } .controls label { flex: 1 1 130px; } .headingActions { width: 100%; } .headingActions > * { flex: 1; justify-content: center; } }

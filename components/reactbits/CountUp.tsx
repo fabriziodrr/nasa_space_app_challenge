@@ -12,17 +12,19 @@ type NumericValue = {
   amount: number;
   decimals: number;
   sign: string;
+  prefix: string;
+  suffix: string;
   minimumIntegerDigits: number;
 };
 
 function parseNumericValue(value: string): NumericValue | null {
-  const match = value.trim().match(/^([+-]?)(\d[\d,]*(?:\.\d+)?)$/);
+  const match = value.trim().match(/^(.*?)([+-]?)(\d[\d,]*(?:\.\d+)?)(.*?)$/);
 
   if (!match) {
     return null;
   }
 
-  const [, sign, rawNumber] = match;
+  const [, prefix, sign, rawNumber, suffix] = match;
   const normalizedNumber = rawNumber.replace(/,/g, "");
   const amount = Number(normalizedNumber);
 
@@ -36,6 +38,8 @@ function parseNumericValue(value: string): NumericValue | null {
     amount: Math.abs(amount),
     decimals: decimalPart.length,
     sign,
+    prefix,
+    suffix,
     minimumIntegerDigits: integerPart.length > 1 && integerPart.startsWith("0") ? integerPart.length : 1,
   };
 }
@@ -48,7 +52,7 @@ function formatValue(value: number, numericValue: NumericValue) {
     useGrouping: true,
   });
 
-  return `${numericValue.sign}${formatted}`;
+  return `${numericValue.prefix}${numericValue.sign}${formatted}${numericValue.suffix}`;
 }
 
 export function CountUp({ value, duration = 420, className }: CountUpProps) {

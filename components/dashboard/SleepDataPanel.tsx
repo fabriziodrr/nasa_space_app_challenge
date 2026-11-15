@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { RotateCcw, Upload } from "lucide-react";
 import demo from "@/server/examples/sleep_demo_14d.json";
+import { BorderGlow } from "@/components/reactbits/BorderGlow";
+import { CountUp } from "@/components/reactbits/CountUp";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
+import { TextType } from "@/components/reactbits/TextType";
 import styles from "./SleepDataPanel.module.css";
 
 type SleepGroup = {
@@ -22,9 +26,11 @@ export function SleepDataPanel() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [status, setStatus] = useState("Loading sleep data…");
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [fileName, setFileName] = useState("");
 
   const refresh = useCallback(async () => {
+    setRefreshing(true);
     setStatus("Loading sleep data…");
     try {
       const params = new URLSearchParams({ subject, start: `${start}T00:00:00Z`, end: `${end}T00:00:00Z` });
@@ -36,6 +42,8 @@ export function SleepDataPanel() {
     } catch (error) {
       setAnalysis(null);
       setStatus(error instanceof Error ? error.message : "Could not load sleep data.");
+    } finally {
+      setRefreshing(false);
     }
   }, [subject, start, end]);
 
@@ -66,13 +74,13 @@ export function SleepDataPanel() {
   }
 
   return <section className={styles.panel} aria-labelledby="sleep-data-title">
-    <div className={styles.heading}><div><span className={styles.kicker}>CREW HEALTH / SLEEP MONITORING</span><h2 id="sleep-data-title">Sleep &amp; reported fatigue</h2><p>Review sleep duration alongside the crew member’s reported fatigue.</p></div>
+    <div className={`${styles.heading} ${styles.reveal}`}><div><span className={styles.kicker}><TextType text="CREW HEALTH / SLEEP MONITORING" typingSpeed={18} /></span><h2 id="sleep-data-title"><TextType text="Sleep & reported fatigue" typingSpeed={24} initialDelay={100} /></h2><p>Review sleep duration alongside the crew member’s reported fatigue.</p></div>
       <div className={styles.headingActions}><span className={styles.demoBadge}><i /> SYNTHETIC DEMO</span><button type="button" disabled={busy} onClick={() => void importRecords(demo)}>Load sample</button></div></div>
     <div className={styles.controls}>
       <label>Subject <input value={subject} onChange={(event) => setSubject(event.target.value)} /></label>
       <label>From <input type="date" value={start} onChange={(event) => setStart(event.target.value)} /></label>
       <label>Until <input type="date" value={end} onChange={(event) => setEnd(event.target.value)} /></label>
-       <button className={styles.refreshButton} type="button" onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
+       <button className={`${styles.refreshButton} ${refreshing ? styles.isRefreshing : ""}`} type="button" disabled={busy || refreshing} onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
        <div className={styles.upload}>
          <span className={styles.uploadLabel}>Import synthetic JSON</span>
          <label className={styles.filePicker}>
@@ -94,23 +102,23 @@ export function SleepDataPanel() {
     </div>
     {status && <p className={styles.notice} role="status">{status}</p>}
     {analysis?.truncated && <p className={styles.notice}>Partial data: the backend limit was reached.</p>}
-    {analysis?.groups.map((group) => <article className={styles.group} key={`${group.device_id}:${group.method}`}>
+    {analysis?.groups.map((group) => <article className={`${styles.group} ${styles.reveal}`} key={`${group.device_id}:${group.method}`}>
       <div className={styles.groupTitle}><div><span className={styles.sectionLabel}>PERIOD OVERVIEW</span><h3>Sleep summary</h3></div><span className={styles.source}>Device: {group.device_id} · Method: {group.method}</span></div>
       <div className={styles.metrics}>
-        <div><span>Average duration</span><strong>{group.summary.mean_sleep_hours.toFixed(2)} <small>h</small></strong><em>Per recorded sleep episode</em></div>
-        <div><span>Data coverage</span><strong>{group.coverage.days_with_episode} <small>/ {group.coverage.expected_utc_days} days</small></strong><em>Days with a valid episode</em></div>
-        <div><span>Duration trend</span><strong>{group.trend.direction ?? "Not available"}</strong><em>{group.trend.last_minus_first_hours === null ? "More data needed" : `${group.trend.last_minus_first_hours > 0 ? "+" : ""}${group.trend.last_minus_first_hours.toFixed(1)} h, last vs first`}</em></div>
-        <div><span>Fatigue reports</span><strong>{group.feedback_comparison.pair_count}</strong><em>Confirmed, paired with sleep</em></div>
+        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(59, 26, 189, 0.14)" style={{ animationDelay: "80ms" }}><span>Average duration</span><strong><CountUp value={group.summary.mean_sleep_hours.toFixed(2)} /><small> h</small></strong><em>Per recorded sleep episode</em></SpotlightCard>
+        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(86, 198, 212, 0.16)" style={{ animationDelay: "140ms" }}><span>Data coverage</span><strong><CountUp value={String(group.coverage.days_with_episode)} /> <small>/ {group.coverage.expected_utc_days} days</small></strong><em>Days with a valid episode</em></SpotlightCard>
+        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(214, 167, 68, 0.16)" style={{ animationDelay: "200ms" }}><span>Duration trend</span><strong>{group.trend.direction ?? "Not available"}</strong><em>{group.trend.last_minus_first_hours === null ? "More data needed" : `${group.trend.last_minus_first_hours > 0 ? "+" : ""}${group.trend.last_minus_first_hours.toFixed(1)} h, last vs first`}</em></SpotlightCard>
+        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(59, 26, 189, 0.14)" style={{ animationDelay: "260ms" }}><span>Fatigue reports</span><strong><CountUp value={String(group.feedback_comparison.pair_count)} /></strong><em>Confirmed, paired with sleep</em></SpotlightCard>
       </div>
       <div className={styles.chartHeader}><div><span className={styles.sectionLabel}>LONGITUDINAL VIEW</span><h3>Sleep duration</h3><p>One recorded episode per UTC day</p></div><span className={styles.legend}><i /> SLEEP / HOURS</span></div>
-      <div className={styles.chartWrap}><div className={styles.axis} aria-hidden="true"><span>12h</span><span>6h</span><span>0h</span></div><div className={styles.chart} aria-label="Sleep duration by day, scale capped at 12 hours">
-        {group.series.map((point) => {
+       <BorderGlow className={styles.chartGlow} glowColor="86, 198, 212"><div className={styles.chartWrap}><div className={styles.axis} aria-hidden="true"><span>12h</span><span>6h</span><span>0h</span></div><div className={styles.chart} aria-label="Sleep duration by day, scale capped at 12 hours">
+         {group.series.map((point, index) => {
           const report = group.feedback_comparison.pairs.find((pair) => pair.sleep_observation_id === point.observation_id);
           return <div className={styles.day} key={point.observation_id} title={`${point.day_utc}: ${point.sleep_hours} hours${report ? `, fatigue ${report.fatigue_rating}/10` : ""}`}>
-            <span>{point.sleep_hours.toFixed(1)}</span><div className={styles.barTrack}><div className={styles.bar} style={{ height: `${Math.min(point.sleep_hours / 12 * 100, 100)}%` }} /></div><small>{point.day_utc.slice(5)}</small><small>{report ? `F ${report.fatigue_rating}` : "F —"}</small>
+             <span>{point.sleep_hours.toFixed(1)}</span><div className={styles.barTrack}><div className={styles.bar} style={{ height: `${Math.min(point.sleep_hours / 12 * 100, 100)}%`, animationDelay: `${index * 45}ms` }} /></div><small>{point.day_utc.slice(5)}</small><small>{report ? `F ${report.fatigue_rating}` : "F —"}</small>
           </div>;
         })}
-      </div></div>
+       </div></div></BorderGlow>
       <div className={styles.infoGrid}><div><span className={styles.sectionLabel}>DATA COMPLETENESS</span><p>Missing or invalid UTC days: {group.coverage.missing_utc_days.join(", ") || "none"}.</p></div><div><span className={styles.sectionLabel}>INTERPRETATION</span><p>F = confirmed self-reported fatigue / 10. Chart is capped at 12 h; values above it remain labeled. Trends are descriptive, not a diagnosis.</p></div></div>
       <details className={styles.tableDetails}><summary>View observations as a table</summary><div className={styles.tableScroll}><table><thead><tr><th scope="col">UTC date</th><th scope="col">Sleep duration</th><th scope="col">Reported fatigue</th></tr></thead><tbody>{group.series.map((point) => { const report = group.feedback_comparison.pairs.find((pair) => pair.sleep_observation_id === point.observation_id); return <tr key={point.observation_id}><td>{point.day_utc}</td><td>{point.sleep_hours.toFixed(1)} h</td><td>{report ? `${report.fatigue_rating} / 10` : "Not reported"}</td></tr>; })}</tbody></table></div></details>
     </article>)}

@@ -38,12 +38,22 @@ export function DashboardShell() {
     }, 240);
   }, []);
 
+  const returnHome = useCallback(() => {
+    transitionTo(() => {
+      setActiveView("houston");
+      setActiveSection("human-vitals");
+      setBodyVariant("male");
+      setResetToken((token) => token + 1);
+    });
+  }, [transitionTo]);
+
   return (
     <div className="dashboard-shell" aria-label="S.L.O.T.H. mission dashboard">
       <main className="dashboard-shell__main" aria-label={`${activeView} dashboard workspace`}>
         <PillNav
           className="dashboard-shell__nav"
           brand="S.L.O.T.H."
+          onBrandClick={returnHome}
           items={[
             { label: "Houston", active: activeView === "houston", onClick: () => transitionTo(() => { setActiveView("houston"); setActiveSection("human-vitals"); }), icon: <DashboardIcon name="grid" size={14} />, menu: (
               <div className="pill-nav__menu-panel">
