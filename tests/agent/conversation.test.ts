@@ -19,7 +19,7 @@ const actor: AstronautIdentity = { userId: "user-1", role: "ASTRONAUT", astronau
 const other: AstronautIdentity = { userId: "user-2", role: "ASTRONAUT", astronautId: "astro-2" };
 const ground: Identity = { userId: "ground-1", role: "GROUND_CONTROL", astronautIds: ["astro-1"] };
 const fixedTime = new Date("2026-11-14T06:00:00Z");
-const complete = "I slept 5 hours. Sleep quality 2 out of 5. Fatigue 4 out of 5.";
+const complete = "I slept 5 hours. Sleep quality 2 out of 10. Fatigue 4 out of 10.";
 const code = (expected: string) => (error: unknown) => error instanceof AgentError && error.code === expected;
 
 function harness(options: {
@@ -38,6 +38,19 @@ function harness(options: {
   return { repository, service };
 }
 const message = (id: string, text: string) => ({ clientMessageId: id, text, inputMode: "TEXT" });
+
+test("check-in records 1–10 scales and leaves explicit 1–5 values for clarification", async () => {
+  const { service } = harness();
+  const session = await service.createSession(actor, { astronautId: actor.astronautId });
+  await service.sendMessage(actor, session.id, message("hours", "I slept 5 hours."));
+  const quality = await service.sendMessage(actor, session.id, message("quality", "10"));
+  assert.deepEqual(quality.checkIn.observations.filter((item) => item.field === "SLEEP_QUALITY").map((item) => [item.value, item.scaleMax]), [[10, 10]]);
+  const fatigue = await service.sendMessage(actor, session.id, message("fatigue", "8"));
+  assert.deepEqual(fatigue.checkIn.observations.filter((item) => item.field === "FATIGUE").map((item) => [item.value, item.scaleMax]), [[8, 10]]);
+  const second = await service.createSession(actor, { astronautId: actor.astronautId });
+  const oldScale = await service.sendMessage(actor, second.id, message("old-scale", "Fatigue 4 out of 5."));
+  assert.ok(!oldScale.checkIn.observations.some((item) => item.field === "FATIGUE"));
+});
 
 test("selected synthetic vision reaches the model without becoming a self report", async () => {
   let captured: ConversationContext | undefined;
@@ -99,7 +112,7 @@ test("textual check-in accumulates explicit answers and preserves stable observa
   assert.equal(first.checkIn.observations[0].value, 5.5);
   const hoursId = first.checkIn.observations[0].id;
   assert.match(first.assistantMessage.text, /quality/i);
-  const second = await service.sendMessage(actor, session.id, message("client-2", "Sleep quality 2 out of 5. Fatigue 4 out of 5."));
+  const second = await service.sendMessage(actor, session.id, message("client-2", "Sleep quality 2 out of 10. Fatigue 4 out of 10."));
   assert.equal(second.checkIn.revision, 2);
   assert.equal(second.checkIn.id, first.checkIn.id);
   assert.equal(second.checkIn.observations.find((o) => o.field === "SLEEP_HOURS")?.id, hoursId);
@@ -142,7 +155,7 @@ test("conflicting sensor and self-report values remain separate and trigger clar
 test("a rested conversation never applies or invents a schedule proposal in T1", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  await service.sendMessage(actor, session.id, message("first", "I slept 8 hours. Sleep quality 4 out of 5. Fatigue 1 out of 5."));
+  await service.sendMessage(actor, session.id, message("first", "I slept 8 hours. Sleep quality 4 out of 10. Fatigue 1 out of 10."));
   await service.sendMessage(actor, session.id, message("second", "Physically: I feel good."));
   await service.sendMessage(actor, session.id, message("third", "Mentally: clear and focused."));
   const result = await service.sendMessage(actor, session.id, message("fourth", "Annoyance: none in particular."));
@@ -364,7 +377,7 @@ test("HTTP returns correct authorization status and hides arbitrary internal err
 test("HTTP preserves branded domain errors from another route module or JavaScript realm", async () => {
   const foreignError = runInNewContext(`new class extends Error {
     constructor() {
-      super('Messaggio duplicato');
+      super('Duplicate message');
       this[Symbol.for('iss.agent.AgentError')] = true;
       this.code = 'IDEMPOTENCY_CONFLICT';
       this.retryable = false;

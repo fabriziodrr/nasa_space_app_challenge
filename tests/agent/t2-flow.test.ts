@@ -23,7 +23,7 @@ test("confirmed shared observations produce a ground report and a private editab
     const service = createConversationService({ ai, repository, ...context });
     const session = await service.createSession(identity, { astronautId: "astro-1" });
     const turn = await service.sendMessage(identity, session.id, {
-      clientMessageId: "message-1", text: "I slept 5 hours. Fatigue 4 out of 5.", inputMode: "TEXT",
+      clientMessageId: "message-1", text: "I slept 5 hours. Fatigue 4 out of 10.", inputMode: "TEXT",
     });
     const hours = turn.checkIn.observations.find((o) => o.field === "SLEEP_HOURS")!;
     const artifacts = new ArtifactService({ repository, ...context, operationalAi: ai, diaryAi: ai, proposals: new ProposalService(new ScheduleValidatorImpl()) });

@@ -18,6 +18,7 @@ import { VisionService } from "./vision/service";
 import { VisionConfirmationService } from "./vision/confirmation";
 import { DemoProgramProvider } from "./adapters/demo-program";
 import { ApprovalService } from "./services/approval";
+import { PythonSensorProvider } from "./adapters/python-sensors";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -26,6 +27,7 @@ function createDemoRuntime() {
   }
   const repository = new PrismaAgentRepository(prisma);
   const context = createDemoContextProviders(config.AGENT_DEMO_SCENARIO);
+  if (config.AGENT_SENSOR_PROVIDER === "python") context.sensors = new PythonSensorProvider({ subjectId: config.AGENT_DATA_SUBJECT_ID });
   const schedule = new DemoProgramProvider(prisma);
   context.schedule = schedule;
   const visionQuality = { minValidMs: config.AGENT_VISION_MIN_VALID_MS, minCoverage: config.AGENT_VISION_MIN_COVERAGE,
@@ -37,8 +39,9 @@ function createDemoRuntime() {
     ? new NvidiaConversationProvider({ apiKey: config.NVIDIA_API_KEY!, model: config.NVIDIA_MODEL, timeoutMs: config.AGENT_AI_TIMEOUT_MS })
     : config.AGENT_AI_PROVIDER === "mock" ? new MockConversationAiProvider({ proposalsEnabled: true }) : null;
   return {
-    identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN),
+    identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN, process.env),
     repository,
+    visionQuality,
     visionObservations,
     visionConfirmation,
     approval: new ApprovalService(repository, schedule),

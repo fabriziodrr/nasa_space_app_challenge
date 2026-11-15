@@ -37,9 +37,12 @@ async function main() {
           const state = await call(`/sessions/${session.id}`);
           if (!state.checkIn?.observations.length) console.log("\nNo observations recorded in the draft.\n");
           else {
-            const labels = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1-5)", FATIGUE: "Fatigue (1-5)", PHYSICAL_NOTES: "Physical condition" };
+            const labels = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1-10)", FATIGUE: "Fatigue (1-10)", PHYSICAL_NOTES: "Physical condition", MENTAL_STATE: "Mental state", STRESSOR_NOTES: "Stressors" };
             console.log("\nCheck-in draft:");
-            for (const observation of state.checkIn.observations) console.log(`- ${labels[observation.field] ?? observation.field}: ${observation.value}`);
+            for (const observation of state.checkIn.observations) {
+              const scale = ["SLEEP_QUALITY", "FATIGUE"].includes(observation.field) ? (observation.scaleMax ? ` / ${observation.scaleMax}` : " (historical scale not specified)") : "";
+              console.log(`- ${labels[observation.field] ?? observation.field}: ${observation.value}${scale}`);
+            }
             console.log("The draft is not yet confirmed or shared with ground.\n");
           }
         } else {

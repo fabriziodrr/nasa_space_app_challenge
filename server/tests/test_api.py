@@ -9,7 +9,7 @@ from aegis_data.api import create_app
 def test_api_round_trip_and_error_contract(tmp_path):
     with TestClient(create_app(tmp_path / "api.sqlite3")) as client:
         payload = {"observation_id": "sleep-1", "kind": "sleep", "subject_id": "crew-1",
-                   "observed_at": "2026-11-14T07:00:00Z", "sleep_hours": 6, "sleep_quality": 3}
+                   "observed_at": "2026-11-14T07:00:00Z", "sleep_hours": 6, "sleep_quality": 3, "scale_max": 10}
         assert client.post("/v1/observations", json=payload).status_code == 201
         assert client.post("/v1/observations", json=payload).status_code == 409
         assert client.post("/v1/observations", json=payload | {"sleep_hours": -1}).status_code == 422

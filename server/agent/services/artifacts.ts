@@ -5,7 +5,7 @@ import {
   type Identity,
 } from "../contracts";
 import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleReader, SensorProvider } from "../ports";
-import { AgentErrors } from "../core/errors";
+import { AgentErrors, isAgentError } from "../core/errors";
 import { ProposalService } from "./proposals";
 import type { VisionConfirmationService } from "../vision/confirmation";
 
@@ -31,6 +31,7 @@ export class ArtifactService {
     if (checkIn.status !== "CONFIRMED" || !checkIn.confirmedAt) throw AgentErrors.invalidState("The check-in is not confirmed.");
     const claim = await repository.claimGeneration(identity.astronautId, checkIn.id, 120_000);
     if (!claim) return;
+    let phase = "context";
     try {
       const selected = new Set(checkIn.sharedObservationIds);
       const shared = SharedCheckInSchema.parse({
@@ -59,11 +60,28 @@ export class ArtifactService {
         longestCompleteMs: vision.longestCompleteMs, interruption: vision.interruption, usability: vision.usability, reasons: vision.reasons } : null;
       const context = OperationalContextSchema.parse({ checkIn: shared, sensors: readings, vision: visibleVision });
       const [rawOperational, rawDiary] = await Promise.all([
-        operationalAi.generateOperational({ context: structuredClone(context), schedule: structuredClone(day) }),
-        diaryAi.generateDiary({ astronautId: identity.astronautId, messages: state.messages, checkIn }),
+        operationalAi.generateOperational({ context: structuredClone(context), schedule: structuredClone(day) }).catch((error) => { console.error("Agent operation:", isAgentError(error) ? error.code : "error"); throw error; }),
+        diaryAi.generateDiary({ astronautId: identity.astronautId, messages: state.messages, checkIn }).catch((error) => { console.error("Agent diary:", isAgentError(error) ? error.code : "error"); throw error; }),
       ]);
+      phase = "validate model output";
       const operational = OperationalOutputSchema.parse(rawOperational);
       const diaryOutput = DiaryOutputSchema.parse(rawDiary);
+      const backend = readings.find((reading) => reading.provenance)?.provenance;
+      if (backend) {
+        const note = `Demo data backend: status ${backend.status}; subject ${backend.subjectId}, ${backend.identityLink === "demo_mapped" ? "synthetic profile linked in the demo" : "unverified identity"}; `
+          + `snapshot ${backend.snapshotId ?? "unavailable"}, archive acquisition ${backend.backendAsOf ?? "unavailable"}; period ${backend.periodStart ?? "unavailable"} – ${backend.periodEnd ?? "unavailable"}; `
+          + `result ${backend.truncated ? "truncated" : "not truncated"}. Synthetic data, not related to real people.`;
+        operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
+      }
+      const uncertainBackendIds = new Set(readings.filter((reading) => reading.provenance && (reading.provenance.identityLink !== "demo_mapped" || reading.provenance.truncated || reading.quality !== "GOOD")).map((reading) => reading.id));
+      const unsafe = (finding: typeof operational.report.findings[number]) => finding.source === "inference"
+        && finding.evidence.some((ref) => ref.source === "sensor" && uncertainBackendIds.has(ref.sensorReadingId));
+      if ([...operational.report.findings, ...operational.report.discrepancies].some(unsafe)) {
+        operational.report.findings = operational.report.findings.filter((finding) => !unsafe(finding));
+        operational.report.discrepancies = operational.report.discrepancies.filter((finding) => !unsafe(finding));
+        operational.report.uncertainties = ["Deduction over data with an unverified demo identity removed; human review required.", ...operational.report.uncertainties].slice(0, 20);
+        operational.report.humanReview = { required: true, reason: "Unverified demo source identity." };
+      }
       if (context.vision) {
         const item = context.vision;
         const note = `Eyelid measurement ${item.source === "synthetic" ? "synthetic" : "webcam"}; status ${item.usability}; `
@@ -72,18 +90,22 @@ export class ArtifactService {
           + `limitations: ${item.reasons.length ? item.reasons.join(", ") : "none reported"}. Experimental, non-diagnostic measurement.`;
         operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
       }
-      const sensorIds = new Set(readings.map((reading) => reading.id));
-      for (const finding of [...operational.report.findings, ...operational.report.discrepancies]) {
-        for (const evidence of finding.evidence) {
-          const allowed = evidence.source === "self_report" ? selected.has(evidence.observationId)
+      const sensorIds = new Set(readings.filter((reading) => reading.quality !== "UNAVAILABLE").map((reading) => reading.id));
+      phase = "validate report evidence";
+      const evidenceAllowed = (finding: typeof operational.report.findings[number]) => finding.evidence.every((evidence) => {
+          return evidence.source === "self_report" ? selected.has(evidence.observationId)
             : evidence.source === "sensor" ? sensorIds.has(evidence.sensorReadingId)
             : context.vision?.id === evidence.visionObservationId && context.vision.source === "webcam" && context.vision.usability === "USABLE";
-          if (!allowed) {
-            throw AgentErrors.invalidAiOutput("The report contains evidence that is not shared or unavailable.");
-          }
-        }
+      });
+      const invalidFindings = [...operational.report.findings, ...operational.report.discrepancies].some((finding) => !evidenceAllowed(finding));
+      if (invalidFindings) {
+        operational.report.findings = operational.report.findings.filter(evidenceAllowed);
+        operational.report.discrepancies = operational.report.discrepancies.filter(evidenceAllowed);
+        operational.report.uncertainties = ["Some statements were excluded because they lacked shared and available evidence; human review required.", ...operational.report.uncertainties].slice(0, 20);
+        operational.report.humanReview = { required: true, reason: "Verify the excluded statements and the available evidence." };
       }
       let proposal = null;
+      phase = "validate proposal";
       if (operational.proposal) {
         if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Proposal generation is not yet connected to the authoritative schedule.");
         if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("The check-in has no frozen schedule: open a new check-in.");
@@ -96,6 +118,7 @@ export class ArtifactService {
         }
       }
       const now = new Date().toISOString();
+      phase = "persist artifacts";
       const report = GroundReportSchema.parse({
         ...operational.report, id: randomUUID(), astronautId: identity.astronautId,
         checkInId: checkIn.id, generatedAt: now, proposalId: proposal?.id ?? null,
@@ -107,6 +130,7 @@ export class ArtifactService {
       });
       await repository.completeGeneration(claim, { report, diary, proposal, noChangeReason: operational.noChangeReason });
     } catch (error) {
+      console.error("Agent artifact generation failed:", phase, isAgentError(error) ? error.code : error instanceof Error ? error.name : "unknown error");
       try { await repository.failGeneration(claim); } catch { /* Preserve original error. */ }
       throw error;
     }

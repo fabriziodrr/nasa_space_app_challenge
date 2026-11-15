@@ -29,8 +29,10 @@ L'archivio predefinito è `data/aegis.sqlite3`, escluso da Git. Il percorso è c
 
 `POST /v1/observations` accetta i tipi discriminati da `kind`: `sleep`, `mood`, `vigilance`, `sleep_measurement` e `speech_feedback`. I campi sconosciuti e i valori non validi sono rifiutati. I timestamp richiedono un fuso; `observed_at` è normalizzato in UTC.
 
-- Sonno: `sleep_hours` da 0 a 24; `sleep_quality` intero 1–5 (molto scarsa, scarsa, discreta, buona, molto buona). Sono autovalutazioni.
-- Umore: `mood_rating` intero 1–5 (molto negativo, negativo, neutro, positivo, molto positivo), `alertness` intero 1–10 (minima–massima), `confirmed: true`. Sono scale dimostrative non validate. Il modello non può registrare un'emozione inferita come autovalutazione confermata.
+- Sonno: `sleep_hours` da 0 a 24; `sleep_quality` intero 1–10, da molto scarsa a molto buona. Sono autovalutazioni.
+- Umore: `mood_rating` intero 1–10, da molto negativo a molto positivo, `alertness` intero 1–10 (minima–massima), `confirmed: true`. Sono scale dimostrative non validate. Il modello non può registrare un'emozione inferita come autovalutazione confermata.
+
+Per nuovi `sleep` e `mood` è obbligatorio `scale_max: 10`. Per `speech_feedback` con umore è obbligatorio `mood_scale_max: 10`; i feedback senza umore non richiedono tale campo. Client precedenti devono essere aggiornati. I record già salvati senza indicazione della scala restano consultabili con scala `null` e non vengono convertiti.
 - Reattività: `protocol_id: aegis-pvt-demo-v1`, `device_id`, elenco `trials`. Ogni trial è `response` con `rt_ms`, oppure `false_start`/`missed` senza tempo.
 
 Ogni osservazione include `subject_id`, `observed_at`, `synthetic` e `quality`. L'identificativo è generato se assente; il client dovrebbe conservarlo per evitare duplicazioni nei tentativi successivi. Un ID già presente dà HTTP 409: non viene sovrascritto. Non esiste ancora una procedura di rettifica/cancellazione: da definire prima di raccogliere dati personali reali.

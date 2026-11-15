@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DecideProposalRequestSchema, DecisionV2ResponseSchema, IdSchema, ListQuerySchema, ProposalListV2ResponseSchema, ScheduleQuerySchema, ScheduleV2ResponseSchema, type Identity } from "../contracts";
+import { DecideProposalRequestSchema, DecisionV2ResponseSchema, IdSchema, ListQuerySchema, ProposalListV2ResponseSchema, ScheduleQuerySchema, ScheduleV2ResponseSchema, UpdateScheduleRequestSchema, type Identity } from "../contracts";
 import { AgentError } from "../core/errors";
 import type { AgentRuntime } from "../runtime";
 import { createConversationHttpHandlers, readJson } from "./conversation-handlers";
@@ -42,6 +42,12 @@ export function createProposalHttpHandlers(getRuntime: () => AgentRuntime) {
       const input = ScheduleQuerySchema.parse(query(request));
       authorize(identity, input.astronautId);
       return reply(ScheduleV2ResponseSchema, await schedule.getDay(input.astronautId, input.date), requestId);
+    }),
+    updateSchedule: (request: Request) => handle(request, async ({ schedule }, identity, requestId) => {
+      if (identity.role !== "GROUND_CONTROL") throw new AgentError("FORBIDDEN", "Solo Terra può impostare il programma.");
+      const input = UpdateScheduleRequestSchema.parse(await readJson(request));
+      authorize(identity, input.schedule.astronautId);
+      return reply(ScheduleV2ResponseSchema, await schedule.replaceDay(input.schedule.astronautId, input.expectedVersion, input.schedule), requestId);
     }),
   };
 }

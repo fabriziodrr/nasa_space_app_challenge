@@ -75,7 +75,9 @@ export function checkInFromRow(row: CheckInRow): CheckIn {
     sessionId: row.sessionId,
     revision: row.revision,
     status: row.status as CheckIn["status"],
-    observations: parseJson(row.observationsJson, ObservationsSchema),
+    observations: parseJson(row.observationsJson, ObservationsSchema).map((observation) =>
+      (observation.field === "SLEEP_QUALITY" || observation.field === "FATIGUE") && observation.scaleMax === undefined
+        ? { ...observation, scaleMax: null } : observation),
     sharedObservationIds: parseJson(row.sharedObservationIdsJson, z.array(IdSchema)),
     createdAt: toIso(row.createdAt),
     confirmedAt: row.confirmedAt ? toIso(row.confirmedAt) : null,

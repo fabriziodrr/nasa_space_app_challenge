@@ -13,10 +13,11 @@ class AgentDataTools:
     def analyze_sleep(self, start: datetime, end: datetime) -> dict:
         return self._service.analyze_sleep(self._subject_id, start, end, self._synthetic)
 
-    def get_context(self) -> dict:
-        snapshot = self._service.snapshot(self._subject_id, self._synthetic)
+    def get_context(self, end: datetime | None = None) -> dict:
+        snapshot = self._service.snapshot(self._subject_id, self._synthetic, end=end)
         return {
             "snapshot_id": snapshot["snapshot_id"],
+            "subject_id": snapshot["subject_id"],
             "as_of": snapshot["as_of"],
             "synthetic": snapshot["synthetic"],
             "rule_version": snapshot["rule_version"],

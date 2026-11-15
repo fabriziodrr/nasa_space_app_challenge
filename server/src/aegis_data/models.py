@@ -22,16 +22,32 @@ class SleepObservation(BaseObservation):
     kind: Literal["sleep"]
     source: Literal["self_report"] = "self_report"
     sleep_hours: float = Field(ge=0, le=24)
-    sleep_quality: int = Field(ge=1, le=5, strict=True)
+    sleep_quality: int = Field(ge=1, le=10, strict=True)
+    scale_max: Literal[10]
 
 
 class MoodObservation(BaseObservation):
     kind: Literal["mood"]
     source: Literal["self_report"] = "self_report"
     confirmed: Literal[True]
-    mood_rating: int = Field(ge=1, le=5, strict=True)
+    mood_rating: int = Field(ge=1, le=10, strict=True)
+    scale_max: Literal[10]
     alertness: int = Field(ge=1, le=10, strict=True)
     # Free conversation and unconfirmed model inferences are deliberately absent.
+
+
+class SleepStages(Model):
+    device_id: str = Field(min_length=1, max_length=100)
+    method: Literal["eeg", "simulated_eeg"]
+    rem_minutes: float = Field(ge=0, le=1440)
+
+
+class HeartRateVariability(Model):
+    device_id: str = Field(min_length=1, max_length=100)
+    method: Literal["rmssd", "simulated_rmssd"]
+    value_ms: float = Field(gt=0, le=1000)
+    # Sampling and aggregation must be declared by the producing sensor.
+    aggregation: str = Field(min_length=1, max_length=100)
 
 
 class SleepMeasurement(BaseObservation):
@@ -42,6 +58,13 @@ class SleepMeasurement(BaseObservation):
     period_start: AwareDatetime
     period_end: AwareDatetime
     sleep_hours: float = Field(ge=0, le=24)
+    # Optional device-reported estimates, not values inferred from duration.
+    sleep_latency_minutes: float | None = Field(default=None, ge=0, le=2880)
+    wake_after_sleep_onset_minutes: float | None = Field(default=None, ge=0, le=2880)
+    awakenings_count: int | None = Field(default=None, ge=0, le=500, strict=True)
+    sleep_efficiency_percent: float | None = Field(default=None, ge=0, le=100)
+    sleep_stages: SleepStages | None = None
+    heart_rate_variability: HeartRateVariability | None = None
 
     @model_validator(mode="after")
     def check_period(self):
@@ -50,6 +73,14 @@ class SleepMeasurement(BaseObservation):
             raise ValueError("sleep period must be positive and at most 48 hours")
         if self.sleep_hours > duration:
             raise ValueError("sleep_hours cannot exceed the observation period")
+        if self.sleep_stages and self.sleep_stages.rem_minutes > self.sleep_hours * 60:
+            raise ValueError("REM duration cannot exceed total sleep")
+        if not self.synthetic and ((self.sleep_stages and self.sleep_stages.method == "simulated_eeg") or
+                                   (self.heart_rate_variability and self.heart_rate_variability.method == "simulated_rmssd")):
+            raise ValueError("simulated methods require synthetic=true")
+        if (self.sleep_latency_minutes is not None and self.sleep_latency_minutes > duration * 60
+                or self.wake_after_sleep_onset_minutes is not None and self.wake_after_sleep_onset_minutes > duration * 60):
+            raise ValueError("sleep timing metrics cannot exceed the observation period")
         if self.observed_at < self.period_end:
             raise ValueError("observed_at must be at or after period_end")
         return self
@@ -63,7 +94,8 @@ class SpeechFeedback(BaseObservation):
     user_confirmed: bool
     fatigue_rating: int | None = Field(default=None, ge=1, le=10, strict=True)
     alertness: int | None = Field(default=None, ge=1, le=10, strict=True)
-    mood_rating: int | None = Field(default=None, ge=1, le=5, strict=True)
+    mood_rating: int | None = Field(default=None, ge=1, le=10, strict=True)
+    mood_scale_max: Literal[10] | None = None
 
     @model_validator(mode="after")
     def check_feedback(self):
@@ -71,6 +103,8 @@ class SpeechFeedback(BaseObservation):
             raise ValueError("at least one feedback rating is required")
         if self.basis == "model_inference" and self.user_confirmed:
             raise ValueError("a confirmed user report must use basis=self_report")
+        if self.mood_rating is not None and self.mood_scale_max != 10:
+            raise ValueError("mood_scale_max=10 is required with mood_rating")
         return self
 
 

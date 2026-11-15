@@ -1,0 +1,27 @@
+.workspace { width: min(100%, 1280px); margin: 18px auto 48px; color: #303940; }
+.heading, .sectionHeader { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.heading h1 { margin: 7px 0; font-size: clamp(1.7rem, 4vw, 2.5rem); }
+.heading p, .card p { line-height: 1.5; }
+.kicker { color: #3b1abd; font-size: .7rem; font-weight: 800; letter-spacing: .12em; }
+.controls, .card { margin: 20px 0; padding: clamp(18px, 3vw, 30px); border: 1px solid #d6dce2; border-radius: 16px; background: #f7f9fa; box-shadow: 0 8px 28px #273e4d0b; }
+.controls { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; }
+.workspace label { display: grid; gap: 6px; color: #4b5b64; font-size: .82rem; font-weight: 650; }
+.workspace input, .workspace select { min-width: 0; padding: 9px; border: 1px solid #aebbc4; border-radius: 7px; background: white; color: #202b32; font: inherit; }
+.workspace button { padding: 9px 14px; border: 1px solid #3b1abd; border-radius: 8px; background: #3b1abd; color: white; font: inherit; cursor: pointer; }
+.workspace button:disabled { opacity: .5; cursor: not-allowed; }
+.workspace :is(input, select, button):focus-visible { outline: 3px solid #af7a27; outline-offset: 2px; }
+.card h2 { margin: 8px 0 14px; }
+.notice { padding: 12px; border-left: 3px solid #bf8628; background: #fff4dc; color: #543b14; }
+.item { padding: 16px 0; border-top: 1px solid #d7e0e5; overflow-wrap: anywhere; }
+.item h3 { margin: 0; font-size: 1rem; }
+.item p { margin: 9px 0; }
+.list { display: grid; gap: 10px; padding-left: 24px; }
+.list li { padding: 10px; }
+.list span { display: block; color: #596b77; }
+.activity { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 15px 0; padding: 16px; border: 1px solid #d5e0e5; border-radius: 10px; }
+.activity legend { color: #4b5b64; font-weight: 700; }
+.activity .check { display: flex; align-items: center; }
+.activity .check input { width: auto; }
+.activity button { align-self: end; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 600px) { .controls label { flex: 1 1 100%; } .heading { align-items: flex-start; } }

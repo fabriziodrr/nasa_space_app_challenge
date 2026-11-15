@@ -18,7 +18,7 @@ export function VitalPanel({ zone, closing, onClose, onReset }: { zone: VitalZon
           <div className={styles["zone-status-dot"]} data-status={state} />
           <div>
             <h2>{zone.label}</h2>
-            <span className={styles["zone-path"]}>BODY ZONE / {zone.shortLabel.toUpperCase()}</span>
+            <span className={styles["zone-path"]}>SYNTHETIC DEMO / {zone.shortLabel.toUpperCase()}</span>
           </div>
         </div>
         <div className={styles["panel-actions"]}>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ConversationOutputSchema, DiaryOutputSchema, OperationalOutputSchema, type ConversationOutput } from "../contracts";
 import type { ConversationAiProvider, ConversationContext, ProviderOptions, OperationalAiProvider, DiaryAiProvider } from "../ports";
-import { AgentError, invalidAiOutput } from "../core/errors";
+import { AgentError, invalidAiOutput, isAgentError } from "../core/errors";
 import { withDeadline } from "../core/deadline";
 import { CONVERSATION_INSTRUCTIONS } from "../prompts/conversation";
 import { OPERATIONAL_INSTRUCTIONS } from "../prompts/operational";
@@ -48,7 +48,12 @@ export class NvidiaConversationProvider implements ConversationAiProvider, Opera
   }
 
   async generateOperational(input: Parameters<OperationalAiProvider["generateOperational"]>[0], options?: ProviderOptions) {
-    return this.generate(input, OPERATIONAL_INSTRUCTIONS, OperationalOutputSchema, options);
+    try {
+      return await this.generate(input, OPERATIONAL_INSTRUCTIONS, OperationalOutputSchema, options);
+    } catch (error) {
+      if (!isAgentError(error) || error.code !== "INVALID_AI_OUTPUT" || options?.signal?.aborted) throw error;
+      return this.generate(input, `${OPERATIONAL_INSTRUCTIONS}\nLa risposta precedente non rispettava il formato. Usa soltanto gli identificativi esatti ricevuti e rispetta tutti i campi obbligatori.`, OperationalOutputSchema, options);
+    }
   }
 
   async generateDiary(input: Parameters<DiaryAiProvider["generateDiary"]>[0], options?: ProviderOptions) {

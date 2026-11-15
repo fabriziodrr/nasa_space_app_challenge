@@ -47,7 +47,7 @@ Un giorno di missione o un tempo relativo non deve diventare un timestamp UTC in
 ## 5. Regole per sonno, umore e reattività
 
 - **Sonno:** separare durata riferita, misure actigrafiche ed eventuali stadi del sonno. Durata non equivale a qualità. Se una scala di qualità manca, mantenerla assente.
-- **Umore:** mantenere nome e ancoraggi della scala originale. Stress, sonnolenza e umore sono variabili distinte; non convertirle automaticamente nell'attuale `mood_rating` 1–5.
+- **Umore:** mantenere nome e ancoraggi della scala originale. Stress, sonnolenza e umore sono variabili distinte; non convertirle automaticamente nell'attuale `mood_rating` 1–10.
 - **Reattività:** preservare protocollo, durata, dispositivo, trial e definizioni di lapses/falsi avvii quando disponibili. Una media o una statistica pubblicata non permette di ricostruire trial individuali.
 - **Disponibilità:** un dataset può coprire soltanto una delle dimensioni. Non inventare le altre per completare una demo.
 - **Popolazione:** distinguere astronauti, partecipanti ad analoghi e volontari terrestri. Un soggetto di uno studio non corrisponde a un soggetto di un altro studio.

@@ -29,8 +29,8 @@ const observationBase = {
 };
 export const ObservationSchema = z.discriminatedUnion("field", [
   z.strictObject({ ...observationBase, field: z.literal("SLEEP_HOURS"), value: z.number().min(0).max(24) }),
-  z.strictObject({ ...observationBase, field: z.literal("SLEEP_QUALITY"), value: z.number().int().min(1).max(5) }),
-  z.strictObject({ ...observationBase, field: z.literal("FATIGUE"), value: z.number().int().min(1).max(5) }),
+  z.strictObject({ ...observationBase, field: z.literal("SLEEP_QUALITY"), value: z.number().int().min(1).max(10), scaleMax: z.union([z.literal(5), z.literal(10), z.null()]).optional() }),
+  z.strictObject({ ...observationBase, field: z.literal("FATIGUE"), value: z.number().int().min(1).max(10), scaleMax: z.union([z.literal(5), z.literal(10), z.null()]).optional() }),
   z.strictObject({ ...observationBase, field: z.literal("PHYSICAL_NOTES"), value: TextSchema }),
   z.strictObject({ ...observationBase, field: z.literal("MENTAL_STATE"), value: TextSchema }),
   z.strictObject({ ...observationBase, field: z.literal("STRESSOR_NOTES"), value: TextSchema }),

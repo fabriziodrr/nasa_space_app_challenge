@@ -19,7 +19,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
   async generateOperational({ context, schedule }: Parameters<OperationalAiProvider["generateOperational"]>[0]) {
     const vision = context.vision;
     const findings = context.checkIn.observations.map((o) => ({
-      text: `${o.field}: ${o.value}`, source: "self_report" as const,
+      text: `${o.field}: ${o.value}${o.field === "FATIGUE" || o.field === "SLEEP_QUALITY" ? (o.scaleMax ? ` / ${o.scaleMax}` : " (scale not specified)") : ""}`, source: "self_report" as const,
       evidence: [{ source: "self_report" as const, observationId: o.id }],
     }));
     const visionFinding = vision?.source === "webcam" && vision.usability === "USABLE" ? [{
@@ -27,11 +27,11 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       source: "vision" as const, evidence: [{ source: "vision" as const, visionObservationId: vision.id }],
     }] : [];
     const sensorFindings = context.sensors.filter((item) => item.quality !== "UNAVAILABLE").map((item) => ({
-      text: `Sensor${item.simulated ? " simulated" : ""} ${item.metric}: ${item.value} ${item.unit}, observed ${item.observedAt}; quality ${item.quality}.`,
+      text: `Sensor${item.simulated ? " simulated" : ""} ${item.metric}: ${item.value} ${item.unit}, observed ${item.observedAt}; quality ${item.quality}${item.provenance ? `; period ${item.provenance.periodStart} – ${item.provenance.periodEnd}; device ${item.provenance.deviceId}; method ${item.provenance.method}${item.provenance.aggregation ? `; aggregation ${item.provenance.aggregation}` : ""}; ${item.provenance.identityLink === "demo_mapped" ? "demo profile linked" : "demo subject not verified"}` : ""}.`,
       source: "sensor" as const, evidence: [{ source: "sensor" as const, sensorReadingId: item.id }],
     }));
     const statedSleep = context.checkIn.observations.find((o) => o.field === "SLEEP_HOURS");
-    const measuredSleep = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality !== "UNAVAILABLE");
+    const measuredSleep = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD" && (!s.provenance || s.provenance.identityLink === "demo_mapped"));
     const discrepancies = typeof statedSleep?.value === "number" && measuredSleep?.value != null && Math.abs(statedSleep.value - measuredSleep.value) >= 1 ? [{
       text: "Reported sleep duration and simulated sensor diverge; verify period and reliability before concluding.", source: "inference" as const,
       evidence: [{ source: "self_report" as const, observationId: statedSleep.id }, { source: "sensor" as const, sensorReadingId: measuredSleep.id }],
@@ -47,7 +47,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
         noChangeReason = "Insufficient shared data to justify a change: human follow-up required.";
       } else if (discrepancies.length) {
         noChangeReason = "Conflicting data: rest duration must be clarified before proposing a change.";
-      } else if (fatigue.value >= 4 && poorSleep) {
+      } else if (fatigue.scaleMax === 10 && fatigue.value >= 8 && poorSleep) {
         const activity = schedule.activities.find((a) => a.movable && a.priority !== "CRITICAL"
           && Date.parse(a.startsAt) >= Date.parse(context.checkIn.confirmedAt)
           && Date.parse(a.endsAt) + 1200000 <= Date.parse(a.latestEnd)
@@ -103,10 +103,19 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       if (value >= 0 && value <= 24) upsert("SLEEP_HOURS", value);
     }
     for (const [field, label] of [["SLEEP_QUALITY", "sleep quality"], ["FATIGUE", "fatigue"]] as const) {
-      const matches = [...text.matchAll(new RegExp(`\\b${label}\\s*(?:is\\s+|: ?)?(${numberPattern})\\s*(?:out of\\s*(?:5|five)|/\\s*5)\\b`, "g"))];
+      const matches = [...text.matchAll(new RegExp(`\\b${label}\\s*(?:is\\s+|: ?)?(${numberPattern})\\s*(?:out of\\s*(?:10|ten)|/\\s*10)\\b`, "g"))];
       if (matches.length === 1 && !/\b(?:not|maybe|or)\b/.test(text)) {
         const value = number(matches[0][1]);
-        if (Number.isInteger(value) && value >= 1 && value <= 5) upsert(field, value);
+        if (Number.isInteger(value) && value >= 1 && value <= 10) upsert(field, value);
+      }
+    }
+    const bare = text.trim().match(new RegExp(`^(${numberPattern})[.!?]?$`));
+    if (bare) {
+      const lastQuestion = [...context.messages].reverse().find((message) => message.role === "ASSISTANT")?.text.toLowerCase() ?? "";
+      const value = number(bare[1]);
+      if (Number.isInteger(value) && value >= 1 && value <= 10) {
+        if (lastQuestion.includes("sleep quality")) upsert("SLEEP_QUALITY", value);
+        else if (lastQuestion.includes("tired")) upsert("FATIGUE", value);
       }
     }
     if (/^physically\s*:/i.test(current.text)) {
@@ -124,14 +133,14 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
     const missingFields = ObservationFieldSchema.options.filter((field) => !observations.some((o) => o.field === field));
     const questions: Record<Observation["field"], string> = {
       SLEEP_HOURS: "How many hours did you sleep?",
-      SLEEP_QUALITY: "How would you rate your sleep quality from 1 to 5?",
-      FATIGUE: "How tired do you feel from 1 to 5?",
+      SLEEP_QUALITY: "How would you rate your sleep quality from 1 to 10?",
+      FATIGUE: "How tired do you feel from 1 to 10?",
       PHYSICAL_NOTES: "How do you feel physically?",
       MENTAL_STATE: "Is there any background thought occupying your mental space?",
       STRESSOR_NOTES: "If you could eliminate one small annoyance from today, what would it be?",
     };
     const reportedHours = observations.find((o) => o.field === "SLEEP_HOURS")?.value;
-    const sensor = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality !== "UNAVAILABLE");
+    const sensor = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD" && (!s.provenance || s.provenance.identityLink === "demo_mapped"));
     const discrepancy = typeof reportedHours === "number" && sensor?.value != null
       && Math.abs(sensor.value - reportedHours) >= 1;
     const alreadyAsked = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("rest period"));

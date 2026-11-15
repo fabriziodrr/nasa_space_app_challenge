@@ -7,6 +7,8 @@ const ConfigSchema = z.object({
   AGENT_DEMO_TOKEN: z.string().min(16).max(512).optional(),
   AGENT_GROUND_TOKEN: z.string().min(16).max(512).optional(),
   AGENT_DEMO_SCENARIO: ScenarioSchema.default("RESTED"),
+  AGENT_SENSOR_PROVIDER: z.enum(["python", "mock"]).default("python"),
+  AGENT_DATA_SUBJECT_ID: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/).default("sleep-demo-14d"),
   AGENT_AI_PROVIDER: z.enum(["mock", "nvidia", "openai"]).default("mock"),
   AGENT_VOICE_PROVIDER: z.enum(["browser", "nvidia_nim", "elevenlabs"]).default("browser"),
   AGENT_NIM_ASR_URL: z.url().optional(),

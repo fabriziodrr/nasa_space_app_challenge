@@ -23,7 +23,7 @@ async function setup(kind: "poor" | "rested" | "missing", changeAfterConfirmatio
   const sensors = createDemoContextProviders(kind === "poor" ? "POOR_SLEEP" : "RESTED").sensors;
   const observations = kind === "missing" ? [] : [
     { id: "sleep", field: "SLEEP_HOURS", source: "self_report", value: kind === "poor" ? 4.5 : 8, messageIds: ["m1"], recordedAt: now.toISOString() },
-    { id: "fatigue", field: "FATIGUE", source: "self_report", value: kind === "poor" ? 4 : 1, messageIds: ["m1"], recordedAt: now.toISOString() },
+    { id: "fatigue", field: "FATIGUE", source: "self_report", value: kind === "poor" ? 8 : 1, scaleMax: 10, messageIds: ["m1"], recordedAt: now.toISOString() },
   ];
   await db.prisma.conversationSession.create({ data: { id: "session-plan", astronautId: "astro-1", openedAt: now } });
   await db.prisma.checkIn.create({ data: { id: "check-plan", astronautId: "astro-1", sessionId: "session-plan", revision: 1, status: "DRAFT",
@@ -46,6 +46,46 @@ async function setup(kind: "poor" | "rested" | "missing", changeAfterConfirmatio
 const decision = (actor: string, value: "APPROVE" | "REJECT") => new Request("http://localhost/api/agent/v2/proposals/p/decision", {
   method: "POST", headers: { Authorization: `Bearer ${actor}`, "Idempotency-Key": "decision-key", "Content-Type": "application/json" },
   body: JSON.stringify({ decision: value, comment: null }),
+});
+
+test("ground updates the shared schedule with a version check and invalidates older proposals", async () => {
+  const h = await setup("poor");
+  try {
+    const before = await h.schedule.getDay("astro-1", "2026-11-14");
+    const proposal = (await h.repository.getSessionState("astro-1", "session-plan"))!.proposal!;
+    const edited = { ...before, activities: before.activities.map((a) => a.id === "science-1" ? { ...a, title: "Campioni aggiornati" } : a) };
+    const request = (actor: string, schedule: typeof before) => new Request("http://localhost/api/agent/v2/schedule", {
+      method: "PUT", headers: { Authorization: `Bearer ${actor}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ expectedVersion: before.version, schedule }),
+    });
+    assert.equal((await h.handlers.updateSchedule(request("astro", edited))).status, 403);
+    const overlap = { ...edited, activities: edited.activities.map((a) => a.id === "science-2" ? { ...a, startsAt: "2026-11-14T16:00:00Z", endsAt: "2026-11-14T16:40:00Z", earliestStart: "2026-11-14T16:00:00Z", latestEnd: "2026-11-14T17:00:00Z" } : a) };
+    assert.equal((await h.handlers.updateSchedule(request("ground", overlap))).status, 400);
+    const saved = await h.handlers.updateSchedule(request("ground", edited));
+    assert.equal(saved.status, 200); assert.equal((await saved.json()).data.version, 2);
+    assert.equal((await h.schedule.getDay("astro-1", "2026-11-14")).activities.find((a) => a.id === "science-1")?.title, "Campioni aggiornati");
+    const replay = await h.handlers.updateSchedule(request("ground", edited));
+    assert.equal(replay.status, 409); assert.equal((await replay.json()).error.currentVersion, 2);
+    assert.equal((await h.handlers.decide(decision("ground", "APPROVE"), proposal.id)).status, 409);
+    assert.equal((await h.repository.getProposal("astro-1", proposal.id))!.status, "STALE");
+  } finally { await h.cleanup(); }
+});
+
+test("concurrent ground updates from the same version cannot both overwrite the shared day", async () => {
+  const h = await setup("rested");
+  try {
+    const schedule = await h.schedule.getDay("astro-1", "2026-11-14");
+    const request = (title: string) => new Request("http://localhost/api/agent/v2/schedule", {
+      method: "PUT", headers: { Authorization: "Bearer ground", "Content-Type": "application/json" },
+      body: JSON.stringify({ expectedVersion: 1, schedule: { ...schedule,
+        activities: schedule.activities.map((a) => a.id === "science-1" ? { ...a, title } : a) } }),
+    });
+    const results = await Promise.all([h.handlers.updateSchedule(request("A")), h.handlers.updateSchedule(request("B"))]);
+    assert.deepEqual(results.map((response) => response.status).sort(), [200, 409]);
+    const stored = await h.schedule.getDay("astro-1", "2026-11-14");
+    assert.equal(stored.version, 2);
+    assert.ok(["A", "B"].includes(stored.activities.find((a) => a.id === "science-1")!.title));
+  } finally { await h.cleanup(); }
 });
 
 test("report proposes a bounded change; astronaut cannot approve; ground applies once", async () => {
@@ -81,13 +121,16 @@ test("demo policy refuses long rests and changes in the past", () => {
   const validator = new DemoScheduleValidator();
   const schedule = demoProgram("astro-1", "2026-11-14");
   const context: OperationalContext = { checkIn: { id: "c1", astronautId: "astro-1", confirmedAt: now.toISOString(), observations: [
-    { id: "fatigue", source: "self_report", field: "FATIGUE", value: 4, recordedAt: now.toISOString() },
+    { id: "fatigue", source: "self_report", field: "FATIGUE", value: 8, scaleMax: 10, recordedAt: now.toISOString() },
   ] }, sensors: [] };
   const candidate: ProposalCandidate = { rationale: "Test", evidence: [{ source: "self_report", observationId: "fatigue" }], changes: [
     { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-14T09:20:00Z", endsAt: "2026-11-14T10:00:00Z" },
     { type: "ADD_REST", activityId: "rest", title: "Pausa", startsAt: "2026-11-14T09:00:00Z", endsAt: "2026-11-14T09:20:00Z" },
   ] };
   assert.equal(validator.validate({ schedule, context, candidate }).valid, true);
+  assert.equal(validator.validate({ schedule, context: { ...context, checkIn: { ...context.checkIn,
+    observations: [{ id: "fatigue", source: "self_report", field: "FATIGUE", value: 4,
+      scaleMax: null, recordedAt: now.toISOString() }] } }, candidate }).valid, false);
   assert.equal(validator.validate({ schedule, context: { ...context, checkIn: { ...context.checkIn, confirmedAt: "2026-11-14T10:00:00Z" } }, candidate }).valid, false);
   const longPause: ProposalCandidate = { ...candidate, changes: [
     { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-14T09:30:00Z", endsAt: "2026-11-14T10:10:00Z" },

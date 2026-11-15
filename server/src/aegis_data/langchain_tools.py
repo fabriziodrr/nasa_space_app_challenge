@@ -27,7 +27,7 @@ class SleepAnalysisInput(BaseModel):
         return self
 
 
-def create_data_tools(service: DataService, *, subject_id: str, synthetic: bool = False) -> list[StructuredTool]:
+def create_data_tools(service: DataService, *, subject_id: str, synthetic: bool = False, vision_reader=None) -> list[StructuredTool]:
     """Build per-session tools. Call only with identity selected by trusted application code."""
     bound = AgentDataTools(service, subject_id, synthetic=synthetic)
 
@@ -37,7 +37,7 @@ def create_data_tools(service: DataService, *, subject_id: str, synthetic: bool 
     def analyze_sleep(start: datetime, end: datetime) -> dict:
         return bound.analyze_sleep(start, end)
 
-    return [
+    tools = [
         StructuredTool.from_function(
             func=get_context, name="get_context", args_schema=ContextInput,
             description="Leggi il contesto disponibile dell'astronauta corrente, con provenienza, orari e limiti.",
@@ -47,3 +47,35 @@ def create_data_tools(service: DataService, *, subject_id: str, synthetic: bool 
             description="Analizza il sonno dell'astronauta corrente per un intervallo esplicito; risultati descrittivi, non diagnosi.",
         ),
     ]
+    if vision_reader is not None:
+        from .integrated_context import IntegratedContext
+        combined = IntegratedContext(bound, vision_reader)
+
+        def get_integrated_context() -> dict:
+            return combined.get()
+
+        tools.append(StructuredTool.from_function(
+            func=get_integrated_context, name="get_integrated_context", args_schema=ContextInput,
+            description="Ottieni sonno e misura oculare selezionata con provenienza, qualità e limiti; contesto demo senza identità unificata.",
+        ))
+
+        def analyze_sensor_data() -> dict:
+            from .data_agent import run_data_agent
+            return run_data_agent(combined)
+
+        tools.append(StructuredTool.from_function(
+            func=analyze_sensor_data, name="analyze_sensor_data", args_schema=ContextInput,
+            description="Esegui l'agente dati e ottieni un rapporto strutturato su sonno, feedback e misura vision selezionata.",
+        ))
+
+        def get_selected_vision() -> dict:
+            from .vision_bridge import VisionUnavailable
+            try:
+                return vision_reader.read()
+            except VisionUnavailable:
+                return {"status": "unavailable", "observation": None}
+        tools.append(StructuredTool.from_function(
+            func=get_selected_vision, name="get_selected_vision", args_schema=ContextInput,
+            description="Leggi la misura oculare selezionata nella sessione corrente con qualità e limiti; non è una diagnosi.",
+        ))
+    return tools

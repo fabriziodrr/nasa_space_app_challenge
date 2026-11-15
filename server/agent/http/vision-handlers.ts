@@ -3,6 +3,7 @@ import { IdSchema, VisionObservationSchema, successSchema } from "../contracts";
 import { AgentError } from "../core/errors";
 import type { AgentRuntime } from "../runtime";
 import { createConversationHttpHandlers, readJson, response } from "./conversation-handlers";
+import { evaluateVisionQuality } from "../vision/quality";
 
 const maxBytes = 10 * 1024 * 1024;
 async function readBytes(request: Request): Promise<Uint8Array> {
@@ -27,6 +28,7 @@ const ListSchema = successSchema(z.array(VisionObservationSchema).max(100));
 const OneSchema = successSchema(VisionObservationSchema);
 const SelectionSchema = z.strictObject({ visionObservationId: IdSchema.nullable() });
 const SelectionResponse = successSchema(SelectionSchema);
+const SelectedObservationResponse = successSchema(VisionObservationSchema.nullable());
 export function createVisionHttpHandlers(getRuntime: () => AgentRuntime) {
   const { handle } = createConversationHttpHandlers(getRuntime);
   return {
@@ -44,6 +46,16 @@ export function createVisionHttpHandlers(getRuntime: () => AgentRuntime) {
       const selection = SelectionSchema.parse(await readJson(request));
       await visionObservations.select(identity.astronautId, IdSchema.parse(id), selection.visionObservationId);
       return response(SelectionResponse, selection, requestId);
+    }),
+    selected: (request: Request, id: string) => handle(request, async ({ visionObservations, visionQuality }, identity, requestId) => {
+      if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "Funzione riservata all'astronauta.");
+      const observation = await visionObservations.getSelectedForSession(identity.astronautId, IdSchema.parse(id));
+      if (!observation) {
+        // Verify session ownership even when no observation is selected.
+        await visionObservations.list(identity.astronautId, IdSchema.parse(id));
+        return response(SelectedObservationResponse, null, requestId);
+      }
+      return response(SelectedObservationResponse, { ...observation, ...evaluateVisionQuality(observation, new Date(), visionQuality) }, requestId);
     }),
   };
 }

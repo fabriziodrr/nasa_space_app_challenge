@@ -13,7 +13,7 @@ const identity = { userId: "user-1", role: "ASTRONAUT" as const, astronautId: "a
 function setup(allowProposals = false) {
   const checkIn: CheckIn = structuredClone(fixture.confirmedCheckIn);
   checkIn.sharedObservationIds = ["obs-hours"];
-  const messages: ConversationMessage[] = [{ id: "message-1", sessionId: checkIn.sessionId, role: "ASTRONAUT", text: "Test privato", createdAt: checkIn.createdAt, inputMode: "TEXT" }];
+  const messages: ConversationMessage[] = [{ id: "message-1", sessionId: checkIn.sessionId, role: "ASTRONAUT", text: "Private test", createdAt: checkIn.createdAt, inputMode: "TEXT" }];
   let published: GenerationArtifacts | undefined;
   let received: OperationalContext | undefined;
   let failed = false;
@@ -35,14 +35,14 @@ function setup(allowProposals = false) {
     operationalAi: { async generateOperational({ context }) {
       received = context;
       return {
-        report: { findings: [{ text: "Sonno riferito", source: "self_report", evidence: [{ source: "self_report", observationId: badEvidence ? "obs-fatigue" : "obs-hours" }] }], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null } },
+        report: { findings: [{ text: "Reported sleep", source: "self_report", evidence: [{ source: "self_report", observationId: badEvidence ? "obs-fatigue" : "obs-hours" }] }], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null } },
         proposal: proposed ? fixture.pendingProposal.candidate : null,
-        noChangeReason: proposed ? null : "Nessuna variazione proposta.",
+        noChangeReason: proposed ? null : "No change proposed.",
       };
     } },
     diaryAi: { async generateDiary(input) {
-      assert.equal(input.messages[0].text, "Test privato");
-      return { text: "Diario personale" };
+      assert.equal(input.messages[0].text, "Private test");
+      return { text: "Personal diary" };
     } },
   });
   return { service, checkIn, published: () => published, received: () => received, failed: () => failed, makeEvidenceInvalid: () => { badEvidence = true; }, makeProposal: () => { proposed = true; } };
@@ -58,12 +58,13 @@ test("operational AI receives only explicitly shared observations; diary stays p
   assert.equal(h.published()?.proposal, null);
 });
 
-test("unshared evidence fails generation before any artifacts are published", async () => {
+test("unshared evidence is excluded and the report requires human review", async () => {
   const h = setup();
   h.makeEvidenceInvalid();
-  await assert.rejects(h.service.generate(identity, h.checkIn.id));
-  assert.equal(h.published(), undefined);
-  assert.equal(h.failed(), true);
+  await h.service.generate(identity, h.checkIn.id);
+  assert.deepEqual(h.published()?.report.findings, []);
+  assert.equal(h.published()?.report.humanReview.required, true);
+  assert.ok(h.published()?.report.uncertainties.some((item) => item.includes("excluded")));
 });
 
 test("ground control cannot generate an astronaut's private diary", async () => {

@@ -42,12 +42,12 @@ async function main() {
   console.log("OK: session created.");
   const firstRequest = {
     clientMessageId: randomUUID(), inputMode: "TEXT",
-    text: "I slept 5 hours. I rate my sleep quality 2 out of 5 and fatigue 4 out of 5.",
+    text: "I slept 5 hours. I rate my sleep quality 2 out of 10 and fatigue 4 out of 10.",
   };
   const first = await call(`/sessions/${session.id}/messages`, "POST", firstRequest);
   assert.ok(!first.assistantMessage.text.startsWith("I've collected the draft"), "The server is using the mock: restart it with AGENT_AI_PROVIDER=nvidia.");
   for (const [field, value] of [["SLEEP_HOURS", 5], ["SLEEP_QUALITY", 2], ["FATIGUE", 4]]) {
-    assert.equal(first.checkIn.observations.find((o) => o.field === field)?.value, value, `Dato estratto non corretto: ${field}`);
+    assert.equal(first.checkIn.observations.find((o) => o.field === field)?.value, value, `Incorrectly extracted value: ${field}`);
   }
   console.log(`Agent: ${first.assistantMessage.text}`);
   const second = await call(`/sessions/${session.id}/messages`, "POST", {
@@ -70,7 +70,7 @@ async function main() {
   assert.deepEqual(state.checkIn.sharedObservationIds, []);
   assert.equal(state.proposal, null);
   await call(`/sessions/${session.id}`, "GET", undefined, 401, false);
-  await call(`/sessions/${session.id}/messages`, "POST", { ...firstRequest, text: "Testo diverso." }, 409);
+  await call(`/sessions/${session.id}/messages`, "POST", { ...firstRequest, text: "Different text." }, 409);
   console.log("OK: 2 real turns, 4 observations, conversation memory, retry without duplicates, protected access and 409 conflict.");
   console.log(`Session: ${session.id}. The test uses only fake data and does not modify the schedule.`);
 }

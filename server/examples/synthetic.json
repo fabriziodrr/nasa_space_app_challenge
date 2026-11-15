@@ -6,7 +6,8 @@
     "observed_at": "2026-11-14T07:00:00+00:00",
     "synthetic": true,
     "sleep_hours": 5.5,
-    "sleep_quality": 2
+    "sleep_quality": 4,
+    "scale_max": 10
   },
   {
     "observation_id": "demo-mood-01",
@@ -15,7 +16,8 @@
     "observed_at": "2026-11-14T07:05:00+00:00",
     "synthetic": true,
     "confirmed": true,
-    "mood_rating": 3,
+    "mood_rating": 6,
+    "scale_max": 10,
     "alertness": 7
   },
   {

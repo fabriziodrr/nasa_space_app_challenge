@@ -23,7 +23,7 @@ async function main() {
   }
   const session = await call("/sessions", "POST", { astronautId: "astro-1" }, astronaut, 201);
   const turn = await call(`/sessions/${session.id}/messages`, "POST", {
-    clientMessageId: randomUUID(), text: "I slept five hours. Sleep quality 2 out of 5, fatigue 4 out of 5.", inputMode: "TEXT",
+    clientMessageId: randomUUID(), text: "I slept five hours. Sleep quality 2 out of 10, fatigue 4 out of 10.", inputMode: "TEXT",
   });
   const hours = turn.checkIn.observations.find((o) => o.field === "SLEEP_HOURS");
   assert.equal(hours?.value, 5, "Sleep hours not recognized.");

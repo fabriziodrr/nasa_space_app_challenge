@@ -3,21 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { DemoApiError, confirmVision, selectVision, uploadVision } from "../../client/vision/demo-api";
 import { parseVisionBridgeMessage, visionOrigin, VISION_BRIDGE_CHANNEL } from "../../client/vision/bridge";
-import type { CheckIn, VisionObservation } from "../../server/agent/contracts";
+import { SessionResponseSchema, type CheckIn, type VisionObservation } from "../../server/agent/contracts";
 import styles from "./voice-demo.module.css";
 
 type Confirmation = { expectedRevision: number; sharedObservationIds: string[]; vision: { visionObservationId: string | null; shareWithGround: boolean } };
-type Props = { token: string; sessionId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
+type Props = { token: string; sessionId: string; astronautId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
   run<T>(operation: () => Promise<T>): Promise<T>; onCheckIn(checkIn: CheckIn): void; onConfirmationPending(value: boolean): void };
 
-const labels: Record<string, string> = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1–5)",
-  FATIGUE: "Fatigue (1–5)", PHYSICAL_NOTES: "Physical condition", MENTAL_STATE: "Mental state", STRESSOR_NOTES: "Stressors" };
+const labels: Record<string, string> = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1–10)",
+  FATIGUE: "Fatigue (1–10)", PHYSICAL_NOTES: "Physical condition", MENTAL_STATE: "Mental state", STRESSOR_NOTES: "Stressors" };
 const reasonLabels: Record<string, string> = { NO_VALID_TIME: "no valid time", TOO_SHORT: "measurement too short",
   LOW_COVERAGE: "insufficient coverage", STALE: "stale measurement", INTERRUPTED: "interrupted measurement",
   SYNTHETIC_TIME_UNAVAILABLE: "real time unavailable for the synthetic replay" };
 const percent = (value: number | null) => value === null ? "unavailable" : `${(value * 100).toFixed(1)}%`;
 
-export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
+export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [observations, setObservations] = useState<VisionObservation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -27,6 +27,9 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   const [error, setError] = useState("");
   const [selectionUncertain, setSelectionUncertain] = useState(false);
   const [showVision, setShowVision] = useState(false);
+  const [generation, setGeneration] = useState<"NOT_STARTED" | "PROCESSING" | "READY" | "FAILED" | "UNAVAILABLE">("NOT_STARTED");
+  const [noChangeReason, setNoChangeReason] = useState<string | null>(null);
+  const [integrated, setIntegrated] = useState<{ sleepHours: number | null; visionStatus: string; visionSource: string | null; visionQuality: string | null } | null>(null);
   const iframe = useRef<HTMLIFrameElement>(null);
   const inFlight = useRef(new Set<string>());
   const uploadKey = useRef("");
@@ -35,6 +38,33 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   const confirmed = checkIn?.status === "CONFIRMED";
   const selected = observations.find((item) => item.id === selectedId);
   const bridgeOrigin = (() => { try { return visionOrigin(process.env.NEXT_PUBLIC_VISION_ORIGIN); } catch { return null; } })();
+
+  useEffect(() => {
+    if (!confirmed) return;
+    let stopped = false;
+    async function refresh() {
+      try {
+        const response = await fetch(`/api/agent/v1/sessions/${encodeURIComponent(sessionId)}`, { headers: { Authorization: `Bearer ${token.trim()}` }, cache: "no-store" });
+        if (!response.ok) throw new Error();
+        const state = SessionResponseSchema.parse(await response.json()).data;
+        if (!stopped) { setGeneration(state.generationStatus); setNoChangeReason(state.noChangeReason); }
+      } catch { if (!stopped) setGeneration("UNAVAILABLE"); }
+    }
+    void refresh();
+    const timer = setInterval(() => void refresh(), 3000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [confirmed, sessionId, token]);
+
+  async function retryGeneration() {
+    if (!checkIn) return;
+    await perform(async () => {
+      const response = await fetch(`/api/agent/v2/check-ins/${encodeURIComponent(checkIn.id)}/generate`, {
+        method: "POST", headers: { Authorization: `Bearer ${token.trim()}` }, cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Unable to restart generation. Try again.");
+      setGeneration("PROCESSING");
+    });
+  }
 
   useEffect(() => {
     if (!bridgeOrigin) return;
@@ -77,6 +107,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
     });
   }
   async function select(id: string | null) {
+    setIntegrated(null);
     pendingSelection.current = { id }; onConfirmationPending(true);
     let started = false;
     await perform(async () => {
@@ -93,6 +124,19 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       }
     });
     if (!started) { pendingSelection.current = null; setSelectionUncertain(false); onConfirmationPending(false); }
+  }
+  async function loadIntegrated() {
+    await perform(async () => {
+      const response = await fetch("/api/demo-integrated-context", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ vision_session_id: sessionId }), cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Integrated context unavailable. Check the data backend and the demo token.");
+      const result = await response.json();
+      setIntegrated({ sleepHours: result.sleep?.sleep_context?.latest_measurement?.sleep_hours ?? null,
+        visionStatus: result.vision?.status ?? "unavailable", visionSource: result.vision?.observation?.source ?? null,
+        visionQuality: result.vision?.observation?.usability ?? null });
+    });
   }
   async function confirm() {
     if (!checkIn) return;
@@ -121,6 +165,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
 
   return <section className={styles.panel} aria-labelledby="vision-title">
     <h2 id="vision-title">Eyelid measurement and check-in</h2>
+    <p>Session code for the dashboard: <code>{sessionId}</code></p>
     <p>Import the JSON exported by the eyelid feature. The measurement is experimental and does not by itself determine fatigue. Its usability is reassessed on confirmation.</p>
     <p>The selected measurement is used by the agent and may be sent to the configured AI provider. Sharing with ground is chosen separately at confirmation.</p>
     {bridgeOrigin ? <>
@@ -147,6 +192,12 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
         </button>
       </article>)}
       {selectedId && <button type="button" onClick={() => select(null)} disabled={busy || locked || confirmed}>Clear selection</button>}
+      {selectedId && astronautId === "astro-1" && <button type="button" onClick={() => void loadIntegrated()} disabled={busy || locked}>Verify sleep and vision context</button>}
+      {integrated && <div className={styles.measurement} role="status">
+        <strong>Integrated context · demo</strong>
+        <p>Synthetic sleep: {integrated.sleepHours === null ? "no measurement available" : `${integrated.sleepHours} hours`}. Vision: {integrated.visionStatus}, source {integrated.visionSource ?? "unavailable"}, quality {integrated.visionQuality ?? "unavailable"}.</p>
+        <p>The identities of the two datasets are not linked yet. This data is not a diagnosis.</p>
+      </div>}
     </div>}
     {selectionUncertain && <><p>The selection may have been received. Retry to verify before continuing.</p>
       <button type="button" disabled={busy} onClick={() => { if (pendingSelection.current) void select(pendingSelection.current.id); }}>Retry selection</button></>}
@@ -160,7 +211,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
               const checked = event.target.checked;
               setSharedIds((ids) => checked ? [...ids, item.id] : ids.filter((id) => id !== item.id));
             }} />
-            <span>{labels[item.field] ?? item.field}: {String(item.value)}</span>
+            <span>{labels[item.field] ?? item.field}: {String(item.value)}{(item.field === "SLEEP_QUALITY" || item.field === "FATIGUE") ? (item.scaleMax ? ` / ${item.scaleMax}` : " (historical scale not specified)") : ""}</span>
           </label>)}
         </fieldset>}
       {selected && <label className={styles.choice}><input type="checkbox" checked={sharedVision} disabled={busy || locked || confirmed}
@@ -168,6 +219,11 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       {!selected && <p>No measurement selected: you can still confirm the check-in.</p>}
       {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain}>{locked && !selectionUncertain ? "Retry confirmation" : "Confirm check-in"}</button>}
       {locked && !selectionUncertain && !confirmed && <p>The confirmation may have been received. Retry without changing the selection.</p>}
+      {confirmed && <div role="status">
+        <p>{generation === "READY" ? "Report ready for ground control." : generation === "FAILED" ? "Report generation failed." : generation === "UNAVAILABLE" ? "Report status unavailable." : "Report generation in progress."}</p>
+        {generation === "READY" && noChangeReason && <p>No proposal: {noChangeReason}</p>}
+        {(generation === "FAILED" || generation === "NOT_STARTED") && <button type="button" disabled={busy} onClick={() => void retryGeneration()}>Retry generation</button>}
+      </div>}
     </>}
     {busy && <p role="status">Operation in progress…</p>}
     {message && <p role="status">{message}</p>}

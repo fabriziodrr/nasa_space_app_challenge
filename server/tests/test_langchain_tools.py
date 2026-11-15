@@ -11,7 +11,7 @@ from aegis_data.store import Store
 def test_tools_are_bound_to_subject_and_data_mode(tmp_path):
     store = Store(tmp_path / "data.sqlite3")
     store.add({"kind": "sleep", "subject_id": "crew-1", "observed_at": "2026-11-14T07:00:00Z",
-               "sleep_hours": 6, "sleep_quality": 3, "synthetic": True})
+               "sleep_hours": 6, "sleep_quality": 3, "scale_max": 10, "synthetic": True})
     tools = {t.name: t for t in create_data_tools(DataService(store), subject_id="crew-1", synthetic=True)}
     context = tools["get_context"].invoke({})
     assert context["latest_valid_sleep"]["sleep_hours"] == 6

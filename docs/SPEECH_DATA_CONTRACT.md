@@ -49,7 +49,7 @@ I valori di esempio sono sintetici. Il produttore usa `synthetic=false` solo per
 
 - `fatigue_rating`: intero 1–10, da minima a massima fatica riferita.
 - `alertness`: intero 1–10, da minima a massima vigilanza percepita.
-- `mood_rating`: intero 1–5, da molto negativo a molto positivo.
+- `mood_rating`: intero 1–10, da molto negativo a molto positivo; `mood_scale_max` distingue la scala per i dati nuovi.
 - Almeno una scala deve essere presente; le altre rimangono assenti.
 - `basis=self_report`: valore espresso dall'utente. `user_confirmed=true` richiede che quel valore e la sua attribuzione siano stati confermati; il backend non può verificarlo dall'audio.
 - `basis=model_inference`: ipotesi del modulo esterno, sempre con `user_confirmed=false`. Resta nello storico ma non viene promossa a dichiarazione confermata nel contesto.

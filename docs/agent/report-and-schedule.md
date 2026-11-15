@@ -1,6 +1,6 @@
 # Report, proposta e decisione di Terra
 
-Il flusso è disponibile nel runtime demo con provider `mock` oppure NVIDIA/Nemotron. Il backend di Emanuel e la dashboard di Fabrizio possono essere collegati successivamente tramite i provider in `server/agent/ports.ts`. Non vengono scritti dati nel backend Python.
+Il flusso è disponibile nel runtime demo con provider `mock` oppure NVIDIA/Nemotron. Per impostazione predefinita l'agent legge i sensori sintetici dal backend Python attraverso l'adattatore descritto nel [contratto dati](./contratto-backend-dati.md); il legame delle identità resta demo e non verificato. Non vengono scritti dati nel backend Python.
 
 ## Comportamento
 
@@ -18,7 +18,7 @@ Il diario rimane privato. La webcam misura le chiusure delle palpebre nell'inter
 
 Il server consente soltanto una pausa positiva fino a 20 minuti prima di una singola attività futura di missione flessibile, spostata della stessa durata. Verifica finestre, durata, dipendenze, assenza di sovrapposizioni e attività bloccate. Richiede evidenze condivise sul riposo o sulla stanchezza: la visione da sola non basta. All'applicazione ricontrolla approvazione persistita, comando autorizzato, versione e tempo corrente; una finestra già iniziata non viene applicata.
 
-Nel provider **mock** la regola riproducibile è: stanchezza riferita almeno 4/5 e sonno al massimo 6 ore, con fonti coerenti. La durata può essere riferita oppure provenire da un sensore di qualità `GOOD`. Una divergenza di almeno un'ora fra sensore e dichiarazione richiede chiarimento. Queste soglie e la pausa di 20 minuti sono scelte del prototipo, non regole cliniche o NASA. Nemotron valuta il contesto con le stesse restrizioni sulle modifiche, senza garantire una proposta a ogni check-in.
+Nel provider **mock** la regola riproducibile è: stanchezza riferita almeno 8/10 e sonno al massimo 6 ore, con fonti coerenti. La durata può essere riferita oppure provenire da un sensore di qualità `GOOD`. Una divergenza di almeno un'ora fra sensore e dichiarazione richiede chiarimento. Queste soglie e la pausa di 20 minuti sono scelte del prototipo, non regole cliniche o NASA. Nemotron valuta il contesto con le stesse restrizioni sulle modifiche, senza garantire una proposta a ogni check-in.
 
 ### Riferimenti NASA e loro uso
 
@@ -37,6 +37,7 @@ Autenticazione `Authorization: Bearer <token>`. In demo usare `AGENT_DEMO_TOKEN`
 | `GET /api/agent/v2/reports?astronautId=astro-1` | Report condivisi, anche con evidenze webcam |
 | `GET /api/agent/v2/proposals?astronautId=astro-1` | Proposte e stato; `cursor` e `limit` opzionali |
 | `GET /api/agent/v2/schedule?astronautId=astro-1&date=2026-11-14` | Programma persistente della data richiesta |
+| `PUT /api/agent/v2/schedule` | Terra imposta il programma condiviso tramite controllo di versione |
 | `POST /api/agent/v2/proposals/:id/decision` | Decisione di Terra |
 
 Le risposte positive contengono `{ data, meta: { contractVersion: "2.0.0", requestId } }`, con `Cache-Control: no-store`. Schemi e tipi importabili dal frontend: `server/agent/contracts/index.ts`, inclusi `ProposalListV2ResponseSchema`, `DecisionV2ResponseSchema` e `ScheduleV2ResponseSchema`.
@@ -53,6 +54,22 @@ Idempotency-Key: decisione-univoca-1
 ```
 
 Per rifiutare usare `REJECT`. `comment` è obbligatorio ma può essere `null`. La risposta contiene `{ decision, proposal, schedule }`: `schedule` è valorizzato soltanto per `APPLIED`. `REJECTED` non cambia il programma; una versione superata produce `409 VERSION_CONFLICT` e `STALE`. Un'approvazione con applicazione fallita restituisce lo stato `APPLY_FAILED`, senza presentarla come applicata. Un timeout non giustifica una seconda richiesta con una chiave diversa: ripetere la richiesta originale.
+
+### Impostare la schedule da Terra
+
+Il programma della demo ha una sola fonte autorevole: `DemoProgramProvider` e il database Prisma dell'agent. Dashboard e altri componenti lo leggono mediante `GET /api/agent/v2/schedule`, con identità autorizzata. Il backend Python dei sensori non è un secondo archivio della schedule. Per modificarla, Terra recupera lo snapshot e invia quello aggiornato:
+
+```http
+PUT /api/agent/v2/schedule
+Authorization: Bearer <token-terra>
+Content-Type: application/json
+
+{ "expectedVersion": 1, "schedule": { ...snapshot_aggiornato_con_version_1 } }
+```
+
+Il corpo illustrato richiede l'oggetto completo restituito dal GET, con `id`, `astronautId`, `date` e `version` invariati; lo schema eseguibile è `UpdateScheduleRequestSchema`. Il server valida attività, confini della giornata, sovrapposizioni e dipendenze e incrementa la versione in modo atomico. Un astronauta riceve `403`; una versione obsoleta riceve `409 VERSION_CONFLICT` con `currentVersion`: ricaricare e rivedere il programma prima di riprovare. Un `PUT` ripetuto dopo il successo con la vecchia versione riceve quindi `409`; dopo un timeout ricaricare la schedule per verificare l'esito. Una proposta precedente diventa `STALE` al tentativo di decisione se la versione è cambiata.
+
+Questa API permette a Fabrizio di collegare la dashboard; la schermata di modifica non è ancora presente. La schedule resta una simulazione locale: la proprietà del programma reale e il sistema di autenticazione definitivo devono essere concordati con il team.
 
 La conferma con scelta webcam usa `POST /api/agent/v2/check-ins/:id/confirm`; i messaggi continuano a usare le API di sessione esistenti. Per il dettaglio di conferma e consenso vedere [I1](./i1-vision-import.md) e lo schema `ConfirmCheckInWithVisionRequestSchema`.
 
@@ -71,10 +88,10 @@ npm.cmd run dev
 
 Lo schema aggiunge il campo opzionale `CheckInContextSnapshot.scheduleJson`. Non serve azzerare il database. Per check-in vecchi senza programma congelato, una nuova proposta richiede un nuovo check-in.
 
-Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 2 su 5. Stanchezza 4 su 5.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
+Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock`, `AGENT_SENSOR_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 3 su 10. Stanchezza 8 su 10.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
 
 Gli scenari riproducibili senza dipendere dall'ora reale sono in `tests/agent/planning-flow.test.ts`: database temporanei, orologio fissato prima delle attività, sonno scarso con proposta, riposo adeguato senza proposta, dati insufficienti, approvazione idempotente, rifiuto, permessi e versione obsoleta. `tests/agent/artifacts.test.ts` verifica inoltre che una raccomandazione non valida non elimini il report.
 
 ## Collegamento successivo
 
-Con Emanuel va sostituita la lettura simulata dei sensori e concordata l'autorità della schedule, implementando `SensorProvider` e `ScheduleProvider`; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può già consumare i contratti sopra e mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. La persistenza locale non sincronizza automaticamente il backend Python.
+Con Emanuel resta da verificare l'identità comune e concordare il sistema che possiederà la schedule oltre la demo; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può consumare i contratti sopra per mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. Il collegamento attuale al backend Python è in sola lettura.
