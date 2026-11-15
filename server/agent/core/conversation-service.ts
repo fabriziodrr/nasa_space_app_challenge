@@ -13,6 +13,7 @@ import type {
 import { AgentError, invalidAiOutput, isAgentError, sameMessage } from "./errors";
 import { withDeadline } from "./deadline";
 import { evaluateVisionQuality } from "../vision/quality";
+import { ratingAnswer } from "./rating-answer";
 
 export interface ConversationServiceDependencies extends ConversationDependencies {
   now?: () => Date;
@@ -60,6 +61,37 @@ function buildContext(context: ConversationContext, messageLimit: number): Conve
   return context;
 }
 
+// A provider's structured output is still untrusted. Infer a scale only from an
+// explicit rating in the cited statement, or a bare answer to a matching question.
+function supportedRatingScale(candidate: Extract<Observation, { field: "FATIGUE" | "SLEEP_QUALITY" }>,
+  context: ConversationContext, currentId: string): 5 | 10 | null {
+  if (candidate.scaleMax === null) return null;
+  const explicitAnswer = ratingAnswer(context)?.observations.find((item) => item.field === candidate.field
+    && item.value === candidate.value && item.messageIds.includes(currentId));
+  if (explicitAnswer && candidate.scaleMax !== 5) return 10;
+  const words = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  const value = `(?:${candidate.value}|${words[candidate.value]})`;
+  const label = candidate.field === "FATIGUE" ? "(?:fatigue|tiredness)" : "(?:sleep\\s+quality|quality)";
+  const rating = `${value}\\s*(?:/|out\\s+of|su)\\s*(10|ten|5|five)\\b`;
+  const labelled = new RegExp(`\\b${label}\\s*(?:is\\s*|:\\s*)?${rating}`, "gi");
+  const scales = new Set<5 | 10>();
+  for (const id of candidate.messageIds) {
+    const message = context.messages.find((item) => item.id === id && item.role === "ASTRONAUT");
+    if (!message || /\b(?:not|maybe|approximately|about|around|or)\b/i.test(message.text)) continue;
+    for (const match of message.text.matchAll(labelled)) scales.add(/^(10|ten)$/i.test(match[1]) ? 10 : 5);
+  }
+  const currentIndex = context.messages.findIndex((item) => item.id === currentId && item.role === "ASTRONAUT");
+  const current = context.messages[currentIndex];
+  const prior = currentIndex < 0 ? undefined : [...context.messages.slice(0, currentIndex)].reverse().find((item) => item.role === "ASSISTANT");
+  const questionMatches = prior && (candidate.field === "FATIGUE" ? /\b(?:tired|fatigue|tiredness)\b/i : /\b(?:sleep\s+quality)\b/i).test(prior.text)
+    && /\b(?:from\s+)?1\s+(?:to|through)\s+10\b/i.test(prior.text);
+  if (current && candidate.messageIds.includes(currentId) && questionMatches
+      && new RegExp(`^\\s*${value}\\s*[.!?]?\\s*$`, "i").test(current.text)) scales.add(10);
+  if (scales.size !== 1) return null;
+  const scale = [...scales][0];
+  return candidate.value <= scale && (candidate.scaleMax == null || candidate.scaleMax === scale) ? scale : null;
+}
+
 function validatedObservations(
   raw: unknown, context: ConversationContext, currentId: string, newId: () => string,
 ): { reply: string; observations: Observation[] } {
@@ -85,7 +117,7 @@ function validatedObservations(
     const recordedAt = refs.map((ref) => ref!.createdAt).sort().at(-1)!;
     // Identity and timestamps are assigned by the server, never by model output.
     if (candidate.field === "SLEEP_QUALITY" || candidate.field === "FATIGUE") {
-      return { ...candidate, scaleMax: 10, id: old?.id ?? newId(), recordedAt };
+      return { ...candidate, scaleMax: supportedRatingScale(candidate, context, currentId), id: old?.id ?? newId(), recordedAt };
     }
     return { ...candidate, id: old?.id ?? newId(), recordedAt };
   });
@@ -174,7 +206,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
     }, messageLimit);
     let rawOutput: unknown;
     try {
-      rawOutput = await withDeadline((providerSignal) => deps.ai.converse(structuredClone(context), { signal: providerSignal }), timeoutMs, signal);
+      rawOutput = ratingAnswer(context) ?? await withDeadline((providerSignal) => deps.ai.converse(structuredClone(context), { signal: providerSignal }), timeoutMs, signal);
     } catch (error) {
       if (isAgentError(error)) throw error;
       throw new AgentError("PROVIDER_UNAVAILABLE", "AI service temporarily unavailable.", true);

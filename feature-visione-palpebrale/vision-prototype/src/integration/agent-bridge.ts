@@ -6,7 +6,14 @@ export function allowedParentOrigin(referrer: string, configured: string): strin
     if (!['http:', 'https:'].includes(allowed.protocol) || allowed.username || allowed.password
       || allowed.pathname !== '/' || allowed.search || allowed.hash) return null;
     if (allowed.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(allowed.hostname)) return null;
-    return new URL(referrer).origin === allowed.origin ? allowed.origin : null;
+    const actual = new URL(referrer);
+    if (actual.origin === allowed.origin) return allowed.origin;
+    // Both names are used in the local application links. Keep the browser's
+    // actual origin for postMessage while restricting aliases to the same port.
+    const local = new Set(['localhost', '127.0.0.1', '[::1]']);
+    return actual.protocol === allowed.protocol && actual.port === allowed.port
+      && local.has(actual.hostname) && local.has(allowed.hostname) && !actual.username && !actual.password
+      ? actual.origin : null;
   } catch { return null; }
 }
 

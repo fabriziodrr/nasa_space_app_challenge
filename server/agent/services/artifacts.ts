@@ -8,6 +8,7 @@ import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleR
 import { AgentErrors, isAgentError } from "../core/errors";
 import { ProposalService } from "./proposals";
 import { repairDemoProposal } from "./demo-proposal-repair";
+import { crossSourceSummary } from "./cross-source-summary";
 import type { VisionConfirmationService } from "../vision/confirmation";
 
 /** Generates both artifacts from a confirmed check-in using separate privacy boundaries. */
@@ -69,7 +70,7 @@ export class ArtifactService {
       const diaryOutput = DiaryOutputSchema.parse(rawDiary);
       const backend = readings.find((reading) => reading.provenance)?.provenance;
       if (backend) {
-        const note = `Demo data backend: status ${backend.status}; subject ${backend.subjectId}, ${backend.identityLink === "demo_mapped" ? "synthetic profile linked in the demo" : "unverified identity"}; `
+        const note = `Demo data backend: ${backend.backend === "demo_fixture" ? "synthetic fixture" : "data service"}; status ${backend.status}; subject ${backend.subjectId}, ${backend.identityLink === "demo_mapped" ? "synthetic profile linked in the demo" : "unverified identity"}; `
           + `snapshot ${backend.snapshotId ?? "unavailable"}, archive acquisition ${backend.backendAsOf ?? "unavailable"}; period ${backend.periodStart ?? "unavailable"} – ${backend.periodEnd ?? "unavailable"}; `
           + `result ${backend.truncated ? "truncated" : "not truncated"}. Synthetic data, not related to real people.`;
         operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
@@ -105,6 +106,8 @@ export class ArtifactService {
         operational.report.uncertainties = ["Some statements were excluded because they lacked shared and available evidence; human review required.", ...operational.report.uncertainties].slice(0, 20);
         operational.report.humanReview = { required: true, reason: "Verify the excluded statements and the available evidence." };
       }
+      const combined = crossSourceSummary(context);
+      if (combined && operational.report.findings.length < 30) operational.report.findings.push(combined);
       let proposal = null;
       phase = "validate proposal";
       if (operational.proposal) {

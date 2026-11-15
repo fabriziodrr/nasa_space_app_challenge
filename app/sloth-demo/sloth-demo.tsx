@@ -5,6 +5,7 @@ import { SlothMascot } from "../../components/agent-avatar/SlothMascot";
 import { PsychologicalProfile } from "../../components/agent-avatar/PsychologicalProfile";
 import { BrowserVoiceInput, type RecognitionWindow } from "../../client/voice/recognition";
 import { speakServerReply } from "../../client/voice/server-speech";
+import { selectDemoProfile } from "../../client/demo-session";
 import { CreateSessionResponseSchema, MessageResponseSchema, type CheckIn } from "../../server/agent/contracts";
 import { FAKE_DAYS, buildProfile, type FakeDay } from "./fake-history";
 import styles from "./sloth-demo.module.css";
@@ -16,7 +17,7 @@ const SILENCE_MS = 2000;
 const START_GRACE_MS = 6000;
 
 export function SlothDemo() {
-  const [token, setToken] = useState("");
+  const token = "";
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [checkIn, setCheckIn] = useState<CheckIn | null>(null);
@@ -90,12 +91,12 @@ export function SlothDemo() {
   async function request(path: string, body: object) {
     controller.current = new AbortController();
     const result = await fetch(`/api/agent/v1${path}`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token.trim()}` },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body), signal: controller.current.signal, cache: "no-store",
     });
     const payload: unknown = await result.json();
     if (!result.ok) {
-      if (result.status === 401) throw new Error("Token not recognized. Check the astronaut demo token.");
+      if (result.status === 401) throw new Error("Demo session unavailable. Start a new session.");
       if (result.status === 429) throw new Error("Service limit reached. Try again later.");
       if (result.status === 409) throw new Error("The conversation has changed. Reload the page and start a new session.");
       throw new Error("Service unavailable. Check the server and try again.");
@@ -105,9 +106,10 @@ export function SlothDemo() {
 
   async function start(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (startingRef.current || !token.trim()) return;
+    if (startingRef.current) return;
     startingRef.current = true; setStarting(true); setError("");
     try {
+      await selectDemoProfile("astro-1");
       const parsed = CreateSessionResponseSchema.parse(await request("/sessions", { astronautId: "astro-1" }));
       if (mounted.current) setSessionId(parsed.data.id);
     } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Unable to start the session."); }
@@ -198,9 +200,8 @@ export function SlothDemo() {
       <div className={styles.startInner}>
         <SlothMascot speaking={false} />
         <h1>Onboard assistant</h1>
-        <p>Enter the demo token to start the check-in.</p>
-        <input type="password" autoComplete="off" placeholder="AGENT_DEMO_TOKEN" value={token} onChange={(e) => setToken(e.target.value)} />
-        <button type="submit" disabled={starting || !token.trim()}>{starting ? "Starting…" : "Start session"}</button>
+        <p>Start a check-in with the onboard assistant.</p>
+        <button type="submit" disabled={starting}>{starting ? "Starting…" : "Start session"}</button>
         {error && <p className={styles.errorText}>{error}</p>}
       </div>
     </form> : <div className={styles.app}>

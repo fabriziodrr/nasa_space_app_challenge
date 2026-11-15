@@ -7,6 +7,9 @@ describe('collegamento agent', () => {
     expect(allowedParentOrigin('http://localhost:3000/voice-demo', 'http://localhost:3000')).toBe('http://localhost:3000');
     expect(allowedParentOrigin('http://evil.test/', 'http://localhost:3000')).toBeNull();
     expect(allowedParentOrigin('http://evil.test/', 'http://evil.test')).toBeNull();
+    expect(allowedParentOrigin('http://127.0.0.1:3000/voice-demo', 'http://localhost:3000')).toBe('http://127.0.0.1:3000');
+    expect(allowedParentOrigin('http://localhost:3001/voice-demo', 'http://localhost:3000')).toBeNull();
+    expect(allowedParentOrigin('http://localhost.attacker.test:3000/', 'http://localhost:3000')).toBeNull();
   });
   it('ignora risposte estranee e ripete lo stesso contenuto e ID dopo il timeout', () => {
     vi.useFakeTimers();

@@ -24,7 +24,7 @@ export function speakServerReply(
     try {
       const response = await fetch("/api/agent/v1/voice/speech", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${request.token}` },
+        headers: { "Content-Type": "application/json", ...(request.token ? { Authorization: `Bearer ${request.token}` } : {}) },
         body: JSON.stringify({ sessionId: request.sessionId, messageId: request.messageId }),
         cache: "no-store",
       });

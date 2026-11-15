@@ -55,6 +55,22 @@ def test_unselected_and_unavailable_are_distinct(tmp_path, monkeypatch):
     assert {t.name: t for t in tools}["get_selected_vision"].invoke({})["status"] == "unavailable"
 
 
+def test_reader_accepts_configured_loopback_but_rejects_remote_addresses(monkeypatch):
+    reader = SelectedVisionReader("session-1", "example-token-12345")
+    seen = []
+    def fake_open(request, timeout):
+        seen.append(request.full_url)
+        return FakeResponse(None)
+    monkeypatch.setattr(vision_bridge, "urlopen", fake_open)
+    monkeypatch.setenv("AGENT_NODE_API_URL", "http://127.0.0.1:13000")
+    assert reader.read()["status"] == "not_selected"
+    assert seen[0].startswith("http://127.0.0.1:13000/")
+    monkeypatch.setenv("AGENT_NODE_API_URL", "http://example.com:13000")
+    with pytest.raises(vision_bridge.VisionUnavailable):
+        reader.read()
+    assert len(seen) == 1
+
+
 def test_endpoint_requires_token_to_request_vision(tmp_path, monkeypatch):
     monkeypatch.setenv("AGENT_DEMO_TOKEN", "example-token-12345")
     seen = {}

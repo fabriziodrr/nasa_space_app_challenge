@@ -28,7 +28,7 @@ class DemoConversation(BaseModel):
 
 class IntegratedDemoRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    vision_session_id: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+    vision_session_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 def create_app(db_path: str | Path | None = None) -> FastAPI:
@@ -36,11 +36,19 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     service = DataService(store)
     app = FastAPI(title="AEGIS local data API", version="0.1.0")
 
-    def demo_vision_reader(session_id: str, authorization: str | None):
-        token = os.environ.get("AGENT_DEMO_TOKEN")
+    def demo_identity(authorization: str | None):
         supplied = authorization[7:] if authorization and authorization.startswith("Bearer ") else ""
-        if not token or not 16 <= len(token) <= 512 or not hmac.compare_digest(supplied.encode(), token.encode()):
-            raise HTTPException(401, "Credenziali demo richieste per la misura vision.")
+        profiles = [("AGENT_DEMO_TOKEN", "sleep-demo-14d")] + [
+            (f"AGENT_CREW_0{i}_TOKEN", f"crew-demo-0{i}") for i in range(2, 6)
+        ]
+        for key, subject in profiles:
+            token = os.environ.get(key)
+            if token and 16 <= len(token) <= 512 and hmac.compare_digest(supplied.encode(), token.encode()):
+                return subject, token
+        raise HTTPException(401, "Credenziali demo richieste.")
+
+    def demo_vision_reader(session_id: str, authorization: str | None):
+        _, token = demo_identity(authorization)
         from .vision_bridge import SelectedVisionReader
         return SelectedVisionReader(session_id, token)
 
@@ -67,16 +75,18 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
     @app.post("/v1/demo/integrated-context")
     def demo_integrated_context(request: IntegratedDemoRequest, authorization: str | None = Header(default=None)):
         from .integrated_context import IntegratedContext
-        reader = demo_vision_reader(request.vision_session_id, authorization)
-        tools = AgentDataTools(service, subject_id="sleep-demo-14d", synthetic=True)
+        subject, _ = demo_identity(authorization)
+        reader = demo_vision_reader(request.vision_session_id, authorization) if request.vision_session_id else None
+        tools = AgentDataTools(service, subject_id=subject, synthetic=True)
         return IntegratedContext(tools, reader).get()
 
     @app.post("/v1/demo/data-analysis")
     def demo_data_analysis(request: IntegratedDemoRequest, authorization: str | None = Header(default=None)):
         from .data_agent import run_data_agent
         from .integrated_context import IntegratedContext
-        reader = demo_vision_reader(request.vision_session_id, authorization)
-        tools = AgentDataTools(service, subject_id="sleep-demo-14d", synthetic=True)
+        subject, _ = demo_identity(authorization)
+        reader = demo_vision_reader(request.vision_session_id, authorization) if request.vision_session_id else None
+        tools = AgentDataTools(service, subject_id=subject, synthetic=True)
         return run_data_agent(IntegratedContext(tools, reader))
 
     @app.post("/v1/observations", status_code=201)

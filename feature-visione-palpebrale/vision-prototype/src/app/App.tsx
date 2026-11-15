@@ -17,7 +17,7 @@ const statusLabels = {
 };
 const phaseLabels: Record<ApplicationPhase, string> = {
   idle: 'Inactive', loading: 'Loading', preview: 'Preview', calibrating: 'Calibration',
-  measuring: 'Measuring', stopped: 'Stopta', suspended: 'Suspended', error: 'Error',
+  measuring: 'Measuring', stopped: 'Stopped', suspended: 'Suspended', error: 'Error',
 };
 const interruptionLabels: Record<SessionInterruptionReason, string> = {
   user_stop: 'Requested stop', source_changed: 'Source changed', page_hidden: 'Tab hidden',
@@ -31,7 +31,9 @@ export function App() {
   const [bridgeState, setBridgeState] = useState<'idle' | 'sending' | 'failed' | 'sent'>('idle');
   const [bridgeError, setBridgeError] = useState('');
   const bridge = useRef<AgentBridge | null>(null);
-  const parentOrigin = window.parent === window ? null : allowedParentOrigin(document.referrer,
+  const sentMeasurement = useRef(false);
+  const measuring = useRef(false);
+  const parentOrigin = window.parent === window ? null : allowedParentOrigin(document.referrer || new URLSearchParams(window.location.search).get('agent_origin') || '',
     import.meta.env.VITE_AGENT_ORIGIN?.trim() || 'http://localhost:3000');
   const [session] = useState(() => new LiveSession(new MediaPipeFaceLandmarkerAdapter({
     modelAssetPath: runtimeAssets.modelPath, wasmAssetPath: runtimeAssets.wasmPath,
@@ -50,6 +52,21 @@ export function App() {
     bridge.current = current;
     return () => { current.dispose(); bridge.current = null; };
   }, [parentOrigin]);
+  useEffect(() => {
+    if (live?.phase === 'measuring' && !measuring.current) {
+      sentMeasurement.current = false;
+      bridge.current?.clear();
+    }
+    measuring.current = live?.phase === 'measuring';
+    if (!parentOrigin || !live?.engine || live.engine.status !== 'stopped' || !live.exportProfile || sentMeasurement.current) return;
+    sentMeasurement.current = true;
+    try {
+      bridge.current?.send(JSON.stringify(session.exportSnapshot(live)));
+      setBridgeError('');
+    } catch (error) {
+      setBridgeError(error instanceof Error ? error.message : 'Sending failed.');
+    }
+  }, [live, parentOrigin, session]);
   const [mirrored, setMirrored] = useState(true);
   const [showOverlay, setShowOverlay] = useState(false);
   const pending = snapshot.status === 'requesting' || snapshot.status === 'starting';
@@ -59,6 +76,8 @@ export function App() {
   return (
     <main className="page">
       <header className="brand">CrewReady <span>Local prototype</span></header>
+      {!parentOrigin && <p role="alert">Measurement is local only: this page is not connected to an astronaut session. Open “Open eyelid vision” inside your agent check-in to send measurements to the report.</p>}
+      {parentOrigin && <p role="status">Connected to your agent session. After stopping the measurement, wait for “Measurement connected to the agent”.</p>}
       <section className="intro" aria-labelledby="page-title">
         <p className="eyebrow">Eyelid observation</p>
         <h1 id="page-title">Eyelid measurement</h1>
@@ -166,6 +185,7 @@ export function App() {
           try { downloadExport(session.exportSnapshot(live)); setExportError(''); }
           catch (error) { setExportError(error instanceof Error ? error.message : 'Export failed.'); }
         }}>Export webcam JSON</button>
+        {!parentOrigin && <p role="alert">These results have not been sent. A standalone vision page cannot attach them to an astronaut. Keep this page open to export your measurement, or start vision from the agent session.</p>}
         {parentOrigin && <>
           <button className="button-primary" type="button" disabled={bridgeState === 'sending' || (bridgeState !== 'failed' && (!live?.engine || live.engine.status !== 'stopped' || !live.exportProfile))} onClick={() => {
             try {
@@ -175,7 +195,7 @@ export function App() {
             } catch (error) { setBridgeError(error instanceof Error ? error.message : 'Sending failed.'); }
           }}>{bridgeState === 'sending' ? 'Sending…' : bridgeState === 'failed' ? 'Retry sending to agent' : 'Send measurement to agent'}</button>
           {bridgeState === 'failed' && <button className="button-secondary" type="button" onClick={() => { bridge.current?.clear(); setBridgeError(''); }}>Cancel pending submission</button>}
-          {bridgeState === 'sent' && <p role="status">Measurement received. Select it on the agent page to use it.</p>}
+          {bridgeState === 'sent' && <p role="status">Measurement connected to the agent.</p>}
           {bridgeState === 'failed' && <p role="alert">Submission unconfirmed. Retry or cancel; the measurement may already have reached the agent.</p>}
           {bridgeError && <p role="alert">{bridgeError}</p>}
         </>}

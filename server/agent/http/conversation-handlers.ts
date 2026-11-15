@@ -54,7 +54,10 @@ export function createConversationHttpHandlers<R extends HttpRuntime>(getRuntime
     const requestId = randomUUID();
     try {
       const origin = request.headers.get("origin");
-      if (request.headers.has("cookie") && origin && origin !== new URL(request.url).origin) {
+      const requestUrl = new URL(request.url);
+      const host = request.headers.get("host");
+      if (host) requestUrl.host = host;
+      if (request.headers.has("cookie") && origin && origin !== requestUrl.origin) {
         throw new AgentError("FORBIDDEN", "Request origin not allowed.");
       }
       const runtime = getRuntime();

@@ -42,7 +42,8 @@ export class PythonSensorProvider implements SensorProvider {
     if (!member) return missing("INVALID");
     try {
       const query = new URLSearchParams({ synthetic: "true", end: window.to });
-      const response = await this.fetcher(`http://127.0.0.1:8000/v1/subjects/${encodeURIComponent(subjectId)}/agent-context?${query}`,
+      const backend = process.env.AEGIS_DATA_API_URL ?? "http://127.0.0.1:8000";
+      const response = await this.fetcher(`${backend}/v1/subjects/${encodeURIComponent(subjectId)}/agent-context?${query}`,
         { cache: "no-store", signal: AbortSignal.timeout(5000), redirect: "error" });
       if (!response.ok) return missing("UNAVAILABLE");
       if (!response.body) return missing("INVALID");

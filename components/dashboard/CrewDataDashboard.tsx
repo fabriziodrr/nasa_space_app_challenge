@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { CrewProfileSelector } from "@/components/dashboard/CrewProfileSelector";
+import { selectDemoProfile } from "@/client/demo-session";
+import { getReports } from "@/client/dashboard/mission-api";
+import { demoCrewMappings } from "@/server/agent/demo-crew";
+import type { GroundReport } from "@/server/agent/contracts";
 import styles from "./CrewDataDashboard.module.css";
 
 type Trial = { status: "response" | "false_start" | "missed"; rt_ms?: number };
@@ -56,7 +60,7 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
             {activeView === "cognitive" && <CognitiveBars alertness={mood.alertness} mood={mood.mood_rating} sleepQuality={mood.sleep_quality} />}
             {activeView === "sleep" && <SleepRecovery key={profile.id} profile={profile} />}
             {activeView === "vigilance" && <div className={styles.vigilanceLayout}><ReactionChart trials={trials} /><TrialSummary responses={responses.length} falseStarts={falseStarts} missed={missed} lapses={lapses} medianReaction={median(responses)} /></div>}
-            {activeView === "vision" && <VisionReport />}
+            {activeView === "vision" && <VisionReport key={profile.id} profileId={profile.id} />}
           </div>
         </main>
       </div>
@@ -84,37 +88,53 @@ function DataPanelHeader({ index, title, description, profile, profiles, onProfi
   );
 }
 
-type VisionDataReport = { schema_version: string; sleep: { observation: { sleep_hours: number } | null }; reported_state: { observation: { fatigue_rating: number | null } | null }; vision: { status: string; observation: { source: string; usability: string; coverage: number | null; closureFraction: number | null; reasons: string[] } | null } };
-
-function VisionReport() {
-  const [session, setSession] = useState("");
-  const [token, setToken] = useState("");
-  const [report, setReport] = useState<VisionDataReport | null>(null);
+function VisionReport({ profileId }: { profileId: string }) {
+  const [reports, setReports] = useState<GroundReport[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  async function load(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setReport(null); setMessage("");
-    try {
-      const response = await fetch("/api/demo-data-agent", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ vision_session_id: session }), cache: "no-store" });
-      if (!response.ok) throw new Error(response.status === 401 ? "Demo token not recognized." : "Report unavailable: check the session and local services.");
-      const result: VisionDataReport = await response.json();
-      if (result.schema_version !== "data-agent-demo-1") throw new Error("Unrecognized report format.");
-      setReport(result);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to load the report."); }
-    finally { setBusy(false); }
-  }
-  const eye = report?.vision.observation;
+  const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setReports([]); setSelectedId(""); setMessage(""); setBusy(true);
+      try {
+        const member = demoCrewMappings.find((item) => item.subjectId === profileId);
+        if (!member) throw new Error("Profile unavailable.");
+        // Houston must use the ground-scoped report, not the astronaut's private selection.
+        await selectDemoProfile("ground");
+        const page = await getReports("", member.astronautId);
+        if (page.items.some((item) => item.astronautId !== member.astronautId)) throw new Error("Report profile mismatch.");
+        if (!cancelled) {
+          setReports(page.items); setSelectedId(page.items[0]?.id ?? "");
+          if (!page.items.length) setMessage("No shared report is available for this astronaut yet. Confirm a check-in to generate one.");
+        }
+      } catch (error) { if (!cancelled) setMessage(error instanceof Error ? error.message : "Unable to load the report."); }
+      finally { if (!cancelled) setBusy(false); }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [profileId, refresh]);
+  const report = reports.find((item) => item.id === selectedId);
   return <div className={styles.sleepContent}>
-    <p className={styles.sleepNotice}><strong>Separate demo context:</strong> the session is entered below and sleep data come from the fixed demo subject. Changing the crew profile above does not change either source.</p>
-    <form className={styles.visionControls} onSubmit={(event) => void load(event)}>
-      <label>Vision session<input value={session} onChange={(event) => setSession(event.target.value)} required /></label>
-      <label>Demo token<input value={token} onChange={(event) => setToken(event.target.value)} type="password" autoComplete="off" required /></label>
-      <button type="submit" disabled={busy}>Load report</button>
-    </form>
+    <p className={styles.sleepNotice}>The selected astronaut&apos;s shared report uses data frozen at check-in confirmation.</p>
+    <div className={styles.visionControls}>
+      {reports.length > 0 && <label>Check-in <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
+        {reports.map((item) => <option key={item.id} value={item.id}>{new Date(item.generatedAt).toLocaleString()} · {item.checkInId}</option>)}
+      </select></label>}
+      <button type="button" disabled={busy} onClick={() => setRefresh((value) => value + 1)}>{busy ? "Loading…" : "Refresh"}</button>
+    </div>
     {message && <p className={styles.sleepNotice} role="alert">{message}</p>}
-    {report && <><div className={styles.sleepSensorGrid} aria-live="polite">
-      {[{ label: "Synthetic sleep", value: report.sleep.observation ? `${report.sleep.observation.sleep_hours} h` : "—" }, { label: "Reported fatigue", value: report.reported_state.observation?.fatigue_rating != null ? `${report.reported_state.observation.fatigue_rating} / 10` : "—" }, { label: "Vision quality", value: eye?.usability ?? report.vision.status }, { label: "Vision coverage", value: eye?.coverage != null ? `${(eye.coverage * 100).toFixed(1)}%` : "—" }, { label: "Eye closure fraction", value: eye?.closureFraction != null ? `${(eye.closureFraction * 100).toFixed(1)}%` : "—" }, { label: "Vision source", value: eye?.source ?? "—" }].map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>)}
-    </div><p className={styles.sleepFootnote}>Sleep data are simulated. Identities are not linked; observations do not constitute a diagnosis.{eye?.reasons?.length ? ` Vision limits: ${eye.reasons.join(", ")}.` : ""}</p></>}
+    {report && <div aria-live="polite">
+      <p className={styles.sleepFootnote}>Check-in {report.checkInId} · generated {new Date(report.generatedAt).toLocaleString()}</p>
+      <div className={styles.sleepSensorGrid}>
+        {report.findings.map((finding, index) => <div className={styles.sleepSensor} key={`${finding.source}-${index}`}><span>{finding.source}</span><p>{finding.text}</p></div>)}
+        {!report.findings.length && <p>No shared findings.</p>}
+      </div>
+      {report.discrepancies.length > 0 && <><h3>Differences to review</h3><ul>{report.discrepancies.map((finding, index) => <li key={index}>{finding.text}</li>)}</ul></>}
+      {report.uncertainties.length > 0 && <><h3>Limitations</h3><ul>{report.uncertainties.map((item, index) => <li key={index}>{item}</li>)}</ul></>}
+      {report.humanReview.required && <p className={styles.sleepNotice}>Human review: {report.humanReview.reason}</p>}
+    </div>}
   </div>;
 }
 
@@ -148,50 +168,21 @@ function CognitiveBars({ alertness, mood, sleepQuality }: { alertness: number | 
 function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
   const [analysis, setAnalysis] = useState<SleepAnalysis | null>(null);
   const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
-  const sample = useMemo(() => {
-    const end = new Date();
-    const start = new Date(end.getTime() - 8 * 60 * 60 * 1000);
-    return { ...profile.sleep, observation_id: `${profile.id}-demo-${end.toISOString().slice(0, 10)}`,
-      period_start: start.toISOString(), period_end: end.toISOString(), observed_at: end.toISOString() };
-  }, [profile]);
   const refresh = useCallback(async () => {
     try {
-      const end = Date.parse(sample.period_end);
+      const end = Date.now();
       const params = new URLSearchParams({ subject: profile.id, start: new Date(end - 14 * 86400000).toISOString(), end: new Date(Date.now() + 1000).toISOString() });
-      let response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
-      let result = await response.json();
+      const response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
+      const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
-      if (!result.groups.some((group: SleepAnalysis["groups"][number]) => group.series.some((point) => point.observation_id === sample.observation_id))) {
-        const imported = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([sample]) });
-        if (!imported.ok && imported.status !== 409) {
-          const error = await imported.json();
-          throw new Error(error.error || "Unable to import demo data.");
-        }
-        response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
-        result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
-      }
       setAnalysis(result);
       setStatus(result.truncated ? "Partial results: backend limit reached." : "");
     } catch (error) {
       setAnalysis(null);
       setStatus(error instanceof Error ? error.message : "Unable to load sleep data.");
     }
-  }, [profile.id, sample]);
+  }, [profile.id]);
   useEffect(() => { void refresh(); }, [refresh]);
-
-  async function loadDemo() {
-    setBusy(true);
-    try {
-      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([sample]) });
-      const result = await response.json();
-      if (!response.ok && response.status !== 409) throw new Error(result.error || "Unable to import demo data.");
-      await refresh();
-      if (response.status === 409) setStatus("Demo observation already loaded.");
-    } catch (error) { setStatus(error instanceof Error ? error.message : "Unable to import demo data."); }
-    finally { setBusy(false); }
-  }
 
   const latest = analysis?.groups.flatMap((group) => group.series.map((point) => ({ ...point, device: group.device_id, method: group.method })))
     .sort((a, b) => Date.parse(b.period_end) - Date.parse(a.period_end) || b.observation_id.localeCompare(a.observation_id))[0];
@@ -218,12 +209,11 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
           <strong>{profile.id}</strong>
         </div>
         <div className={styles.sleepActionButtons}>
-          <button type="button" disabled={busy} onClick={() => void loadDemo()}>{busy ? "Loading…" : "Load sensor demo"}</button>
           <button type="button" onClick={() => void refresh()}>Refresh</button>
         </div>
       </div>
       {status && <p className={styles.sleepNotice} role="status">{status}</p>}
-      {!latest && <p className={styles.sleepNotice}>No sleep observation in the demo period. Load the sensor demo to begin.</p>}
+      {!latest && <p className={styles.sleepNotice}>No sleep observation available in this period.</p>}
       <div className={styles.sleepSummary}>
         <div className={styles.sleepSummaryHeading}>
           <div>
@@ -244,7 +234,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
             <span>RECORDED / UTC</span>
             <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—"}</strong>
             <span>{latest?.device ?? "NO OBSERVATION"}</span>
-            <small>{latest ? `${latest.method} · ${latest.observation_id}` : "Load a sensor demo to populate recovery data"}</small>
+            <small>{latest ? `${latest.method} · ${latest.observation_id}` : "Waiting for an observation"}</small>
           </div>
         </div>
       </div>

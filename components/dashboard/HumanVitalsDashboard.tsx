@@ -1,6 +1,7 @@
 "use client";
 
 import { defaultVitalZones } from "@/components/human-vitals/HumanVitalsBody/bodyZones";
+import { VoiceDemo } from "@/app/voice-demo/voice-demo";
 
 import {
   HumanVitalsBody,
@@ -23,14 +24,16 @@ export function HumanVitalsDashboard({ perspective, bodyVariant, resetToken = 0 
   const isHouston = perspective === "houston";
 
   return (
-    <section className="human-vitals-dashboard" aria-label={isHouston ? "Houston crew health" : "ISS astronaut health"}>
+    <section className={`human-vitals-dashboard ${isHouston ? "" : "human-vitals-dashboard--iss"}`} aria-label={isHouston ? "Houston crew health" : "ISS astronaut health"}>
       <div className="human-vitals-dashboard__body">
         <HumanVitalsBody
           zones={demoZones}
           bodyVariant={bodyVariant}
           resetToken={resetToken}
+          panelBeside={!isHouston}
         />
       </div>
+      {!isHouston && <div className="human-vitals-dashboard__assistant"><VoiceDemo embedded /></div>}
     </section>
   );
 }

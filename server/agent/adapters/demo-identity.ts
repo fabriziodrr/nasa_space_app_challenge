@@ -26,7 +26,10 @@ export class DemoIdentityProvider implements IdentityProvider {
   }
 
   async authenticate(credentials: Parameters<IdentityProvider["authenticate"]>[0]) {
-    const header = credentials.authorizationHeader;
+    const cookie = credentials.sessionCookie?.split(";").map((part) => part.trim()).find((part) => part.startsWith("aegis_demo="));
+    let cookieToken: string | undefined;
+    try { cookieToken = cookie ? decodeURIComponent(cookie.slice("aegis_demo=".length)) : undefined; } catch { return null; }
+    const header = credentials.authorizationHeader || (cookieToken ? `Bearer ${cookieToken}` : null);
     if (!header || !header.startsWith("Bearer ") || header.length > 1024) return null;
     const supplied = createHash("sha256").update(header.slice(7)).digest();
     if (timingSafeEqual(supplied, this.tokenHash)) return { userId: "demo-astronaut", role: "ASTRONAUT" as const, astronautId: "astro-1" };

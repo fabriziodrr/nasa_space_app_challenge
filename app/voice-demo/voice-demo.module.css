@@ -25,4 +25,16 @@
 .messages li { padding: 14px; border-radius: 10px; background: #f2f6f8; overflow-wrap: anywhere; }
 .messages p { margin: 6px 0 0; white-space: pre-wrap; }
 .footnote { color: #536b7b; font-size: .9rem; }
+.embedded { min-height: 100%; padding: 18px; background: transparent; color: #4b5158; font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px; }
+.embedded .shell { max-width: 560px; }
+.embedded .eyebrow { color: #3b1abd; font-size: .7rem; letter-spacing: .12em; }
+.embedded .shell h1 { font-size: 1.45rem; }
+.embedded .shell header > p:last-child { color: #626970; font-size: .9rem; }
+.embedded .stage { gap: 12px; padding: 8px 0; }
+.embedded .panel { margin: 10px 0; padding: 14px; border-color: rgba(98, 105, 112, .15); background: rgba(255, 255, 255, .68); }
+.embedded .panel select { width: 100%; padding: 12px; border: 1px solid #a6b4be; border-radius: 8px; background: white; font: inherit; }
+.embedded .panel button { background: #3b1abd; }
+.embedded .messages { max-height: 230px; overflow-y: auto; }
+.visionDetails { margin: 14px 0; }
+.visionDetails > summary { cursor: pointer; color: #3b1abd; font-weight: 700; }
 @media (max-width: 520px) { .page { padding: 24px 12px; } .panel { padding: 18px; } }

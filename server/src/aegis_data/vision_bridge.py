@@ -1,7 +1,9 @@
 """Read a selected vision observation via the authenticated local TypeScript API."""
 import json
+import os
 import re
 from urllib.error import URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 
@@ -17,7 +19,12 @@ class SelectedVisionReader:
         self._token = token
 
     def read(self) -> dict:
-        url = f"http://127.0.0.1:3000/api/agent/v1/sessions/{self.session_id}/vision-selection"
+        origin = os.environ.get("AGENT_NODE_API_URL", "http://127.0.0.1:3000").rstrip("/")
+        parsed = urlsplit(origin)
+        if (parsed.scheme != "http" or parsed.hostname not in ("127.0.0.1", "localhost", "::1")
+                or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment):
+            raise VisionUnavailable("Invalid local agent address")
+        url = f"{origin}/api/agent/v1/sessions/{self.session_id}/vision-selection"
         request = Request(url, headers={"Authorization": f"Bearer {self._token}", "Accept": "application/json"})
         try:
             with urlopen(request, timeout=5) as response:
