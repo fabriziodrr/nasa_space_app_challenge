@@ -48,6 +48,16 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       } else if (discrepancies.length) {
         noChangeReason = "Conflicting data: rest duration must be clarified before proposing a change.";
       } else if (fatigue.scaleMax === 10 && fatigue.value >= 8 && poorSleep) {
+        const physical = context.checkIn.observations.find((o) => o.field === "PHYSICAL_NOTES");
+        const removalRequested = typeof physical?.value === "string" && /\b(cancel|remove|reassign|delegate|skip)\b/i.test(physical.value);
+        const removable = removalRequested ? schedule.activities.find((a) => a.kind === "MISSION" && a.movable && a.priority !== "CRITICAL"
+          && a.dependsOn.length === 0 && !schedule.activities.some((other) => other.dependsOn.includes(a.id))
+          && Date.parse(a.startsAt) >= Date.parse(context.checkIn.confirmedAt)) : undefined;
+        if (removable) {
+          proposal = { rationale: "The astronaut requested reduced workload; ground review is required.", evidence: [{ source: "self_report", observationId: fatigue.id }],
+            changes: [{ type: "REMOVE_ACTIVITY", activityId: removable.id, startsAt: removable.startsAt, endsAt: removable.endsAt, reassignment: null }] };
+          noChangeReason = null;
+        } else {
         const activity = schedule.activities.find((a) => a.movable && a.priority !== "CRITICAL"
           && Date.parse(a.startsAt) >= Date.parse(context.checkIn.confirmedAt)
           && Date.parse(a.endsAt) + 1200000 <= Date.parse(a.latestEnd)
@@ -63,6 +73,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
           };
           noChangeReason = null;
         } else noChangeReason = "No future activity can be moved within the schedule constraints; human evaluation requested.";
+        }
       } else noChangeReason = "Shared evidence does not trigger the demo change rule; keep the schedule.";
     }
     return {

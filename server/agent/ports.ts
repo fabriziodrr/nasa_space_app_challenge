@@ -79,6 +79,7 @@ export interface VisionObservationReader {
 export interface ScheduleReader {
   getDay(astronautId: string, date: string): Promise<ScheduleSnapshot>;
   findSharedResourceConflicts?(schedule: ScheduleSnapshot): Promise<string[]>;
+  planReassignment?(schedule: ScheduleSnapshot, change: Extract<ProposalCandidate["changes"][number], { type: "REMOVE_ACTIVITY" }>): Promise<Extract<ProposalCandidate["changes"][number], { type: "REMOVE_ACTIVITY" }>>;
 }
 export interface ScheduleProvider extends ScheduleReader {
   // Current snapshot by id; used by the approval service to check staleness before

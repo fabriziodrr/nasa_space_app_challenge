@@ -12,7 +12,13 @@ export class DemoScheduleValidator extends ScheduleValidatorImpl {
     const original = schedule.activities.find((a) => a.id === move?.activityId);
     const restMs = rest ? Date.parse(rest.endsAt) - Date.parse(rest.startsAt) : 0;
     const messages: string[] = [];
-    if (candidate.changes.length !== 2 || !move || !rest) messages.push("Use exactly one ADD_REST and one MOVE_ACTIVITY.");
+    const removal = candidate.changes.find((change) => change.type === "REMOVE_ACTIVITY");
+    if (removal) {
+      const activity = schedule.activities.find((item) => item.id === removal.activityId);
+      if (candidate.changes.length !== 1) messages.push("Removal must be the only proposed change.");
+      if (!activity || Date.parse(activity.startsAt) < Date.parse(context.checkIn.confirmedAt)) messages.push("Only a future mission activity can be removed.");
+      if (removal.reassignment?.astronautId === schedule.astronautId) messages.push("The recipient must be another crew member.");
+    } else if (candidate.changes.length !== 2 || !move || !rest) messages.push("Use exactly one ADD_REST and one MOVE_ACTIVITY.");
     if (move && original && (original.kind !== "MISSION" || !original.movable || original.priority === "CRITICAL")) messages.push("Move a flexible, non-critical mission activity.");
     if (rest && (restMs <= 0 || restMs > 20 * 60_000)) messages.push("The rest break must last at most 20 minutes.");
     if (rest && original && Date.parse(rest.startsAt) !== Date.parse(original.startsAt)) messages.push("Start the rest break at the original start of the moved activity.");

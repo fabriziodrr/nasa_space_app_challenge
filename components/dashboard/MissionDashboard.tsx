@@ -168,6 +168,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
             <label>Type<select value={activity.kind} onChange={(e) => changeActivity(index, { kind: e.target.value as ScheduleActivity["kind"] })}>{["MISSION", "EXERCISE", "MEAL", "REST", "PERSONAL"].map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>Priority<select value={activity.priority} onChange={(e) => changeActivity(index, { priority: e.target.value as ScheduleActivity["priority"] })}>{["LOW", "NORMAL", "CRITICAL"].map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>Shared resource IDs (comma separated)<input key={`${activity.id}-${(activity.sharedResources ?? []).join(",")}`} defaultValue={(activity.sharedResources ?? []).join(", ")} onBlur={(e) => changeActivity(index, { sharedResources: e.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} placeholder="e.g. lab-terminal" /></label>
+            <label>Eligible crew IDs (comma separated)<input key={`${activity.id}-crew-${(activity.eligibleAstronautIds ?? []).join(",")}`} defaultValue={(activity.eligibleAstronautIds ?? []).join(", ")} onBlur={(e) => changeActivity(index, { eligibleAstronautIds: e.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} placeholder="e.g. crew-demo-02" /></label>
             <label className={styles.check}><input type="checkbox" checked={activity.movable} onChange={(e) => changeActivity(index, { movable: e.target.checked })} /> Movable</label>
             <button type="button" onClick={() => setDraft({ ...draft, activities: draft.activities.filter((_, i) => i !== index) })}>Remove</button>
           </fieldset>)}
@@ -200,6 +201,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
               {preview && <ul>{proposal.candidate.changes.map((change) => {
                 const before = schedule.activities.find((item) => item.id === change.activityId);
                 const after = preview.activities.find((item) => item.id === change.activityId);
+                if (change.type === "REMOVE_ACTIVITY") return <li key={change.activityId}><strong>{before?.title ?? change.activityId}</strong>: remove from this astronaut. {change.reassignment ? `Reassign to ${demoCrewMappings.find((member) => member.astronautId === change.reassignment!.astronautId)?.name ?? change.reassignment.astronautId}, ${format(change.reassignment.startsAt)} – ${format(change.reassignment.endsAt)}.` : "No eligible available recipient found; task remains unassigned."}</li>;
                 return <li key={change.activityId}><strong>{before?.title ?? after?.title ?? change.activityId}</strong>: {before ? `${format(before.startsAt)} – ${format(before.endsAt)}` : "new rest break"} → {after ? `${format(after.startsAt)} – ${format(after.endsAt)}` : "unavailable"}</li>;
               })}</ul>}
               {pendingDecision && <p>Decision awaiting confirmation: repeat {pendingDecision.decision === "APPROVE" ? "approval" : "rejection"}.</p>}

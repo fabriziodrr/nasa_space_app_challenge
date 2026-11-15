@@ -29,6 +29,8 @@ export class ApprovalService {
       if (proposal) break;
     }
     if (!proposal) throw AgentErrors.notFound();
+    if (proposal.candidate.changes.some((change) => change.type === "REMOVE_ACTIVITY" && change.reassignment
+      && !identity.astronautIds.includes(change.reassignment.astronautId))) throw AgentErrors.forbidden();
     const astronautId = proposal.astronautId;
 
     const currentSchedule = await this.schedule.getById(proposal.scheduleId);

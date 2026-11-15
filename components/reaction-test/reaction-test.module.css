@@ -1,0 +1,16 @@
+.panel { width: min(100%, 640px); padding: clamp(24px, 5vw, 48px); border: 1px solid #ffffff26; border-radius: 24px; color: #f9f8ff; background: #171036; box-shadow: 0 24px 80px #0006; font-family: system-ui, sans-serif; }
+.panel h1 { margin: 8px 0 18px; font-size: clamp(28px, 5vw, 42px); line-height: 1.08; }
+.panel p { line-height: 1.6; color: #d2cdec; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #a89af2 !important; }
+.primary, .secondary { padding: 13px 20px; border-radius: 12px; border: 1px solid transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.primary { color: #1b1440; background: #e3ddff; }
+.secondary { margin-left: 10px; color: #e3ddff; background: transparent; border-color: #6b609b; }
+.topline { display: flex; justify-content: space-between; color: #c6bee9; }
+.signal { width: 150px; height: 150px; margin: 32px auto 16px; border: 2px solid #6b609b; border-radius: 50%; background: #211b43; }
+.signalActive { background: #ddff8f; border-color: #f0ffce; box-shadow: 0 0 70px #c1ff7577; }
+.signalText { text-align: center; font-weight: 700; }
+.results { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 24px 0; }
+.results div { padding: 14px; border-radius: 12px; background: #ffffff0d; }
+.results dt { color: #bbb1df; font-size: 12px; }
+.results dd { margin: 6px 0 0; font-size: 22px; font-weight: 700; }
+.note { margin: 28px 0 0; border-top: 1px solid #ffffff20; padding-top: 18px; font-size: 12px; }

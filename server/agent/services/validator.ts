@@ -40,7 +40,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
 
     const existing = new Map(schedule.activities.map((a) => [a.id, a]));
     for (const change of candidate.changes) {
-      if (change.type === "MOVE_ACTIVITY") {
+      if (change.type === "MOVE_ACTIVITY" || change.type === "REMOVE_ACTIVITY") {
         const activity = existing.get(change.activityId);
         if (!activity) {
           violations.push({
@@ -56,6 +56,14 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
             activityId: change.activityId,
             message: "The activity is locked or critical and cannot be moved.",
           });
+        }
+        if (change.type === "REMOVE_ACTIVITY") {
+          if (activity.kind !== "MISSION" || Date.parse(change.startsAt) !== Date.parse(activity.startsAt) || Date.parse(change.endsAt) !== Date.parse(activity.endsAt)
+              || activity.dependsOn.length > 0 || schedule.activities.some((other) => other.dependsOn.includes(activity.id))) {
+            violations.push({ code: "DEPENDENCY_VIOLATION", activityId: activity.id,
+              message: "Only an unchanged, independent flexible mission activity can be removed." });
+          }
+          continue;
         }
         const originalDuration = Date.parse(activity.endsAt) - Date.parse(activity.startsAt);
         const movedDuration = Date.parse(change.endsAt) - Date.parse(change.startsAt);

@@ -16,6 +16,10 @@ export const ScheduleChangeSchema = z.discriminatedUnion("type", [
     startsAt: TimestampSchema,
     endsAt: TimestampSchema,
   }),
+  z.strictObject({
+    type: z.literal("REMOVE_ACTIVITY"), activityId: IdSchema, startsAt: TimestampSchema, endsAt: TimestampSchema,
+    reassignment: z.strictObject({ astronautId: IdSchema, scheduleId: IdSchema, expectedVersion: VersionSchema, activityId: IdSchema, startsAt: TimestampSchema, endsAt: TimestampSchema }).nullable(),
+  }),
 ]).refine((change) => Date.parse(change.startsAt) < Date.parse(change.endsAt), {
   message: "Change must have positive duration",
 });

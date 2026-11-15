@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   DiaryEntrySchema, DiaryOutputSchema, GroundReportSchema, OperationalContextSchema,
   OperationalOutputSchema, SharedCheckInSchema,
-  type Identity,
+  type Identity, type ProposalCandidate,
 } from "../contracts";
 import type { AgentRepository, DiaryAiProvider, OperationalAiProvider, ScheduleReader, SensorProvider } from "../ports";
 import { AgentErrors, isAgentError } from "../core/errors";
@@ -111,7 +111,13 @@ export class ArtifactService {
       if (operational.proposal) {
         if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Proposal generation is not yet connected to the authoritative schedule.");
         if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("The check-in has no frozen schedule: open a new check-in.");
-        let built = proposals.build(operational.proposal, context, day);
+        const prepare = async (candidate: ProposalCandidate): Promise<ProposalCandidate> => {
+          const changes = await Promise.all(candidate.changes.map(async (change) => change.type === "REMOVE_ACTIVITY"
+            ? schedule.planReassignment ? schedule.planReassignment(day, { ...change, reassignment: null }) : { ...change, reassignment: null }
+            : change));
+          return { ...candidate, changes };
+        };
+        let built = proposals.build(await prepare(operational.proposal), context, day);
         let declined = false;
         if (built.outcome === "invalid") {
           try {
@@ -119,7 +125,7 @@ export class ArtifactService {
               context: structuredClone(context), schedule: structuredClone(day),
               proposalFeedback: built.violations.map((violation) => violation.message),
             }));
-            if (retry.proposal) built = proposals.build(retry.proposal, context, day);
+            if (retry.proposal) built = proposals.build(await prepare(retry.proposal), context, day);
             else if (retry.noChangeReason) { operational.noChangeReason = retry.noChangeReason; declined = true; }
           } catch (error) {
             console.error("Agent proposal retry:", isAgentError(error) ? error.code : "error");

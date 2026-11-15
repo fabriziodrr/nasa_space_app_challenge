@@ -33,6 +33,8 @@ export function applyScheduleChanges(
         activity.startsAt = change.startsAt;
         activity.endsAt = change.endsAt;
       }
+    } else if (change.type === "REMOVE_ACTIVITY") {
+      byId.delete(change.activityId);
     } else {
       if (!byId.has(change.activityId)) {
         byId.set(change.activityId, {

@@ -1,10 +1,13 @@
 import type { PrismaClient } from "@prisma/client";
-import { ProposalCandidateSchema, ScheduleApplyCommandSchema, ScheduleSnapshotSchema, type ScheduleApplyCommand, type ScheduleApplyResult, type ScheduleSnapshot } from "../contracts";
+import { randomUUID } from "node:crypto";
+import { ProposalCandidateSchema, ScheduleApplyCommandSchema, ScheduleSnapshotSchema, type ProposalCandidate, type ScheduleApplyCommand, type ScheduleApplyResult, type ScheduleSnapshot } from "../contracts";
 import { SimulatedScheduleProvider } from "./schedule";
 import { AgentError } from "../core/errors";
 import { activitiesOverlap, hasDependencyCycle } from "../lib/schedule";
 import { sharedResourceConflicts } from "../lib/shared-resources";
 import { scheduleFromRow } from "./prisma/mappers";
+import { demoCrewMappings } from "../demo-crew";
+import { applyScheduleChanges } from "../lib/schedule";
 
 /** Illustrative UTC day: fixed meals, exercise, contacts and an 8.5 h sleep opportunity. */
 export function demoProgram(astronautId: string, date: string): ScheduleSnapshot {
@@ -22,7 +25,7 @@ export function demoProgram(astronautId: string, date: string): ScheduleSnapshot
         priority: "NORMAL", movable: true, dependsOn: ["comm-1"], earliestStart: `${date}T09:00:00Z`, latestEnd: `${date}T11:30:00Z` },
       fixed("meal-2", "Lunch", "MEAL", `${date}T12:00:00Z`, `${date}T13:00:00Z`),
       { id: "science-2", title: "Data review", kind: "MISSION", startsAt: `${date}T14:00:00Z`, endsAt: `${date}T14:40:00Z`,
-        priority: "LOW", movable: true, dependsOn: [], earliestStart: `${date}T14:00:00Z`, latestEnd: `${date}T15:30:00Z` },
+        priority: "LOW", movable: true, dependsOn: [], eligibleAstronautIds: demoCrewMappings.map((member) => member.astronautId), earliestStart: `${date}T14:00:00Z`, latestEnd: `${date}T15:30:00Z` },
       fixed("exercise-2", "Scheduled exercise", "EXERCISE", `${date}T16:00:00Z`, `${date}T17:00:00Z`),
       fixed("meal-3", "Dinner", "MEAL", `${date}T19:00:00Z`, `${date}T20:00:00Z`),
       fixed("sleep-1", "Protected sleep opportunity", "REST", `${date}T21:30:00Z`, `${nextDate}T06:00:00Z`),
@@ -30,7 +33,8 @@ export function demoProgram(astronautId: string, date: string): ScheduleSnapshot
 }
 
 export class DemoProgramProvider extends SimulatedScheduleProvider {
-  constructor(private readonly db: PrismaClient, private readonly now: () => Date = () => new Date()) { super(db); }
+  constructor(private readonly db: PrismaClient, private readonly now: () => Date = () => new Date(),
+    private readonly availableCrew: readonly string[] = demoCrewMappings.map((member) => member.astronautId)) { super(db); }
   override async getDay(astronautId: string, date: string): Promise<ScheduleSnapshot> {
     const program = demoProgram(astronautId, date);
     await this.db.scheduleSnapshot.upsert({ where: { astronautId_date: { astronautId, date } }, update: {}, create: {
@@ -38,6 +42,30 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
       dayStartsAt: new Date(program.dayStartsAt), dayEndsAt: new Date(program.dayEndsAt), activitiesJson: JSON.stringify(program.activities),
     } });
     return super.getDay(astronautId, date);
+  }
+
+  async planReassignment(schedule: ScheduleSnapshot, change: Extract<ProposalCandidate["changes"][number], { type: "REMOVE_ACTIVITY" }>) {
+    const activity = schedule.activities.find((item) => item.id === change.activityId);
+    const without = { ...change, reassignment: null };
+    if (!activity || activity.dependsOn.length || !activity.eligibleAstronautIds?.length) return without;
+    const source = applyScheduleChanges(schedule, [without]);
+    const duration = Date.parse(activity.endsAt) - Date.parse(activity.startsAt);
+    for (const id of activity.eligibleAstronautIds) {
+      if (id === schedule.astronautId || !this.availableCrew.includes(id) || !demoCrewMappings.some((member) => member.astronautId === id)) continue;
+      const target = await this.getDay(id, schedule.date);
+      const peers = await this.db.scheduleSnapshot.findMany({ where: { astronautId: { notIn: [schedule.astronautId, id] },
+        dayStartsAt: { lt: new Date(target.dayEndsAt) }, dayEndsAt: { gt: new Date(target.dayStartsAt) } } });
+      const startAt = Math.max(Date.parse(activity.startsAt), this.now().getTime(), Date.parse(target.dayStartsAt));
+      for (let start = Math.ceil(startAt / 300000) * 300000; start + duration <= Math.min(Date.parse(activity.latestEnd), Date.parse(target.dayEndsAt)); start += 300000) {
+        const moved = { ...activity, id: randomUUID(), startsAt: new Date(start).toISOString(), endsAt: new Date(start + duration).toISOString(), dependsOn: [] };
+        if (target.activities.some((other) => activitiesOverlap(moved, other))) continue;
+        const preview = { ...target, activities: [...target.activities, moved] };
+        if (sharedResourceConflicts(preview, [source, ...peers.map(scheduleFromRow)]).length) continue;
+        return { ...without, reassignment: { astronautId: id, scheduleId: target.id, expectedVersion: target.version,
+          activityId: moved.id, startsAt: moved.startsAt, endsAt: moved.endsAt } };
+      }
+    }
+    return without;
   }
 
   /** Ground replaces a demo day through an optimistic version check. */
@@ -84,6 +112,8 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
     if (receipt.outcome === "APPLIED") return receipt;
     if (command.changes.some((c) => Date.parse(c.startsAt) < this.now().getTime()))
       return { outcome: "FAILED", retryable: false, reason: "The proposed window has already started: a new Ground review is required." };
+    if (command.changes.some((c) => c.type === "REMOVE_ACTIVITY" && c.reassignment && Date.parse(c.reassignment.startsAt) < this.now().getTime()))
+      return { outcome: "FAILED", retryable: false, reason: "The recipient's proposed window has already started." };
     return super.applyApproved(command);
   }
 }

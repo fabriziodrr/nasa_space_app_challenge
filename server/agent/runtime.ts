@@ -19,6 +19,7 @@ import { VisionConfirmationService } from "./vision/confirmation";
 import { DemoProgramProvider } from "./adapters/demo-program";
 import { ApprovalService } from "./services/approval";
 import { PythonSensorProvider } from "./adapters/python-sensors";
+import { demoCrewMappings } from "./demo-crew";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -28,7 +29,8 @@ function createDemoRuntime() {
   const repository = new PrismaAgentRepository(prisma);
   const context = createDemoContextProviders(config.AGENT_DEMO_SCENARIO);
   if (config.AGENT_SENSOR_PROVIDER === "python") context.sensors = new PythonSensorProvider({ subjectId: config.AGENT_DATA_SUBJECT_ID });
-  const schedule = new DemoProgramProvider(prisma);
+  const availableCrew = demoCrewMappings.filter((member) => member.astronautId === "astro-1" || !!process.env[member.tokenEnv]?.trim()).map((member) => member.astronautId);
+  const schedule = new DemoProgramProvider(prisma, () => new Date(), availableCrew);
   context.schedule = schedule;
   const visionQuality = { minValidMs: config.AGENT_VISION_MIN_VALID_MS, minCoverage: config.AGENT_VISION_MIN_COVERAGE,
     maxAgeMinutes: config.AGENT_VISION_MAX_AGE_MINUTES };

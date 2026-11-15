@@ -51,6 +51,7 @@ export const ScheduleActivitySchema = z.strictObject({
   movable: z.boolean(),
   dependsOn: z.array(IdSchema).max(100),
   sharedResources: z.array(IdSchema).max(30).refine((items) => new Set(items).size === items.length).optional(),
+  eligibleAstronautIds: z.array(IdSchema).max(30).refine((items) => new Set(items).size === items.length).optional(),
   earliestStart: TimestampSchema,
   latestEnd: TimestampSchema,
 }).refine((activity) =>
