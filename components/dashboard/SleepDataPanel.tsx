@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RotateCcw, Upload } from "lucide-react";
-import demo from "@/server/examples/sleep_demo_14d.json";
+import { RotateCcw } from "lucide-react";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { TextType } from "@/components/reactbits/TextType";
@@ -24,9 +23,7 @@ export function SleepDataPanel() {
   const [end, setEnd] = useState("2026-11-15");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [status, setStatus] = useState("Loading sleep data…");
-  const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [fileName, setFileName] = useState("");
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -48,56 +45,14 @@ export function SleepDataPanel() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  async function importRecords(records: unknown) {
-    setBusy(true);
-    try {
-      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(records) });
-      const result = await response.json();
-      if (response.status === 409) {
-        await refresh();
-        setStatus("Some observation IDs already exist. No records were imported; showing existing data.");
-        return;
-      }
-      if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "Import failed. Check the JSON format.");
-      await refresh();
-      setStatus(`Imported ${result.imported} synthetic observations. Select the matching subject and dates to view them.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Import failed.");
-    } finally { setBusy(false); }
-  }
-
-  async function upload(file: File | undefined) {
-    if (!file) return;
-    try { await importRecords(JSON.parse(await file.text())); }
-    catch { setStatus("Invalid JSON file."); }
-  }
-
   return <section className={styles.panel} aria-labelledby="sleep-data-title">
     <div className={`${styles.heading} ${styles.reveal}`}><div><span className={styles.kicker}><TextType text="CREW HEALTH / SLEEP MONITORING" typingSpeed={18} /></span><h2 id="sleep-data-title"><TextType text="Sleep & reported fatigue" typingSpeed={24} initialDelay={100} /></h2><p>Review sleep duration alongside the crew member’s reported fatigue.</p></div>
-      <div className={styles.headingActions}><span className={styles.demoBadge}><i /> SYNTHETIC DEMO</span><button type="button" disabled={busy} onClick={() => void importRecords(demo)}>Load sample</button></div></div>
+      <div className={styles.headingActions}><span className={styles.demoBadge}><i /> SYNTHETIC DEMO</span></div></div>
     <div className={styles.controls}>
       <label>Subject <input value={subject} onChange={(event) => setSubject(event.target.value)} /></label>
       <label>From <input type="date" value={start} onChange={(event) => setStart(event.target.value)} /></label>
       <label>Until <input type="date" value={end} onChange={(event) => setEnd(event.target.value)} /></label>
-       <button className={`${styles.refreshButton} ${refreshing ? styles.isRefreshing : ""}`} type="button" disabled={busy || refreshing} onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
-       <div className={styles.upload}>
-         <span className={styles.uploadLabel}>Import synthetic JSON</span>
-         <label className={styles.filePicker}>
-           <input
-             type="file"
-             accept="application/json,.json"
-             disabled={busy}
-             onChange={(event) => {
-               const file = event.target.files?.[0];
-               setFileName(file?.name ?? "");
-               void upload(file);
-               event.target.value = "";
-             }}
-           />
-           <span className={styles.filePickerButton} aria-hidden="true"><Upload size={17} strokeWidth={2.2} /></span>
-           <span className={styles.fileName}>{fileName || "No file selected"}</span>
-         </label>
-       </div>
+       <button className={`${styles.refreshButton} ${refreshing ? styles.isRefreshing : ""}`} type="button" disabled={refreshing} onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
     </div>
     {status && <p className={styles.notice} role="status">{status}</p>}
     {analysis?.truncated && <p className={styles.notice}>Partial data: the backend limit was reached.</p>}

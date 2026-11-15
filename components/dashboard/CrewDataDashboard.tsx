@@ -6,6 +6,10 @@ import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles"
 import { CountUp } from "@/components/reactbits/CountUp";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { CrewProfileSelector } from "@/components/dashboard/CrewProfileSelector";
+import { selectDemoProfile } from "@/client/demo-session";
+import { getReports } from "@/client/dashboard/mission-api";
+import { demoCrewMappings } from "@/server/agent/demo-crew";
+import type { GroundReport } from "@/server/agent/contracts";
 import { TextType } from "@/components/reactbits/TextType";
 import styles from "./CrewDataDashboard.module.css";
 
@@ -57,7 +61,7 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
             {activeView === "cognitive" && <CognitiveBars alertness={mood.alertness} mood={mood.mood_rating} sleepQuality={mood.sleep_quality} />}
             {activeView === "sleep" && <SleepRecovery key={profile.id} profile={profile} />}
             {activeView === "vigilance" && <div className={styles.vigilanceLayout}><ReactionChart trials={trials} /><TrialSummary responses={responses.length} falseStarts={falseStarts} missed={missed} lapses={lapses} medianReaction={median(responses)} /></div>}
-            {activeView === "vision" && <VisionReport />}
+            {activeView === "vision" && <VisionReport key={profile.id} profileId={profile.id} />}
           </div>
         </main>
       </div>
@@ -85,37 +89,53 @@ function DataPanelHeader({ index, title, description, profile, profiles, onProfi
   );
 }
 
-type VisionDataReport = { schema_version: string; sleep: { observation: { sleep_hours: number } | null }; reported_state: { observation: { fatigue_rating: number | null } | null }; vision: { status: string; observation: { source: string; usability: string; coverage: number | null; closureFraction: number | null; reasons: string[] } | null } };
-
-function VisionReport() {
-  const [session, setSession] = useState("");
-  const [token, setToken] = useState("");
-  const [report, setReport] = useState<VisionDataReport | null>(null);
+function VisionReport({ profileId }: { profileId: string }) {
+  const [reports, setReports] = useState<GroundReport[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  async function load(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setReport(null); setMessage("");
-    try {
-      const response = await fetch("/api/demo-data-agent", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ vision_session_id: session }), cache: "no-store" });
-      if (!response.ok) throw new Error(response.status === 401 ? "Demo token not recognized." : "Report unavailable: check the session and local services.");
-      const result: VisionDataReport = await response.json();
-      if (result.schema_version !== "data-agent-demo-1") throw new Error("Unrecognized report format.");
-      setReport(result);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to load the report."); }
-    finally { setBusy(false); }
-  }
-  const eye = report?.vision.observation;
-   return <div className={`${styles.sleepContent} ${styles.reveal}`}>
-    <p className={styles.sleepNotice}><strong>Separate demo context:</strong> the session is entered below and sleep data come from the fixed demo subject. Changing the crew profile above does not change either source.</p>
-    <form className={styles.visionControls} onSubmit={(event) => void load(event)}>
-      <label>Vision session<input value={session} onChange={(event) => setSession(event.target.value)} required /></label>
-      <label>Demo token<input value={token} onChange={(event) => setToken(event.target.value)} type="password" autoComplete="off" required /></label>
-      <button type="submit" disabled={busy}>Load report</button>
-    </form>
+  const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setReports([]); setSelectedId(""); setMessage(""); setBusy(true);
+      try {
+        const member = demoCrewMappings.find((item) => item.subjectId === profileId);
+        if (!member) throw new Error("Profile unavailable.");
+        // Houston must use the ground-scoped report, not the astronaut's private selection.
+        await selectDemoProfile("ground");
+        const page = await getReports("", member.astronautId);
+        if (page.items.some((item) => item.astronautId !== member.astronautId)) throw new Error("Report profile mismatch.");
+        if (!cancelled) {
+          setReports(page.items); setSelectedId(page.items[0]?.id ?? "");
+          if (!page.items.length) setMessage("No shared report is available for this astronaut yet. Confirm a check-in to generate one.");
+        }
+      } catch (error) { if (!cancelled) setMessage(error instanceof Error ? error.message : "Unable to load the report."); }
+      finally { if (!cancelled) setBusy(false); }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [profileId, refresh]);
+  const report = reports.find((item) => item.id === selectedId);
+  return <div className={`${styles.sleepContent} ${styles.reveal}`}>
+    <p className={styles.sleepNotice}>The selected astronaut&apos;s shared report uses data frozen at check-in confirmation.</p>
+    <div className={styles.visionControls}>
+      {reports.length > 0 && <label>Check-in <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
+        {reports.map((item) => <option key={item.id} value={item.id}>{new Date(item.generatedAt).toLocaleString()} · {item.checkInId}</option>)}
+      </select></label>}
+      <button type="button" disabled={busy} onClick={() => setRefresh((value) => value + 1)}>{busy ? "Loading…" : "Refresh"}</button>
+    </div>
     {message && <p className={styles.sleepNotice} role="alert">{message}</p>}
-     {report && <><div className={styles.sleepSensorGrid} aria-live="polite">
-       {[{ label: "Synthetic sleep", value: report.sleep.observation ? `${report.sleep.observation.sleep_hours} h` : "—" }, { label: "Reported fatigue", value: report.reported_state.observation?.fatigue_rating != null ? `${report.reported_state.observation.fatigue_rating} / 10` : "—" }, { label: "Vision quality", value: eye?.usability ?? report.vision.status }, { label: "Vision coverage", value: eye?.coverage != null ? `${(eye.coverage * 100).toFixed(1)}%` : "—" }, { label: "Eye closure fraction", value: eye?.closureFraction != null ? `${(eye.closureFraction * 100).toFixed(1)}%` : "—" }, { label: "Vision source", value: eye?.source ?? "—" }].map((item, index) => <SpotlightCard className={styles.sleepSensor} spotlightColor="rgba(59, 26, 189, 0.12)" style={{ animationDelay: `${index * 55}ms` }} key={item.label}><span>{item.label}</span><strong>{item.value}</strong></SpotlightCard>)}
-    </div><p className={styles.sleepFootnote}>Sleep data are simulated. Identities are not linked; observations do not constitute a diagnosis.{eye?.reasons?.length ? ` Vision limits: ${eye.reasons.join(", ")}.` : ""}</p></>}
+    {report && <div aria-live="polite">
+      <p className={styles.sleepFootnote}>Check-in {report.checkInId} · generated {new Date(report.generatedAt).toLocaleString()}</p>
+      <div className={styles.sleepSensorGrid}>
+        {report.findings.map((finding, index) => <SpotlightCard className={styles.sleepSensor} spotlightColor="rgba(59, 26, 189, 0.12)" style={{ animationDelay: `${index * 55}ms` }} key={`${finding.source}-${index}`}><span>{finding.source}</span><p>{finding.text}</p></SpotlightCard>)}
+        {!report.findings.length && <p>No shared findings.</p>}
+      </div>
+      {report.discrepancies.length > 0 && <><h3>Differences to review</h3><ul>{report.discrepancies.map((finding, index) => <li key={index}>{finding.text}</li>)}</ul></>}
+      {report.uncertainties.length > 0 && <><h3>Limitations</h3><ul>{report.uncertainties.map((item, index) => <li key={index}>{item}</li>)}</ul></>}
+      {report.humanReview.required && <p className={styles.sleepNotice}>Human review: {report.humanReview.reason}</p>}
+    </div>}
   </div>;
 }
 
