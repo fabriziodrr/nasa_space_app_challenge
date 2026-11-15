@@ -8,9 +8,16 @@ const sensorBase = {
   astronautId: IdSchema,
   observedAt: TimestampSchema,
   source: z.literal("sensor"),
-  simulated: z.literal(true),
-  scenario: ScenarioSchema,
+  simulated: z.boolean(),
+  scenario: ScenarioSchema.optional(),
   quality: z.enum(["GOOD", "DEGRADED", "UNAVAILABLE"]),
+  provenance: z.strictObject({
+    backend: z.literal("aegis_data"), subjectId: IdSchema, identityLink: z.literal("demo_only_unverified"),
+    snapshotId: z.string().max(128).nullable(), backendAsOf: TimestampSchema.nullable(), observedId: IdSchema.nullable(),
+    periodStart: TimestampSchema.nullable(), periodEnd: TimestampSchema.nullable(),
+    deviceId: z.string().max(100).nullable(), method: z.string().max(100).nullable(),
+    truncated: z.boolean(), status: z.enum(["AVAILABLE", "MISSING", "STALE", "UNAVAILABLE", "INVALID"]),
+  }).optional(),
 };
 export const SensorReadingSchema = z.discriminatedUnion("metric", [
   z.strictObject({ ...sensorBase, metric: z.literal("SLEEP_DURATION"),

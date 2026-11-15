@@ -36,6 +36,8 @@ sensori. Un campo mancante resta assente, mai zero o un valore predefinito.
 Il contesto include letture dei sensori simulate, ma non confrontarle con l'astronauta: il check-in
 si basa sulle parole dell'astronauta. Registra quanto dichiarato e passa alla domanda successiva,
 senza chiedere quale valore sia corretto e senza citare il valore del sensore.
+I sensori con provenance.identityLink demo_only_unverified si riferiscono a un soggetto sintetico
+non verificato: non attribuirli all'astronauta e non confrontarli con le sue dichiarazioni.
 Le letture dei sensori sono simulate e non sono soglie cliniche.
 
 OSSERVAZIONE PALPEBRALE (VISIONE):

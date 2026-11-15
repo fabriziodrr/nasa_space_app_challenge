@@ -64,6 +64,22 @@ export class ArtifactService {
       ]);
       const operational = OperationalOutputSchema.parse(rawOperational);
       const diaryOutput = DiaryOutputSchema.parse(rawDiary);
+      const backend = readings.find((reading) => reading.provenance)?.provenance;
+      if (backend) {
+        const note = `Backend dati demo: stato ${backend.status}; soggetto ${backend.subjectId}, identità non verificata; `
+          + `snapshot ${backend.snapshotId ?? "non disponibile"}, acquisizione archivio ${backend.backendAsOf ?? "non disponibile"}; periodo ${backend.periodStart ?? "non disponibile"} – ${backend.periodEnd ?? "non disponibile"}; `
+          + `risultato ${backend.truncated ? "troncato" : "non troncato"}. Non attribuire il dato a una persona reale né usarlo come evidenza per modifiche.`;
+        operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
+      }
+      const uncertainBackendIds = new Set(readings.filter((reading) => reading.provenance).map((reading) => reading.id));
+      const unsafe = (finding: typeof operational.report.findings[number]) => finding.source === "inference"
+        && finding.evidence.some((ref) => ref.source === "sensor" && uncertainBackendIds.has(ref.sensorReadingId));
+      if ([...operational.report.findings, ...operational.report.discrepancies].some(unsafe)) {
+        operational.report.findings = operational.report.findings.filter((finding) => !unsafe(finding));
+        operational.report.discrepancies = operational.report.discrepancies.filter((finding) => !unsafe(finding));
+        operational.report.uncertainties = ["Deduzione su dati con identità demo non verificata rimossa; richiedere revisione umana.", ...operational.report.uncertainties].slice(0, 20);
+        operational.report.humanReview = { required: true, reason: "Identità delle fonti demo non verificata." };
+      }
       if (context.vision) {
         const item = context.vision;
         const note = `Misura palpebrale ${item.source === "synthetic" ? "sintetica" : "webcam"}; stato ${item.usability}; `
@@ -72,7 +88,7 @@ export class ArtifactService {
           + `limitazioni: ${item.reasons.length ? item.reasons.join(", ") : "nessuna segnalata"}. Misura sperimentale non diagnostica.`;
         operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
       }
-      const sensorIds = new Set(readings.map((reading) => reading.id));
+      const sensorIds = new Set(readings.filter((reading) => reading.quality !== "UNAVAILABLE").map((reading) => reading.id));
       for (const finding of [...operational.report.findings, ...operational.report.discrepancies]) {
         for (const evidence of finding.evidence) {
           const allowed = evidence.source === "self_report" ? selected.has(evidence.observationId)

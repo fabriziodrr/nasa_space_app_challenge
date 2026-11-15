@@ -1,6 +1,6 @@
 # Report, proposta e decisione di Terra
 
-Il flusso è disponibile nel runtime demo con provider `mock` oppure NVIDIA/Nemotron. Il backend di Emanuel e la dashboard di Fabrizio possono essere collegati successivamente tramite i provider in `server/agent/ports.ts`. Non vengono scritti dati nel backend Python.
+Il flusso è disponibile nel runtime demo con provider `mock` oppure NVIDIA/Nemotron. Per impostazione predefinita l'agent legge i sensori sintetici dal backend Python attraverso l'adattatore descritto nel [contratto dati](./contratto-backend-dati.md); il legame delle identità resta demo e non verificato. Non vengono scritti dati nel backend Python.
 
 ## Comportamento
 
@@ -71,10 +71,10 @@ npm.cmd run dev
 
 Lo schema aggiunge il campo opzionale `CheckInContextSnapshot.scheduleJson`. Non serve azzerare il database. Per check-in vecchi senza programma congelato, una nuova proposta richiede un nuovo check-in.
 
-Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 3 su 10. Stanchezza 8 su 10.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
+Per provare a mano senza API esterne impostare `AGENT_AI_PROVIDER=mock`, `AGENT_SENSOR_PROVIDER=mock` e `AGENT_DEMO_SCENARIO=POOR_SLEEP` in `.env`, riavviare il server e aprire `/voice-demo`. Scrivere «Ho dormito 4.5 ore. Qualità del sonno 3 su 10. Stanchezza 8 su 10.», condividere le osservazioni e confermare. La proposta richiede un'attività futura eleggibile: dopo l'ultima attività flessibile è corretto ottenere un motivo di mancata variazione. La demo attuale non include una nuova schermata per la decisione: usare le API sopra.
 
 Gli scenari riproducibili senza dipendere dall'ora reale sono in `tests/agent/planning-flow.test.ts`: database temporanei, orologio fissato prima delle attività, sonno scarso con proposta, riposo adeguato senza proposta, dati insufficienti, approvazione idempotente, rifiuto, permessi e versione obsoleta. `tests/agent/artifacts.test.ts` verifica inoltre che una raccomandazione non valida non elimini il report.
 
 ## Collegamento successivo
 
-Con Emanuel va sostituita la lettura simulata dei sensori e concordata l'autorità della schedule, implementando `SensorProvider` e `ScheduleProvider`; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può già consumare i contratti sopra e mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. La persistenza locale non sincronizza automaticamente il backend Python.
+Con Emanuel resta da verificare l'identità comune e concordare l'autorità della schedule, implementando il `ScheduleProvider` condiviso; il provider reale dovrà mantenere confronto di versione, idempotenza e ricevuta dell'applicazione. La dashboard di Fabrizio può consumare i contratti sopra per mostrare report, motivazione, differenza prima/dopo e pulsanti riservati a Terra. Il collegamento attuale al backend Python è in sola lettura.
