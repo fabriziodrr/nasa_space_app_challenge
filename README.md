@@ -1,19 +1,35 @@
-# AEGIS — ISS Mission Dashboard
+# SLOTH — Astronaut wellbeing and mission support
 
-Prototipo dimostrativo per il monitoraggio di astronauti e il supporto alla sala di controllo. Comprende dashboard Next.js, agent conversazionale, dati sintetici del backend Python e osservazione palpebrale via webcam. I dati e le valutazioni della demo non sono strumenti diagnostici.
+SLOTH is a demonstration prototype that brings together an astronaut-facing AI companion and a ground-control dashboard. It combines a conversational check-in with simulated sensor readings and an optional webcam eyelid observation to help ground control understand the astronaut's reported wellbeing.
 
-L'agent può generare un report e proporre modifiche alla schedule: l'applicazione delle proposte richiede l'approvazione della sala di controllo. Il test di reattività è disponibile come prototipo separato in `/reaction-demo`.
+The assistant can prepare a report and propose a change to the astronaut's schedule. **Ground control must review and approve a proposal before it is applied.** The demo also includes a separate reaction-test prototype.
 
-## Prerequisiti
+## What the prototype demonstrates
 
-- Node.js 24.15 o successivo della serie 24 e npm 11, richiesti anche dal prototipo di visione.
-- Python 3.12 o successivo per il backend dati.
-- Un browser con accesso alla webcam e, per la voce, al microfono.
-- Una chiave NVIDIA per usare il modello reale; senza chiave è disponibile il provider `mock`.
+- A dashboard with fictional crew profiles, 3D human models and simulated measurements.
+- An AI companion with text and browser-dependent voice interaction.
+- An optional webcam observation of eyelid closures, with measurement quality and limitations recorded.
+- A confirmed wellbeing check-in combining astronaut-reported information, simulated sensor data and an optional observation.
+- Reports and schedule-change proposals for ground-control review and approval.
 
-I comandi seguenti sono per PowerShell, eseguiti dalla radice del progetto. Su altri sistemi usare i percorsi equivalenti per l'ambiente virtuale Python e `npm` al posto di `npm.cmd`.
+Sensor readings and crew profiles are **synthetic**. Eyelid observations describe only the recorded interval; they do not diagnose fatigue or measure sleep. This prototype is not a medical device, an operational NASA system or a source of NASA scheduling rules.
 
-## Configurazione iniziale
+## Background reference
+
+NASA's [5 Hazards of Human Spaceflight](https://www.nasa.gov/hrp/hazards/) describes isolation and confinement among the hazards astronauts face. This reference provides context for SLOTH's focus on astronaut wellbeing; it is not the source of the demo's synthetic sensor readings.
+
+## Components
+
+- **Dashboard and agent:** Next.js and TypeScript, in the repository root.
+- **Data backend:** Python and FastAPI, in [`server/`](server/README.md).
+- **Eyelid observation:** a separate Vite application in [`feature-visione-palpebrale/`](feature-visione-palpebrale/README.md), including the model and WASM assets.
+- **Persistence:** two separate local SQLite databases; experimental PostgreSQL migration instructions are available [here](docs/SUPABASE_MIGRATION.md).
+
+## Local setup
+
+Requirements: Node.js 24.15 or later in the 24.x series, npm 11, Python 3.12 or later, and a browser with camera and microphone access. A NVIDIA API key is required for the real model; the `mock` provider works without one. Browser speech support varies.
+
+From the repository root in PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
@@ -27,42 +43,42 @@ py -3.12 -m venv .venv
 cd ..
 ```
 
-Modificare `.env` localmente: impostare `AGENT_DEMO_ENABLED=true` e un `AGENT_DEMO_TOKEN` privato di almeno 16 caratteri. Per il modello NVIDIA impostare `AGENT_AI_PROVIDER=nvidia` e `NVIDIA_API_KEY`; `mock` non richiede una chiave. I valori disponibili sono documentati in [.env.example](.env.example). Non condividere `.env` o le chiavi.
+Edit `.env` locally: set `AGENT_DEMO_ENABLED=true` and a private `AGENT_DEMO_TOKEN` of at least 16 characters. For NVIDIA, set `AGENT_AI_PROVIDER=nvidia` and `NVIDIA_API_KEY`; `AGENT_AI_PROVIDER=mock` does not require a key. See [.env.example](.env.example). Never commit credentials.
 
-**Il seed cancella i dati dell'agent esistenti**, inclusi report e conversazioni, e li sostituisce con dati demo. Eseguirlo solo per inizializzare o resettare volontariamente la demo:
+**The seed deletes existing agent demo data**, including reports and conversations, before creating the initial demo state. Run it only for a fresh setup or intentional reset:
 
 ```powershell
 npm.cmd run db:seed
 ```
 
-## Avvio locale
+## Run the demo
 
-Avviare i tre servizi in terminali separati:
+Start these commands in three separate PowerShell terminals from the repository root:
 
 ```powershell
-# Terminale 1: dashboard e agent
+# Terminal 1: dashboard and agent
 npm.cmd run dev
 ```
 
 ```powershell
-# Terminale 2: backend Python, dalla radice del progetto
+# Terminal 2: Python backend
 cd server
-# Impostare la stessa chiave AGENT_DEMO_TOKEN configurata nel file .env della root.
-# Impostare anche AGENT_CREW_02_TOKEN ... AGENT_CREW_05_TOKEN se configurati esplicitamente.
-$env:AGENT_DEMO_TOKEN = '<lo stesso token della root>'
+# Use the same private token configured in the root .env file.
+# Also set AGENT_CREW_02_TOKEN through AGENT_CREW_05_TOKEN if configured explicitly.
+$env:AGENT_DEMO_TOKEN = '<same token as in .env>'
 .\.venv\Scripts\python.exe -m uvicorn aegis_data.api:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
 ```powershell
-# Terminale 3: visione palpebrale
+# Terminal 3: eyelid observation
 npm.cmd --prefix feature-visione-palpebrale/vision-prototype run dev
 ```
 
-La dashboard è su `http://localhost:3000`; la demo dell'agent è su `http://localhost:3000/voice-demo`. La documentazione del backend Python è su `http://127.0.0.1:8000/docs` e il prototipo di visione su `http://127.0.0.1:5173`. La dashboard consente di caricare i dati sintetici per la demo.
+Open the dashboard at `http://localhost:3000` or the agent demo at `http://localhost:3000/voice-demo`. The dashboard provides a synthetic data import for the demo. The Python API documentation is at `http://127.0.0.1:8000/docs`; the vision prototype runs at `http://127.0.0.1:5173`.
 
-I due database locali sono distinti: Prisma usa `prisma/dev.db`, mentre il servizio Python usa `server/data/aegis.sqlite3`. Il backend Python legge le proprie variabili dall'ambiente del processo, non automaticamente dal `.env` nella root.
+Prisma uses `prisma/dev.db` by default; the Python backend uses `server/data/aegis.sqlite3`. The Python process reads its own environment variables and does not automatically load the root `.env` file. On other operating systems, use `npm` and the corresponding Python virtual environment paths.
 
-## Verifiche
+## Checks
 
 ```powershell
 npm.cmd run typecheck
@@ -72,13 +88,13 @@ server\.venv\Scripts\python.exe -m pytest server/tests
 npm.cmd --prefix feature-visione-palpebrale/vision-prototype test
 ```
 
-## Documentazione
+## Further documentation
 
-- [Backend dati e API](docs/DATA_BACKEND.md) e [analisi del sonno](docs/SLEEP_ANALYSIS.md).
-- [Report, schedule e API dell'agent](docs/agent/report-and-schedule.md).
-- [Visione palpebrale](feature-visione-palpebrale/README.md) e [integrazione diretta](docs/agent/i5-direct-vision.md).
-- [Contratti dell'agent](docs/agent/contracts-v1.md), [piano iniziale](AGENT_FEATURE_PLAN.md) e [piano di integrazione della visione](VISION_AGENT_INTEGRATION_PLAN.md).
+Some development documents are in Italian:
 
-## Stato del deploy
+- [Data backend and API](docs/DATA_BACKEND.md) and [sleep analysis](docs/SLEEP_ANALYSIS.md).
+- [Agent reports, schedules and API](docs/agent/report-and-schedule.md).
+- [Eyelid observation](feature-visione-palpebrale/README.md) and [direct integration](docs/agent/i5-direct-vision.md).
+- [Agent contracts](docs/agent/contracts-v1.md) and [archived planning documents](docs/archive/README.md).
 
-La configurazione descritta è locale: l'identità demo è disabilitata in produzione e il backend Python è pensato per un ambiente fidato. La [guida alla migrazione Supabase](docs/SUPABASE_MIGRATION.md) descrive il supporto PostgreSQL e la copia dei due archivi. Per una pubblicazione occorrono anche configurazione degli indirizzi e un sistema di accesso adeguato.
+The local demo identity mechanism is disabled in production, and the Python backend is intended for a trusted environment. Public deployment requires appropriate access controls and further integration work.

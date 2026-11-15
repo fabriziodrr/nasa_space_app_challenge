@@ -198,7 +198,7 @@ Assegnazione proposta: **tu segui conversazione AI, voce e demo; Nello segue dat
 - [x] Scegliere il runner dei test e aggiungere uno script comune per i test del modulo.
 - [x] Assegnare un referente unico per le modifiche a `contracts/` e `package.json`: Nello nella fase iniziale.
 
-Base tecnica disponibile: [Contratti v1](docs/agent/contracts-v1.md), schemi in `server/agent/contracts/`, interfacce in `server/agent/ports.ts`, esempi in `docs/agent/examples/`. Le route HTTP e gli adattatori sono contratti da implementare nei task successivi. Il confronto con Fabrizio resta da svolgere: non e stato assunto un accordo esterno.
+Base tecnica disponibile: [Contratti v1](../agent/contracts-v1.md), schemi in `server/agent/contracts/`, interfacce in `server/agent/ports.ts`, esempi in `docs/agent/examples/`. Le route HTTP e gli adattatori sono contratti da implementare nei task successivi. Il confronto con Fabrizio resta da svolgere: non e stato assunto un accordo esterno.
 
 Completato quando entrambi possono implementare usando gli stessi esempi e le stesse firme, senza dipendere dal lavoro interno dell'altro.
 
@@ -213,7 +213,7 @@ Dipendenza: C0.
 - [x] Gestire informazioni mancanti, dati discordanti e il caso in cui non serva alcuna modifica.
 - [x] Esporre le API di sessione e messaggi usando le interfacce di persistenza concordate.
 
-Implementazione e prova: [Guida T1](docs/agent/t1-conversation.md). Il runtime usa Prisma con sensori e programma dimostrativi. Il provider reale principale e NVIDIA Nemotron; OpenAI resta opzionale per la conversazione. `npm run test:agent:live` permette di ripetere la prova con la propria chiave e un server locale gia avviato.
+Implementazione e prova: [Guida T1](../agent/t1-conversation.md). Il runtime usa Prisma con sensori e programma dimostrativi. Il provider reale principale e NVIDIA Nemotron; OpenAI resta opzionale per la conversazione. `npm run test:agent:live` permette di ripetere la prova con la propria chiave e un server locale gia avviato.
 
 Completato quando uno scenario testuale produce una risposta utile e una bozza di check-in corretta, senza poter applicare modifiche al programma.
 
@@ -228,7 +228,7 @@ Dipendenza: C0.
 - [x] Preparare tre scenari deterministici: riposo regolare, riposo insufficiente, dati discordanti.
 - [x] Documentare setup, reset dei dati dimostrativi e avvio.
 
-Implementazione e prova: [Guida N1](docs/agent/setup.md). Modelli in `prisma/schema.prisma`, `AgentRepository` in `server/agent/adapters/prisma/repository.ts`, provider simulati in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`) e scenari in `server/agent/simulator/scenarios.ts`. Test in `tests/agent/n1.test.ts`. La persistenza Prisma non e ancora collegata al runtime HTTP (usa `MemoryConversationRepository`); il collegamento avviene nell'integrazione con T4/N3.
+Implementazione e prova: [Guida N1](../agent/setup.md). Modelli in `prisma/schema.prisma`, `AgentRepository` in `server/agent/adapters/prisma/repository.ts`, provider simulati in `server/agent/adapters/` (`sensors.ts`, `schedule.ts`, `identity.ts`) e scenari in `server/agent/simulator/scenarios.ts`. Test in `tests/agent/n1.test.ts`. La persistenza Prisma non e ancora collegata al runtime HTTP (usa `MemoryConversationRepository`); il collegamento avviene nell'integrazione con T4/N3.
 
 Completato quando i dati sopravvivono al riavvio e ogni scenario puo essere ripetuto con gli stessi input.
 
@@ -243,7 +243,7 @@ Dipendenze: T1; N1 per il salvataggio reale. Si puo iniziare con repository simu
 - [x] Esporre recupero e modifica del diario e recupero dei report, con i relativi controlli di accesso.
 - [x] Gestire la rigenerazione senza duplicare report o voci dello stesso check-in.
 
-Guida e prova: [report e diario T2](docs/agent/t2-report-diary.md). La generazione usa NVIDIA o mock; il testo richiede revisione umana. Il programma del runtime e dimostrativo e le proposte di variazione non sono ancora collegate.
+Guida e prova: [report e diario T2](../agent/t2-report-diary.md). La generazione usa NVIDIA o mock; il testo richiede revisione umana. Il programma del runtime e dimostrativo e le proposte di variazione non sono ancora collegate.
 
 Completato quando l'astronauta puo correggere il diario e Terra riceve soltanto il report previsto.
 
@@ -276,7 +276,7 @@ Dipendenza: T1 stabile; puo procedere in parallelo a N2.
 - [x] Gestire permesso negato, audio vuoto, formato non supportato, timeout e doppio invio.
 - [x] Impostare limiti audio ed evitare salvataggio o logging dell'audio grezzo.
 
-Implementazione e prova: [Guida vocale](docs/agent/t3-voice.md). La verifica pratica richiede un browser compatibile; le route NIM richiedono servizi locali separati.
+Implementazione e prova: [Guida vocale](../agent/t3-voice.md). La verifica pratica richiede un browser compatibile; le route NIM richiedono servizi locali separati.
 
 Completato quando il percorso vocale usa gli stessi servizi e produce gli stessi oggetti del percorso testuale.
 
@@ -305,7 +305,7 @@ Dipendenza: C0; aggiornamento finale dopo N2 e T3.
 - [x] Esplicitare responsabilita transazionali, idempotenza e riconciliazione dell'applicazione.
 - [ ] Concordare con Fabrizio il collegamento alla dashboard usando gli stessi endpoint della demo.
 
-Implementazione e prova: [Guida di integrazione](docs/agent/integration.md). Aggiornata dopo T3 (sezione voce, variabili `AGENT_VOICE_PROVIDER`/`AGENT_NIM_*`). Restano da documentare come "esposte" soltanto le route `GET /proposals` e `POST /proposals/:id/decision`. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
+Implementazione e prova: [Guida di integrazione](../agent/integration.md). Aggiornata dopo T3 (sezione voce, variabili `AGENT_VOICE_PROVIDER`/`AGENT_NIM_*`). Restano da documentare come "esposte" soltanto le route `GET /proposals` e `POST /proposals/:id/decision`. L'accordo con Fabrizio (login reale e backend autorevole del programma) resta aperto.
 
 Completato quando Fabrizio puo collegare una propria vista senza importare i componenti grafici della demo o modificare il nucleo dell'agent.
 

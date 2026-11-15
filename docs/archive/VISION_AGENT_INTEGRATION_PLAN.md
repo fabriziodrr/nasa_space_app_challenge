@@ -23,11 +23,11 @@ L'integrazione deve funzionare attraverso contratti e API indipendenti dalla das
 Riferimenti:
 
 - [Piano generale dell'agent](AGENT_FEATURE_PLAN.md).
-- [Contratti dell'agent](server/agent/contracts/context.ts).
-- [Servizio conversazione](server/agent/core/conversation-service.ts).
-- [Generazione report e diario](server/agent/services/artifacts.ts).
-- [Export palpebrale e integrazione](feature-visione-palpebrale/vision-prototype/docs/integration.md).
-- [Guida per incorporare la pipeline](feature-visione-palpebrale/vision-prototype/docs/integrare-componente.md).
+- [Contratti dell'agent](../../server/agent/contracts/context.ts).
+- [Servizio conversazione](../../server/agent/core/conversation-service.ts).
+- [Generazione report e diario](../../server/agent/services/artifacts.ts).
+- [Export palpebrale e integrazione](../../feature-visione-palpebrale/vision-prototype/docs/integration.md).
+- [Guida per incorporare la pipeline](../../feature-visione-palpebrale/vision-prototype/docs/integrare-componente.md).
 
 ## Flusso previsto
 
@@ -76,7 +76,7 @@ API iniziali proposte:
 | Recupero | `GET /api/agent/v1/sessions/{sessionId}/vision-observations` | Restituisce riepiloghi accessibili all'astronauta proprietario |
 | Selezione | Estensione della revisione/conferma del check-in | Seleziona la misura e autorizza il suo eventuale uso operativo con controllo di revisione |
 
-Il caricamento usa JSON v2; la conferma estesa sarà `POST /api/agent/v2/check-ins/{id}/confirm`. Formato, limiti e compatibilità sono fissati in [vision-i0.md](docs/agent/vision-i0.md).
+Il caricamento usa JSON v2; la conferma estesa sarà `POST /api/agent/v2/check-ins/{id}/confirm`. Formato, limiti e compatibilità sono fissati in [vision-i0.md](../agent/vision-i0.md).
 
 ## Regole di analisi, condivisione e persistenza
 
@@ -96,7 +96,7 @@ Il caricamento usa JSON v2; la conferma estesa sarà `POST /api/agent/v2/check-i
 
 Dipendenza: analisi dei due moduli già eseguita. Prerequisito degli altri task.
 
-Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/vision-i0.md](docs/agent/vision-i0.md). I sorgenti della revisione v2 di origine `9803a5f41eff521db5d1305af82323da11332eb5` sono inclusi direttamente in `feature-visione-palpebrale/`; i 20 moduli del parser copiati nel backend coincidono con tale revisione.
+Stato: contratto, parametri iniziali e versione API fissati in [docs/agent/vision-i0.md](../agent/vision-i0.md). I sorgenti della revisione v2 di origine `9803a5f41eff521db5d1305af82323da11332eb5` sono inclusi direttamente in `feature-visione-palpebrale/`; i 20 moduli del parser copiati nel backend coincidono con tale revisione.
 
 - [ ] Definire `VisionObservation`, stato di utilizzabilità, riferimenti `vision` ed errori.
 - [ ] Fissare formato del caricamento e limiti di byte, campioni e tempo di elaborazione del parser sincrono.
@@ -114,7 +114,7 @@ Completato quando Tu e Nello possono implementare sui medesimi contratti e un ch
 
 Dipendenza: I0.
 
-Implementazione: [guida I1](docs/agent/i1-vision-import.md). Il parser usa una copia versionata dei moduli puri, confrontata con la revisione integrata nella cartella palpebrale.
+Implementazione: [guida I1](../agent/i1-vision-import.md). Il parser usa una copia versionata dei moduli puri, confrontata con la revisione integrata nella cartella palpebrale.
 
 - [x] Aggiungere modelli Prisma e metodi per riepiloghi, selezione e deduplicazione.
 - [x] Implementare caricamento limitato e validazione con il parser del prototipo, verificando versione e coerenza del motore.
@@ -131,7 +131,7 @@ Completato quando una misura importata è persistita, recuperabile e selezionabi
 
 Dipendenza: I0. Può iniziare con provider e repository simulati mentre Nello sviluppa I1.
 
-Implementazione con lettore sostituibile e casi simulati: [I2 — visione nella conversazione](docs/agent/i2-vision-conversation.md). Il runtime usa un lettore vuoto fino al collegamento con I1.
+Implementazione con lettore sostituibile e casi simulati: [I2 — visione nella conversazione](../agent/i2-vision-conversation.md). Il runtime usa un lettore vuoto fino al collegamento con I1.
 
 - [x] Aggiungere un'interfaccia di lettura delle osservazioni palpebrali e collegarla al runtime attraverso un adattatore.
 - [x] Estendere `ConversationContext` con il riepilogo selezionato, rispettando i limiti del contesto.
@@ -146,7 +146,7 @@ Completato quando la misura influenza le domande dell'agent senza alterare la pr
 
 Dipendenze: I0 e I1; coordinamento con I2 per i provider AI condivisi.
 
-Implementazione: [guida I3](docs/agent/i3-vision-report.md). La generazione delle proposte rimane disattivata nel runtime fino al collegamento del programma autorevole.
+Implementazione: [guida I3](../agent/i3-vision-report.md). La generazione delle proposte rimane disattivata nel runtime fino al collegamento del programma autorevole.
 
 - [x] Estendere `OperationalContext`, `FindingSchema` e i riferimenti alle evidenze con la fonte `vision`.
 - [x] Usare il contesto congelato alla conferma durante generazione e tentativi successivi.
@@ -162,7 +162,7 @@ Completato quando il report usa esclusivamente evidenze autorizzate e stabili, e
 
 Dipendenze: I1 e I2. Estensione tecnica della demo, coordinata con T4 del piano generale.
 
-Implementazione: [guida I4](docs/agent/i4-vision-demo.md). Il collaudo visivo e con webcam reale rimane in I6.
+Implementazione: [guida I4](../agent/i4-vision-demo.md). Il collaudo visivo e con webcam reale rimane in I6.
 
 - [x] Aggiungere alla pagina di prova caricamento dell'export e riepilogo del risultato.
 - [x] Mostrare misura selezionata, copertura, durata valida, origine e motivi di indisponibilità.
@@ -176,7 +176,7 @@ Completato quando è possibile dimostrare l'incrocio dei dati con un file esport
 
 Dipendenza: percorso tramite export I1–I4 verificato.
 
-Implementazione: [guida I5](docs/agent/i5-direct-vision.md). I sorgenti sono inclusi nella repo principale; resta il collaudo documentato con dispositivi reali.
+Implementazione: [guida I5](../agent/i5-direct-vision.md). I sorgenti sono inclusi nella repo principale; resta il collaudo documentato con dispositivi reali.
 
 - [x] Aggiungere al prototipo un adattatore che invii il pacchetto alla stessa API dopo una misura, su azione esplicita.
 - [x] Esporre all'app ospite associazione alla sessione e callback del risultato, mantenendo le credenziali sotto il controllo dell'host.
