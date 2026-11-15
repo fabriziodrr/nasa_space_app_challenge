@@ -19,11 +19,11 @@
 .panel button:focus-visible, .panel input:focus-visible, .panel summary:focus-visible { outline: 2px solid #6e5ce7; outline-offset: 3px; }
 .upload { display: grid; min-width: min(100%, 290px); gap: 6px; }
 .uploadLabel { color: #6d747b; font: 800 .66rem var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .04em; }
-.filePicker { position: relative; display: flex; min-height: 40px; align-items: center; gap: 10px; min-width: 0; padding: 4px 9px 4px 4px; border: 1px solid rgba(98, 105, 112, .2); border-radius: 8px; background: rgba(255, 255, 255, .7); color: #7a8188; cursor: pointer; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
+.controls .filePicker { position: relative; display: flex; min-height: 40px; align-items: center; gap: 10px; min-width: 0; padding: 4px 9px 4px 4px; border: 1px solid rgba(98, 105, 112, .2); border-radius: 8px; background: rgba(255, 255, 255, .7); color: #7a8188; cursor: pointer; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
 .filePicker:hover { border-color: rgba(59, 26, 189, .46); background: rgba(255, 255, 255, .92); box-shadow: 2px 2px 6px rgba(203, 208, 214, .42), -2px -2px 6px rgba(255, 255, 255, .66); }
 .filePicker:has(input:focus-visible) { outline: 2px solid #6e5ce7; outline-offset: 3px; }
 .filePicker input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-.filePickerButton { flex: 0 0 auto; padding: 7px 10px; border-radius: 6px; color: #fff; background: #3b1abd; box-shadow: 2px 2px 5px rgba(59, 26, 189, .2), -2px -2px 5px rgba(255, 255, 255, .72); font: 800 .65rem var(--font-dm-mono), ui-monospace, monospace; transition: background .2s ease, transform .2s ease; }
+.filePickerButton { display: inline-grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(59, 26, 189, .28); border-radius: 7px; color: #fff; background: #3b1abd; box-shadow: 2px 2px 5px rgba(59, 26, 189, .2), -2px -2px 5px rgba(255, 255, 255, .72); transition: background .2s ease, transform .2s ease; }
 .filePicker:hover .filePickerButton { background: #4d35c9; transform: translateY(-1px); }
 .fileName { min-width: 0; overflow: hidden; color: #7a8188; font: 700 .68rem var(--font-dm-mono), ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .notice { padding: 12px; border-left: 3px solid #d6a744; background: rgba(255, 248, 226, .7); color: #8a6c27; font: 700 .75rem/1.5 var(--font-dm-mono), ui-monospace, monospace; }

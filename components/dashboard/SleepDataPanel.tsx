@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Upload } from "lucide-react";
 import demo from "@/server/examples/sleep_demo_14d.json";
 import styles from "./SleepDataPanel.module.css";
 
@@ -87,7 +87,7 @@ export function SleepDataPanel() {
                event.target.value = "";
              }}
            />
-           <span className={styles.filePickerButton}>Choose JSON</span>
+           <span className={styles.filePickerButton} aria-hidden="true"><Upload size={17} strokeWidth={2.2} /></span>
            <span className={styles.fileName}>{fileName || "No file selected"}</span>
          </label>
        </div>
