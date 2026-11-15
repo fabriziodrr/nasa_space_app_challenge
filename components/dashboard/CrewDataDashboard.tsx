@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
+import { CrewProfileSelector } from "@/components/dashboard/CrewProfileSelector";
 import styles from "./CrewDataDashboard.module.css";
 
 type Trial = { status: "response" | "false_start" | "missed"; rt_ms?: number };
@@ -47,11 +48,10 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
         </aside>
 
         <main className={styles.dataPanel}>
-          <div className={styles.crewSelector}><label htmlFor="demo-crew">CREW PROFILE / SYNTHETIC DEMO</label><select id="demo-crew" value={profile.id} onChange={(event) => setProfileId(event.target.value)}>{demoCrew.map((member) => <option key={member.id} value={member.id}>{member.name} · {member.role}</option>)}</select><span>{profile.id} · fictional profile</span></div>
-          {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description={`Fictional self-report · ${mood.observed_at}`} />}
-          {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Synthetic sensor data · demonstration" />}
-          {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${trials.length} total trials · synthetic demo`} />}
-          {activeView === "vision" && <DataPanelHeader index="04" title="Vision report" description="Selected vision session and data agent context" />}
+           {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description={`Fictional self-report · ${mood.observed_at}`} profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
+           {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Synthetic sensor data · demonstration" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
+           {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${trials.length} total trials · synthetic demo`} profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
+           {activeView === "vision" && <DataPanelHeader index="04" title="Vision report" description="Selected vision session and data agent context" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
           <div className={styles.panelContent}>
             {activeView === "cognitive" && <CognitiveBars alertness={mood.alertness} mood={mood.mood_rating} sleepQuality={mood.sleep_quality} />}
             {activeView === "sleep" && <SleepRecovery key={profile.id} profile={profile} />}
@@ -69,8 +69,19 @@ function DataViewButton({ active, index, label, detail, onClick }: { active: boo
   return <button className={`${styles.sidebarButton} ${active ? styles.sidebarButtonActive : ""}`} type="button" aria-pressed={active} onClick={onClick}><span className={styles.sidebarIndex}>{index}</span><span className={styles.sidebarButtonCopy}><strong>{label}</strong><small>{detail}</small></span><span className={styles.sidebarArrow} aria-hidden="true">↗</span></button>;
 }
 
-function DataPanelHeader({ index, title, description }: { index: string; title: string; description: string }) {
-  return <header className={styles.panelHeader}><span>{index} / DATA STREAM</span><h1>{title}</h1><p>{description}</p></header>;
+function DataPanelHeader({ index, title, description, profile, profiles, onProfileChange }: { index: string; title: string; description: string; profile: DemoCrewProfile; profiles: DemoCrewProfile[]; onProfileChange: (profileId: string) => void }) {
+  return (
+    <header className={styles.panelHeader}>
+      <div className={styles.panelHeaderCopy}>
+        <span>{index} / DATA STREAM</span>
+        <div className={styles.panelTitleRow}>
+          <h1>{title}</h1>
+          <CrewProfileSelector profile={profile} profiles={profiles} onChange={onProfileChange} placement="header" />
+        </div>
+        <p>{description}</p>
+      </div>
+    </header>
+  );
 }
 
 type VisionDataReport = { schema_version: string; sleep: { observation: { sleep_hours: number } | null }; reported_state: { observation: { fatigue_rating: number | null } | null }; vision: { status: string; observation: { source: string; usability: string; coverage: number | null; closureFraction: number | null; reasons: string[] } | null } };
@@ -201,19 +212,41 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
 
   return (
     <div className={styles.sleepContent}>
-      <div className={styles.sleepActions}><span>SYNTHETIC DEMO · {profile.id}</span><button type="button" disabled={busy} onClick={() => void loadDemo()}>Load sensor demo</button><button type="button" onClick={() => void refresh()}>Refresh</button></div>
+      <div className={styles.sleepActions}>
+        <div className={styles.sleepSource}>
+          <span>SYNTHETIC DEMO</span>
+          <strong>{profile.id}</strong>
+        </div>
+        <div className={styles.sleepActionButtons}>
+          <button type="button" disabled={busy} onClick={() => void loadDemo()}>{busy ? "Loading…" : "Load sensor demo"}</button>
+          <button type="button" onClick={() => void refresh()}>Refresh</button>
+        </div>
+      </div>
       {status && <p className={styles.sleepNotice} role="status">{status}</p>}
       {!latest && <p className={styles.sleepNotice}>No sleep observation in the demo period. Load the sensor demo to begin.</p>}
-      <div className={styles.sleepChart}>
-      <div className={styles.chartIntro}><span className={styles.chartLabel} tabIndex={0} data-tooltip="Recorded sleep compared with an 8 hour reference window.">RECOVERY / SLEEP</span></div>
-      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded; color: simulated self-reported sleep quality ${profile.mood.sleep_quality}/10`}>
-        <svg viewBox="0 0 120 120" role="img" aria-label={`Sleep duration ${hours ?? "unavailable"} hours`}>
-          <circle className={styles.ringTrack} cx="60" cy="60" r="48" />
-          <circle className={styles.ringValue} cx="60" cy="60" r="48" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ stroke: qualityColor, filter: "none" }} />
-        </svg>
-        <div className={styles.ringLabel}><strong><AnimatedValue value={hours} /><small> h</small></strong><span>duration</span></div>
-      </div>
-      <div className={styles.sleepReadout}><span>recorded / UTC</span><strong className={styles.sleepDate}>{latest ? latest.period_end.slice(0, 10) : "—"}</strong><span>{latest?.device ?? "NO OBSERVATION"}</span></div>
+      <div className={styles.sleepSummary}>
+        <div className={styles.sleepSummaryHeading}>
+          <div>
+            <span className={styles.chartLabel} tabIndex={0} data-tooltip="Recorded sleep compared with an 8 hour reference window.">RECOVERY / SLEEP</span>
+            <h2>Nightly recovery</h2>
+          </div>
+          <span className={styles.referenceTag}>REFERENCE · 8 H</span>
+        </div>
+        <div className={styles.sleepChart}>
+          <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded; color: simulated self-reported sleep quality ${profile.mood.sleep_quality}/10`}>
+            <svg viewBox="0 0 120 120" role="img" aria-label={`Sleep duration ${hours ?? "unavailable"} hours`}>
+              <circle className={styles.ringTrack} cx="60" cy="60" r="48" />
+              <circle className={styles.ringValue} cx="60" cy="60" r="48" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ stroke: qualityColor, filter: "none" }} />
+            </svg>
+            <div className={styles.ringLabel}><strong><AnimatedValue value={hours} /><small> h</small></strong><span>duration</span></div>
+          </div>
+          <div className={styles.sleepReadout}>
+            <span>RECORDED / UTC</span>
+            <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase() : "—"}</strong>
+            <span>{latest?.device ?? "NO OBSERVATION"}</span>
+            <small>{latest ? `${latest.method} · ${latest.observation_id}` : "Load a sensor demo to populate recovery data"}</small>
+          </div>
+        </div>
       </div>
       <div className={styles.sleepSensorGrid}>{metrics.map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div>)}</div>
       <p className={styles.sleepFootnote}>Ring length: hours slept relative to the demo reference of 8 h. Color: simulated self-reported sleep quality ({profile.mood.sleep_quality}/10), not sensor-derived. Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
