@@ -142,7 +142,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
 
   return <section className={styles.workspace} aria-label={ground ? "Ground operations" : "Astronaut schedule"}>
     <header className={styles.heading}><div><span className={styles.kicker}>{ground ? "HOUSTON / OPERATIONS" : "ISS / SCHEDULE"}</span>
-      <h1>{ground ? "Reports and schedule" : "Daily schedule"}</h1><p>Demo locale · orari in UTC</p><p>Use the value of {ground ? "AGENT_GROUND_TOKEN" : demoCrewMappings.find((member) => member.astronautId === astronaut)?.tokenEnv} configured on the server.</p></div><button type="button" onClick={onBack}>Back to dashboard</button></header>
+      <h1>{ground ? "Reports and schedule" : "Daily schedule"}</h1><p>Local demo · times in UTC</p><p>Use the value of {ground ? "AGENT_GROUND_TOKEN" : demoCrewMappings.find((member) => member.astronautId === astronaut)?.tokenEnv} configured on the server.</p></div><button type="button" onClick={onBack}>Back to dashboard</button></header>
     <form className={styles.controls} onSubmit={(event) => { event.preventDefault(); void load(); }}>
       <label>Token {ground ? "Ground" : "astronaut"}<input type="password" autoComplete="off" value={token} onChange={(event) => { setToken(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
       <label>Astronaut<select value={astronaut} onChange={(event) => { setAstronaut(event.target.value); setLoaded(false); }} disabled={busy || lockSelection}>{demoCrewMappings.map((member) => <option key={member.astronautId} value={member.astronautId}>{member.name}</option>)}</select></label>

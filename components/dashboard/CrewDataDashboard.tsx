@@ -100,12 +100,12 @@ function VisionReport() {
       const result: VisionDataReport = await response.json();
       if (result.schema_version !== "data-agent-demo-1") throw new Error("Unrecognized report format.");
       setReport(result);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Error nel caricamento."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to load the report."); }
     finally { setBusy(false); }
   }
   const eye = report?.vision.observation;
   return <div className={styles.sleepContent}>
-    <p className={styles.sleepNotice}>The selected crew profile is not linked to this vision session or the agent&apos;s fixed sleep subject.</p>
+    <p className={styles.sleepNotice}><strong>Separate demo context:</strong> the session is entered below and sleep data come from the fixed demo subject. Changing the crew profile above does not change either source.</p>
     <form className={styles.visionControls} onSubmit={(event) => void load(event)}>
       <label>Vision session<input value={session} onChange={(event) => setSession(event.target.value)} required /></label>
       <label>Demo token<input value={token} onChange={(event) => setToken(event.target.value)} type="password" autoComplete="off" required /></label>
@@ -242,7 +242,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
           </div>
           <div className={styles.sleepReadout}>
             <span>RECORDED / UTC</span>
-            <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase() : "—"}</strong>
+            <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—"}</strong>
             <span>{latest?.device ?? "NO OBSERVATION"}</span>
             <small>{latest ? `${latest.method} · ${latest.observation_id}` : "Load a sensor demo to populate recovery data"}</small>
           </div>
