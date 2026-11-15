@@ -51,8 +51,10 @@
   border-color: rgba(59, 26, 189, .5);
   background: rgba(216, 210, 242, .7);
 }
+.human-vitals-body .body-workspace { display: flex; flex: 1; min-width: 0; min-height: 0; }
 .human-vitals-body .body-canvas {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   position: relative;
   isolation: isolate;
@@ -117,6 +119,16 @@
   min-height: 0;
   height: auto;
   --accent: #3b1abd;
+}
+.human-vitals-body .workspace-side-panel > .vitals-panel {
+  position: relative;
+  inset: auto;
+  flex: 0 0 min(340px, 42%);
+  width: auto;
+  max-height: none;
+  margin: 12px;
+  overflow-y: auto;
+  align-self: stretch;
 }
 .human-vitals-body .panel-opening { animation: panel-in .22s cubic-bezier(.2,.8,.2,1) both; }
 .human-vitals-body .panel-closing { animation: panel-out .22s ease both; pointer-events: none; }
@@ -198,6 +210,10 @@
   .human-vitals-body .legend-muted { width: 100%; padding-left: 14px; }
   .human-vitals-body .vitals-panel { top: auto; right: 0; bottom: 0; left: 0; width: 100%; max-height: 78%; border-radius: 14px 14px 0 0; padding: 15px; animation-name: panel-sheet-in; }
   .human-vitals-body .panel-closing { animation-name: panel-sheet-out; }
+  .human-vitals-body .workspace-side-panel { flex-direction: column; overflow-y: auto; }
+  .human-vitals-body .workspace-side-panel .body-canvas { flex: 0 0 425px; }
+  .human-vitals-body .workspace-side-panel > .vitals-panel { flex: none; margin: 12px; max-height: none; border-radius: 14px; animation-name: panel-in; }
+  .human-vitals-body .workspace-side-panel > .panel-closing { animation-name: panel-out; }
   .human-vitals-body .panel-description { margin: 13px 0 14px; }
 }
 @media (prefers-reduced-motion: reduce) {

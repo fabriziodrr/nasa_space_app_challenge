@@ -52,6 +52,7 @@ export type HumanVitalsBodyProps = {
   autoRotate?: boolean;
   showLabels?: boolean;
   compact?: boolean;
+  panelBeside?: boolean;
   className?: string;
   resetToken?: number;
 };
