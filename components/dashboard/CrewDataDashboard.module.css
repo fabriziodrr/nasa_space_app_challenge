@@ -1,0 +1,31 @@
+.workspace { width: min(100%, 1180px); flex: 1; margin: 0 auto; padding: clamp(20px, 4vw, 48px) 0; overflow: auto; color: #4b5158; }
+.header, .sectionHeading, .provenance { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.kicker { color: #3b1abd; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .13em; }
+.header h1 { margin: 7px 0 5px; color: #272c31; font-size: clamp(30px, 5vw, 54px); letter-spacing: -.055em; animation: crew-title-in .65s cubic-bezier(.2,.8,.2,1) both; }
+.header p { margin: 0; color: #7a8188; font-size: 13px; }
+.provenance { flex-direction: column; align-items: flex-end; color: #86631f; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; text-transform: uppercase; }
+.provenance span { display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid rgba(185, 135, 47, .4); border-radius: 999px; background: rgba(255, 248, 226, .55); }
+.provenance i { width: 6px; height: 6px; border-radius: 50%; background: #d6a744; box-shadow: 0 0 8px rgba(214, 167, 68, .7); }
+.provenance small { color: #7a8188; font-size: 9px; font-weight: 700; }
+.section { margin-top: clamp(28px, 5vw, 54px); }
+.sectionHeading { align-items: baseline; justify-content: flex-start; gap: 12px; border-bottom: 1px solid rgba(98, 105, 112, .17); padding-bottom: 10px; }
+.sectionHeading h2 { margin: 0; color: #272c31; font-size: 21px; letter-spacing: -.035em; }
+.cards, .trialGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.card, .recoveryCard { min-width: 0; padding: 18px; border: 1px solid rgba(98, 105, 112, .13); border-radius: 13px; background: linear-gradient(145deg, #f1f3f4, #dce1e4); box-shadow: 4px 4px 10px rgba(203, 208, 214, .66), -4px -4px 10px rgba(255, 255, 255, .82); animation: crew-card-in .55s cubic-bezier(.2,.8,.2,1) both; }
+.cards .card:nth-child(2) { animation-delay: .08s; }
+.cards .card:nth-child(3) { animation-delay: .16s; }
+.trialGrid .card:nth-child(2) { animation-delay: .08s; }
+.trialGrid .card:nth-child(3) { animation-delay: .16s; }
+.card span, .recoveryCard span { display: block; color: #7a8188; font: 800 10px var(--font-dm-mono), ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.card strong, .recoveryCard strong { display: block; margin-top: 12px; color: #272c31; font-size: clamp(28px, 4vw, 42px); line-height: 1; }
+.card strong small, .recoveryCard strong small { color: #7a8188; font-size: 13px; }
+.card em { display: block; margin-top: 10px; color: #7a8188; font: 700 10px var(--font-dm-mono), ui-monospace, monospace; font-style: normal; }
+.lowerGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.recoveryCard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.note { margin: 13px 0 0; color: #7a8188; font-size: 11px; line-height: 1.5; }
+.trialGrid { grid-template-columns: 1fr; }
+
+@keyframes crew-title-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes crew-card-in { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 720px) { .header, .provenance { align-items: flex-start; flex-direction: column; } .provenance { align-items: flex-start; } .cards, .lowerGrid { grid-template-columns: 1fr; } }

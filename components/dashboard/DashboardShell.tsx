@@ -4,6 +4,7 @@ import { useState } from "react";
 import { RotateCcw } from "lucide-react";
 
 import { HumanVitalsDashboard } from "@/components/dashboard/HumanVitalsDashboard";
+import { CrewDataDashboard } from "@/components/dashboard/CrewDataDashboard";
 import { PillNav } from "@/components/reactbits/PillNav";
 import { TextType } from "@/components/reactbits/TextType";
 import { DashboardIcon } from "@/components/dashboard/DashboardIcon";
@@ -14,6 +15,7 @@ type DashboardView = "houston" | "iss";
 /** Shared frame for the two S.L.O.T.H. mission operations perspectives. */
 export function DashboardShell() {
   const [activeView, setActiveView] = useState<DashboardView>("houston");
+  const [activeSection, setActiveSection] = useState<"human-vitals" | "crew-data">("human-vitals");
   const [resetToken, setResetToken] = useState(0);
   const [bodyVariant, setBodyVariant] = useState<BodyVariant>("male");
 
@@ -24,7 +26,7 @@ export function DashboardShell() {
           className="dashboard-shell__nav"
           brand="S.L.O.T.H."
           items={[
-            { label: "Houston", active: activeView === "houston", onClick: () => setActiveView("houston"), icon: <DashboardIcon name="grid" size={14} /> },
+            { label: "Houston", active: activeView === "houston", onClick: () => { setActiveView("houston"); setActiveSection("human-vitals"); }, icon: <DashboardIcon name="grid" size={14} />, menu: <button className="pill-nav__submenu-item" type="button" role="menuitem" onClick={() => setActiveSection("crew-data")}>Crew Data</button> },
             { label: "ISS", active: activeView === "iss", onClick: () => setActiveView("iss"), icon: <DashboardIcon name="orbit" size={14} /> },
           ]}
           trailing={(
@@ -40,7 +42,7 @@ export function DashboardShell() {
             </div>
           )}
         />
-        <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} />
+        {activeSection === "human-vitals" ? <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} /> : <CrewDataDashboard />}
       </main>
     </div>
   );

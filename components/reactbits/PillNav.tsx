@@ -8,6 +8,7 @@ export type PillNavItem = {
   onClick?: () => void;
   icon?: ReactNode;
   ariaLabel?: string;
+  menu?: ReactNode;
 };
 
 type PillNavProps = {
@@ -26,17 +27,22 @@ export function PillNav({ brand = "S.L.O.T.H.", items, trailing, className = "",
       </div>
       <div className="pill-nav__items">
         {items.map((item) => (
-          <button
-            className={item.active ? "pill-nav__item is-active" : "pill-nav__item"}
-            type="button"
-            aria-label={item.ariaLabel ?? item.label}
-            aria-pressed={item.active}
-            key={item.label}
-            onClick={item.onClick}
-          >
-            {item.icon}
-            <TextType text={item.label} />
-          </button>
+          <div className={item.menu ? "pill-nav__item-wrap has-menu" : "pill-nav__item-wrap"} key={item.label}>
+            <button
+              className={item.active ? "pill-nav__item is-active" : "pill-nav__item"}
+              type="button"
+              aria-label={item.ariaLabel ?? item.label}
+              aria-pressed={item.active}
+              aria-haspopup={item.menu ? "menu" : undefined}
+              onClick={item.onClick}
+            >
+              <span className={item.menu ? "pill-nav__icon-hit" : "pill-nav__icon"} aria-hidden="true">
+                {item.icon}
+              </span>
+              <TextType text={item.label} />
+            </button>
+            {item.menu && <div className="pill-nav__submenu" role="menu">{item.menu}</div>}
+          </div>
         ))}
       </div>
       {trailing && <div className="pill-nav__trailing">{trailing}</div>}
