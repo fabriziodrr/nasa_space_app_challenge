@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import demo from "@/server/examples/sleep_demo_14d.json";
 import styles from "./SleepDataPanel.module.css";
 
@@ -21,6 +22,7 @@ export function SleepDataPanel() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [status, setStatus] = useState("Loading sleep data…");
   const [busy, setBusy] = useState(false);
+  const [fileName, setFileName] = useState("");
 
   const refresh = useCallback(async () => {
     setStatus("Loading sleep data…");
@@ -70,8 +72,25 @@ export function SleepDataPanel() {
       <label>Subject <input value={subject} onChange={(event) => setSubject(event.target.value)} /></label>
       <label>From <input type="date" value={start} onChange={(event) => setStart(event.target.value)} /></label>
       <label>Until <input type="date" value={end} onChange={(event) => setEnd(event.target.value)} /></label>
-      <button type="button" onClick={() => void refresh()}>Refresh</button>
-      <label className={styles.upload}>Import synthetic JSON <input type="file" accept="application/json,.json" disabled={busy} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ""; }} /></label>
+       <button className={styles.refreshButton} type="button" onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
+       <div className={styles.upload}>
+         <span className={styles.uploadLabel}>Import synthetic JSON</span>
+         <label className={styles.filePicker}>
+           <input
+             type="file"
+             accept="application/json,.json"
+             disabled={busy}
+             onChange={(event) => {
+               const file = event.target.files?.[0];
+               setFileName(file?.name ?? "");
+               void upload(file);
+               event.target.value = "";
+             }}
+           />
+           <span className={styles.filePickerButton}>Choose JSON</span>
+           <span className={styles.fileName}>{fileName || "No file selected"}</span>
+         </label>
+       </div>
     </div>
     {status && <p className={styles.notice} role="status">{status}</p>}
     {analysis?.truncated && <p className={styles.notice}>Partial data: the backend limit was reached.</p>}

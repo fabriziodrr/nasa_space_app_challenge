@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { CrewProfileSelector } from "@/components/dashboard/CrewProfileSelector";
@@ -219,7 +219,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
         </div>
         <div className={styles.sleepActionButtons}>
           <button type="button" disabled={busy} onClick={() => void loadDemo()}>{busy ? "Loading…" : "Load sensor demo"}</button>
-          <button type="button" onClick={() => void refresh()}>Refresh</button>
+          <button className={styles.refreshButton} type="button" onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
         </div>
       </div>
       {status && <p className={styles.sleepNotice} role="status">{status}</p>}
