@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { gsap } from "gsap";
 
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { WelcomeDialog } from "@/components/dashboard/WelcomeDialog";
 import { SlothLogo } from "@/components/branding/SlothLogo";
 import CircularText from "@/components/reactbits/CircularText";
 import MagicRings from "@/components/reactbits/MagicRings";
@@ -15,6 +16,7 @@ import MagicRings from "@/components/reactbits/MagicRings";
 export function AegisLanding() {
   const [isEntering, setIsEntering] = useState(false);
   const [hasEntered, setHasEntered] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const landingRef = useRef<HTMLElement>(null);
   const wordmarkRef = useRef<HTMLButtonElement>(null);
 
@@ -26,11 +28,15 @@ export function AegisLanding() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) {
       setHasEntered(true);
+      setShowWelcome(true);
       return;
     }
 
     const timeline = gsap.timeline({
-      onComplete: () => setHasEntered(true),
+      onComplete: () => {
+        setHasEntered(true);
+        setShowWelcome(true);
+      },
     });
 
     timeline
@@ -57,7 +63,7 @@ export function AegisLanding() {
       );
   };
 
-  if (hasEntered) return <DashboardShell />;
+  if (hasEntered) return <><DashboardShell /><>{showWelcome && <WelcomeDialog onClose={() => setShowWelcome(false)} />}</></>;
 
   return (
     <main ref={landingRef} className="aegis-landing">
