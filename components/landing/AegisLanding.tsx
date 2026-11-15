@@ -106,7 +106,7 @@ export function AegisLanding() {
               text="SPACE MISSION LUCIDITY OBSERVATION & TRACKING HUB  •  "
               repeat={2}
               spinDuration={34}
-             onHover="slowDown"
+              onHover="none"
              direction="clockwise"
              size={520}
               fontSize={21}

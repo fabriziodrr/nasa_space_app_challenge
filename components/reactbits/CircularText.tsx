@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 
 import './CircularText.css';
 
-type HoverMode = 'slowDown' | 'speedUp' | 'pause' | 'goBonkers';
+type HoverMode = 'slowDown' | 'speedUp' | 'pause' | 'goBonkers' | 'none';
 
 interface CircularTextProps {
   text: string;

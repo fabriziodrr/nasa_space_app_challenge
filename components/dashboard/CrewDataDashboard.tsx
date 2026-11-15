@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { CrewProfileSelector } from "@/components/dashboard/CrewProfileSelector";
 import { selectDemoProfile } from "@/client/demo-session";
 import { getReports } from "@/client/dashboard/mission-api";
 import { demoCrewMappings } from "@/server/agent/demo-crew";
 import type { GroundReport } from "@/server/agent/contracts";
+import { TextType } from "@/components/reactbits/TextType";
 import styles from "./CrewDataDashboard.module.css";
 
 type Trial = { status: "response" | "false_start" | "missed"; rt_ms?: number };
@@ -36,9 +38,8 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
       <div className={styles.dataShell}>
         <aside className={styles.sidebar} aria-label="Crew data categories">
           <div className={styles.sidebarHeader}>
-            <button className={styles.backButton} type="button" onClick={onBack}>
+            <button className={styles.backButton} type="button" onClick={onBack} aria-label="Back to dashboard" title="Back to dashboard">
               <ArrowLeft size={15} aria-hidden="true" />
-              <span>Dashboard</span>
             </button>
             <span>CREW DATA</span>
           </div>
@@ -51,9 +52,9 @@ export function CrewDataDashboard({ onBack }: { onBack: () => void }) {
           <div className={styles.sidebarFooter}>DEMO DATA VIEWS</div>
         </aside>
 
-        <main className={styles.dataPanel}>
+         <main className={`${styles.dataPanel} ${styles.reveal}`}>
            {activeView === "cognitive" && <DataPanelHeader index="01" title="Cognitive state" description={`Fictional self-report · ${mood.observed_at}`} profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
-           {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="Synthetic sensor data · demonstration" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
+            {activeView === "sleep" && <DataPanelHeader index="02" title="Sleep recovery" description="" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
            {activeView === "vigilance" && <DataPanelHeader index="03" title="Vigilance test" description={`${responses.length} valid responses · ${trials.length} total trials · synthetic demo`} profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
            {activeView === "vision" && <DataPanelHeader index="04" title="Vision report" description="Selected vision session and data agent context" profile={profile} profiles={demoCrew} onProfileChange={setProfileId} />}
           <div className={styles.panelContent}>
@@ -77,12 +78,12 @@ function DataPanelHeader({ index, title, description, profile, profiles, onProfi
   return (
     <header className={styles.panelHeader}>
       <div className={styles.panelHeaderCopy}>
-        <span>{index} / DATA STREAM</span>
+         <span><TextType text={`${index} / DATA STREAM`} typingSpeed={16} /></span>
         <div className={styles.panelTitleRow}>
-          <h1>{title}</h1>
+         <h1><TextType text={title} typingSpeed={24} initialDelay={80} /></h1>
           <CrewProfileSelector profile={profile} profiles={profiles} onChange={onProfileChange} placement="header" />
         </div>
-        <p>{description}</p>
+         {description && <p>{description}</p>}
       </div>
     </header>
   );
@@ -116,7 +117,7 @@ function VisionReport({ profileId }: { profileId: string }) {
     return () => { cancelled = true; };
   }, [profileId, refresh]);
   const report = reports.find((item) => item.id === selectedId);
-  return <div className={styles.sleepContent}>
+  return <div className={`${styles.sleepContent} ${styles.reveal}`}>
     <p className={styles.sleepNotice}>The selected astronaut&apos;s shared report uses data frozen at check-in confirmation.</p>
     <div className={styles.visionControls}>
       {reports.length > 0 && <label>Check-in <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
@@ -128,7 +129,7 @@ function VisionReport({ profileId }: { profileId: string }) {
     {report && <div aria-live="polite">
       <p className={styles.sleepFootnote}>Check-in {report.checkInId} · generated {new Date(report.generatedAt).toLocaleString()}</p>
       <div className={styles.sleepSensorGrid}>
-        {report.findings.map((finding, index) => <div className={styles.sleepSensor} key={`${finding.source}-${index}`}><span>{finding.source}</span><p>{finding.text}</p></div>)}
+        {report.findings.map((finding, index) => <SpotlightCard className={styles.sleepSensor} spotlightColor="rgba(59, 26, 189, 0.12)" style={{ animationDelay: `${index * 55}ms` }} key={`${finding.source}-${index}`}><span>{finding.source}</span><p>{finding.text}</p></SpotlightCard>)}
         {!report.findings.length && <p>No shared findings.</p>}
       </div>
       {report.discrepancies.length > 0 && <><h3>Differences to review</h3><ul>{report.discrepancies.map((finding, index) => <li key={index}>{finding.text}</li>)}</ul></>}
@@ -146,7 +147,7 @@ function CognitiveBars({ alertness, mood, sleepQuality }: { alertness: number | 
   ];
 
   return (
-        <div className={styles.cognitiveChart}>
+     <div className={`${styles.cognitiveChart} ${styles.reveal}`}>
       <div className={styles.chartIntro}><span className={styles.chartLabel} tabIndex={0} data-tooltip="Self-reported alertness and mood, with sleep quality from the recovery observation.">COGNITIVE STATE / SELF REPORT</span></div>
       <div className={styles.barList}>
         {metrics.map((metric) => {
@@ -168,7 +169,9 @@ function CognitiveBars({ alertness, mood, sleepQuality }: { alertness: number | 
 function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
   const [analysis, setAnalysis] = useState<SleepAnalysis | null>(null);
   const [status, setStatus] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const refresh = useCallback(async () => {
+    setRefreshing(true);
     try {
       const end = Date.now();
       const params = new URLSearchParams({ subject: profile.id, start: new Date(end - 14 * 86400000).toISOString(), end: new Date(Date.now() + 1000).toISOString() });
@@ -180,6 +183,8 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
     } catch (error) {
       setAnalysis(null);
       setStatus(error instanceof Error ? error.message : "Unable to load sleep data.");
+    } finally {
+      setRefreshing(false);
     }
   }, [profile.id]);
   useEffect(() => { void refresh(); }, [refresh]);
@@ -203,18 +208,9 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
 
   return (
     <div className={styles.sleepContent}>
-      <div className={styles.sleepActions}>
-        <div className={styles.sleepSource}>
-          <span>SYNTHETIC DEMO</span>
-          <strong>{profile.id}</strong>
-        </div>
-        <div className={styles.sleepActionButtons}>
-          <button type="button" onClick={() => void refresh()}>Refresh</button>
-        </div>
-      </div>
       {status && <p className={styles.sleepNotice} role="status">{status}</p>}
       {!latest && <p className={styles.sleepNotice}>No sleep observation available in this period.</p>}
-      <div className={styles.sleepSummary}>
+        <div className={styles.sleepSummary}>
         <div className={styles.sleepSummaryHeading}>
           <div>
             <span className={styles.chartLabel} tabIndex={0} data-tooltip="Recorded sleep compared with an 8 hour reference window.">RECOVERY / SLEEP</span>
@@ -232,14 +228,15 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
           </div>
           <div className={styles.sleepReadout}>
             <span>RECORDED / UTC</span>
-            <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—"}</strong>
-            <span>{latest?.device ?? "NO OBSERVATION"}</span>
-            <small>{latest ? `${latest.method} · ${latest.observation_id}` : "Waiting for an observation"}</small>
-          </div>
+           <strong className={styles.sleepDate}>{latest ? new Date(latest.period_end).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—"}</strong>
+           <span>{latest?.device ?? "NO OBSERVATION"}</span>
+           <div className={styles.sleepActionButtons}>
+             <button className={`${styles.refreshButton} ${refreshing ? styles.isRefreshing : ""}`} type="button" disabled={refreshing} onClick={() => void refresh()} aria-label="Refresh sleep data" title="Refresh sleep data"><RotateCcw size={15} aria-hidden="true" /></button>
+           </div>
+         </div>
         </div>
-      </div>
-      <div className={styles.sleepSensorGrid}>{metrics.map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div>)}</div>
-      <p className={styles.sleepFootnote}>Ring length: hours slept relative to the demo reference of 8 h. Color: simulated self-reported sleep quality ({profile.mood.sleep_quality}/10), not sensor-derived. Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
+       </div>
+       <div className={styles.sleepSensorGrid}>{metrics.map((item, index) => <SpotlightCard className={styles.sleepSensor} spotlightColor="rgba(59, 26, 189, 0.12)" key={item.label} style={{ animationDelay: `${index * 55}ms` }}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></SpotlightCard>)}</div>
     </div>
   );
 }
@@ -256,7 +253,7 @@ function ReactionChart({ trials }: { trials: Trial[] }) {
   const responsePath = trials.map((trial, index) => trial.status === "response" && trial.rt_ms !== undefined ? `${index === 0 ? "M" : "L"}${x(index).toFixed(1)} ${y(trial.rt_ms).toFixed(1)}` : "").filter(Boolean).join(" ");
 
   return (
-    <div className={styles.reactionChart}>
+     <div className={`${styles.reactionChart} ${styles.reveal}`}>
       <div className={styles.chartIntro}><span className={styles.chartLabel} tabIndex={0} data-tooltip="Reaction time in milliseconds across the trial sequence. Gold marks a response at or above 500 ms.">VIGILANCE / REACTION MS</span></div>
         <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Reaction time trace by vigilance trial" preserveAspectRatio="xMidYMid meet">
         {[0, 250, 500, 700].map((value) => <g key={value}><line className={styles.gridLine} x1="44" x2={width - 22} y1={y(value)} y2={y(value)} /><text className={styles.axisLabel} x="0" y={y(value) + 4}>{value}</text></g>)}

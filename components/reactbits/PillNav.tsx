@@ -13,18 +13,25 @@ export type PillNavItem = {
 
 type PillNavProps = {
   brand?: ReactNode;
+  onBrandClick?: () => void;
   items: PillNavItem[];
   trailing?: ReactNode;
   className?: string;
   ariaLabel?: string;
 };
 
-export function PillNav({ brand = "S.L.O.T.H.", items, trailing, className = "", ariaLabel = "Mission controls" }: PillNavProps) {
+export function PillNav({ brand = "S.L.O.T.H.", onBrandClick, items, trailing, className = "", ariaLabel = "Mission controls" }: PillNavProps) {
   return (
     <nav className={`pill-nav ${className}`.trim()} aria-label={ariaLabel}>
-      <div className="pill-nav__brand">
-        {typeof brand === "string" && brand === "S.L.O.T.H." ? <SlothLogo className="pill-nav__logo" alt="S.L.O.T.H." /> : typeof brand === "string" ? <TextType text={brand} /> : brand}
-      </div>
+      {onBrandClick ? (
+        <button className="pill-nav__brand pill-nav__brand-button" type="button" aria-label="Return to dashboard home" onClick={onBrandClick}>
+          {typeof brand === "string" && brand === "S.L.O.T.H." ? <SlothLogo className="pill-nav__logo" alt="S.L.O.T.H. home" /> : typeof brand === "string" ? <TextType text={brand} /> : brand}
+        </button>
+      ) : (
+        <div className="pill-nav__brand">
+          {typeof brand === "string" && brand === "S.L.O.T.H." ? <SlothLogo className="pill-nav__logo" alt="S.L.O.T.H." /> : typeof brand === "string" ? <TextType text={brand} /> : brand}
+        </div>
+      )}
       <div className="pill-nav__items">
         {items.map((item) => (
           <div className={item.menu ? "pill-nav__item-wrap has-menu" : "pill-nav__item-wrap"} key={item.label}>
