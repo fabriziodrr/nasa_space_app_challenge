@@ -123,6 +123,7 @@ export class ArtifactService {
       });
       await repository.completeGeneration(claim, { report, diary, proposal, noChangeReason: operational.noChangeReason });
     } catch (error) {
+      console.error("Agent artifact generation failed:", error instanceof AgentError ? error.code : error instanceof Error ? error.name : "unknown error");
       try { await repository.failGeneration(claim); } catch { /* Preserve original error. */ }
       throw error;
     }
