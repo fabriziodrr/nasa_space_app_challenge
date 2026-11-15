@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RotateCcw, Upload } from "lucide-react";
 import demo from "@/server/examples/sleep_demo_14d.json";
-import { BorderGlow } from "@/components/reactbits/BorderGlow";
 import { CountUp } from "@/components/reactbits/CountUp";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { TextType } from "@/components/reactbits/TextType";
@@ -111,14 +110,14 @@ export function SleepDataPanel() {
         <SpotlightCard className={styles.metricCard} spotlightColor="rgba(59, 26, 189, 0.14)" style={{ animationDelay: "260ms" }}><span>Fatigue reports</span><strong><CountUp value={String(group.feedback_comparison.pair_count)} /></strong><em>Confirmed, paired with sleep</em></SpotlightCard>
       </div>
       <div className={styles.chartHeader}><div><span className={styles.sectionLabel}>LONGITUDINAL VIEW</span><h3>Sleep duration</h3><p>One recorded episode per UTC day</p></div><span className={styles.legend}><i /> SLEEP / HOURS</span></div>
-       <BorderGlow className={styles.chartGlow} glowColor="86, 198, 212"><div className={styles.chartWrap}><div className={styles.axis} aria-hidden="true"><span>12h</span><span>6h</span><span>0h</span></div><div className={styles.chart} aria-label="Sleep duration by day, scale capped at 12 hours">
+       <div className={styles.chartWrap}><div className={styles.axis} aria-hidden="true"><span>12h</span><span>6h</span><span>0h</span></div><div className={styles.chart} aria-label="Sleep duration by day, scale capped at 12 hours">
          {group.series.map((point, index) => {
           const report = group.feedback_comparison.pairs.find((pair) => pair.sleep_observation_id === point.observation_id);
           return <div className={styles.day} key={point.observation_id} title={`${point.day_utc}: ${point.sleep_hours} hours${report ? `, fatigue ${report.fatigue_rating}/10` : ""}`}>
              <span>{point.sleep_hours.toFixed(1)}</span><div className={styles.barTrack}><div className={styles.bar} style={{ height: `${Math.min(point.sleep_hours / 12 * 100, 100)}%`, animationDelay: `${index * 45}ms` }} /></div><small>{point.day_utc.slice(5)}</small><small>{report ? `F ${report.fatigue_rating}` : "F —"}</small>
           </div>;
         })}
-       </div></div></BorderGlow>
+        </div></div>
       <div className={styles.infoGrid}><div><span className={styles.sectionLabel}>DATA COMPLETENESS</span><p>Missing or invalid UTC days: {group.coverage.missing_utc_days.join(", ") || "none"}.</p></div><div><span className={styles.sectionLabel}>INTERPRETATION</span><p>F = confirmed self-reported fatigue / 10. Chart is capped at 12 h; values above it remain labeled. Trends are descriptive, not a diagnosis.</p></div></div>
       <details className={styles.tableDetails}><summary>View observations as a table</summary><div className={styles.tableScroll}><table><thead><tr><th scope="col">UTC date</th><th scope="col">Sleep duration</th><th scope="col">Reported fatigue</th></tr></thead><tbody>{group.series.map((point) => { const report = group.feedback_comparison.pairs.find((pair) => pair.sleep_observation_id === point.observation_id); return <tr key={point.observation_id}><td>{point.day_utc}</td><td>{point.sleep_hours.toFixed(1)} h</td><td>{report ? `${report.fatigue_rating} / 10` : "Not reported"}</td></tr>; })}</tbody></table></div></details>
     </article>)}
