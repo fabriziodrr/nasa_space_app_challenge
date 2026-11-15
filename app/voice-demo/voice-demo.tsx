@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
 import { VoiceConversation, type SpeakableReply } from "../../components/agent-voice/VoiceConversation";
 import { SlothMascot } from "../../components/agent-avatar/SlothMascot";
 import { speakServerReply } from "../../client/voice/server-speech";
 import { selectDemoProfile } from "../../client/demo-session";
+import { reportContent } from "../../client/dashboard/report-content";
+import { Dropdown } from "../../components/ui/Dropdown";
 import type { SpeakHandle } from "../../client/voice/speech";
 import { CreateSessionResponseSchema, MessageResponseSchema, type CheckIn } from "../../server/agent/contracts";
 import { VisionPanel } from "./vision-panel";
@@ -15,9 +18,9 @@ import styles from "./voice-demo.module.css";
 type Message = { id: string; role: "ASTRONAUT" | "ASSISTANT"; text: string };
 type Pending = { id: string; text: string; mode: "TEXT" | "VOICE" };
 
-export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
+export function VoiceDemo({ embedded = false, visionTarget = null, initialAstronautId = "astro-1" }: { embedded?: boolean; visionTarget?: HTMLElement | null; initialAstronautId?: string }) {
   const token = "";
-  const [astronautId, setAstronautId] = useState("astro-1");
+  const [astronautId, setAstronautId] = useState(initialAstronautId);
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [starting, setStarting] = useState(false);
@@ -138,23 +141,23 @@ export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
   }
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
-  return <section className={`${styles.page} ${embedded ? styles.embedded : ""}`} lang="en" aria-label="S.L.O.T.H. voice assistant">
+  return <><section className={`${styles.page} ${embedded ? styles.embedded : ""}`} lang="en" aria-label="S.L.O.T.H. voice assistant">
     <div className={styles.shell}>
       <header><p className={styles.eyebrow}>Local demo · Onboard assistant</p><h1>Talk to the assistant</h1>
         <p>Start a session, dictate or type a message and listen to the reply.</p></header>
       {embedded && <div className={styles.stage}>
         <SlothMascot speaking={speaking} size={130} />
-        {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
+        {lastReply && <p className={styles.bubble}>{reportContent(lastReply.text)}</p>}
       </div>}
       {!sessionId ? <form className={styles.panel} onSubmit={start}>
-        <label htmlFor="demo-astronaut">Astronaut profile</label>
-        <select id="demo-astronaut" value={astronautId} onChange={(event) => setAstronautId(event.target.value)}>{demoCrewMappings.map((member) => <option value={member.astronautId} key={member.astronautId}>{member.name}</option>)}</select>
+        {embedded ? <p>Start a conversation with {demoCrewMappings.find((member) => member.astronautId === astronautId)?.name}.</p> : <><label htmlFor="demo-astronaut">Astronaut profile</label>
+        <Dropdown id="demo-astronaut" label="Astronaut profile" value={astronautId} onChange={setAstronautId} disabled={starting} options={demoCrewMappings.map((member) => ({ value: member.astronautId, label: member.name, initials: member.name.split(" ").map((part) => part[0]).join("") }))} /></>}
         <button type="submit" disabled={starting}>{starting ? "Starting…" : "Start session"}</button>
         {error && <p role="alert">{error}</p>}
       </form> : <>
         {!embedded && <div className={styles.stage}>
           <SlothMascot speaking={speaking} />
-          {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
+          {lastReply && <p className={styles.bubble}>{reportContent(lastReply.text)}</p>}
         </div>}
         {embedded && <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>}
         {embedded && <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>}
@@ -162,7 +165,7 @@ export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
           <h2 id="conversation-title">Conversation</h2>
           {!messages.length && <p>The session is ready. Start the continuous conversation or type the first message.</p>}
           <ol className={styles.messages} aria-live="polite">
-            {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "You" : "Assistant"}</strong><p>{item.text}</p></li>)}
+            {messages.map((item) => <li key={item.id}><strong>{item.role === "ASTRONAUT" ? "You" : "Assistant"}</strong><p>{item.role === "ASSISTANT" ? reportContent(item.text) : item.text}</p></li>)}
           </ol>
           {lastReply && <div>
             <button type="button" disabled={speaking} onClick={() => speakReply({ text: lastReply.text, messageId: lastReply.id }, () => {}, setSpeechError)}>Listen to reply</button>
@@ -170,8 +173,7 @@ export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
           </div>}
           {speechError && <p role="alert">{speechError}</p>}
         </section>
-        {embedded ? <details open className={styles.visionDetails}><summary>Vision and check-in · review and share with Houston</summary><VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
-          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} /></details> : <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+        {!embedded && <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
           run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />}
         {!embedded && <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>}
         {!embedded && <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>}
@@ -179,5 +181,7 @@ export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
         <p className={styles.footnote}>Voice: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (with browser fallback).</p>
       </>}
     </div>
-  </section>;
+  </section>{embedded && visionTarget && createPortal(sessionId
+    ? <VisionPanel embedded token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending} run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
+    : <div className={styles.visionWaiting}><span>EYELID OBSERVATION</span><h2>Live eye tracking</h2><p>Start a session with S.L.O.T.H. to open the camera and view the live eyelid chart.</p></div>, visionTarget)}</>;
 }

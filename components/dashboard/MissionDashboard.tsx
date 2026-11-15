@@ -7,6 +7,9 @@ import { decideProposal, getProposals, getReports, getSchedule, MissionApiError,
 import styles from "./MissionDashboard.module.css";
 import { demoCrewMappings } from "../../server/agent/demo-crew";
 import { selectDemoProfile } from "../../client/demo-session";
+import { reportContent } from "../../client/dashboard/report-content";
+import { ReportData } from "./ReportData";
+import { Dropdown } from "../ui/Dropdown";
 
 type Decision = "APPROVE" | "REJECT";
 type PendingDecision = { decision: Decision; key: string };
@@ -144,10 +147,10 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
   }
 
   return <section className={styles.workspace} aria-label={ground ? "Ground operations" : "Astronaut schedule"}>
-    <header className={styles.heading}><div><span className={styles.kicker}>{ground ? "HOUSTON / OPERATIONS" : "ISS / SCHEDULE"}</span>
+    <header className={styles.heading}><div><span className={styles.kicker}>{ground ? "HOUSTON / OPERATIONS" : "ASTRONAUT / SCHEDULE"}</span>
       <h1>{ground ? "Reports and schedule" : "Daily schedule"}</h1><p>Local demo · times in UTC</p></div><button type="button" onClick={onBack}>Back to dashboard</button></header>
     <form className={styles.controls} onSubmit={(event) => { event.preventDefault(); void load(); }}>
-      <label>Astronaut<select value={astronaut} onChange={(event) => { setAstronaut(event.target.value); setLoaded(false); }} disabled={busy || lockSelection}>{demoCrewMappings.map((member) => <option key={member.astronautId} value={member.astronautId}>{member.name}</option>)}</select></label>
+      <div><label htmlFor="mission-astronaut">Astronaut</label><Dropdown id="mission-astronaut" label="Astronaut" value={astronaut} onChange={(value) => { setAstronaut(value); setLoaded(false); }} disabled={busy || lockSelection} options={demoCrewMappings.map((member) => ({ value: member.astronautId, label: member.name, initials: member.name.split(" ").map((part) => part[0]).join("") }))} /></div>
       <label>UTC date<input type="date" value={date} onChange={(event) => { setDate(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
       <button type="submit" disabled={busy || lockSelection}>{busy ? "Loading…" : "Load data"}</button>
     </form>
@@ -157,8 +160,13 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
         {ground && <button type="button" disabled={busy || conflict || !draft || JSON.stringify(draft) === JSON.stringify(schedule)} onClick={() => void save()}>Save schedule</button>}</div>
         {dirty && !conflict && <p>Save or discard changes before changing the selection. <button type="button" disabled={busy} onClick={() => setDraft(structuredClone(schedule))}>Discard changes</button></p>}
         {conflict && <p className={styles.notice}>Reload data before making further changes.</p>}
-        {!ground && <ol className={styles.list}>{schedule.activities.map((activity) => <li key={activity.id}><strong>{activityTitle(activity.title)}</strong><span>{format(activity.startsAt)} – {format(activity.endsAt)}</span></li>)}</ol>}
-        {ground && draft && <><p>Edit activities and save the complete schedule. Dates and times are UTC. Shared resource IDs must match across crew schedules; leave blank when none are assigned.</p>
+        <ol className={styles.timeline}>{schedule.activities.map((activity) => {
+          const suggestions = proposals.filter((proposal) => proposal.status === "PENDING_REVIEW" && proposal.scheduleId === schedule.id && proposal.baseScheduleVersion === schedule.version && proposal.candidate.changes.some((change) => change.activityId === activity.id));
+          return <li className={styles.timelineItem} key={activity.id}><time>{activity.startsAt.slice(11, 16)}<small>{activity.endsAt.slice(11, 16)} UTC</small></time><div><strong>{activityTitle(activity.title)}</strong><span>{activity.kind.toLowerCase()} · {activity.movable ? "Flexible" : "Fixed"}</span>
+            {suggestions.map((proposal) => <div className={styles.suggestion} key={proposal.id} tabIndex={0} aria-label="Agent suggestion: review schedule change"><span>Agent suggestion · review change</span><div className={styles.popover}><strong>Proposed schedule change</strong><p>{reportContent(proposal.candidate.rationale)}</p>{proposal.candidate.changes.map((change) => <p key={change.activityId}>{change.type === "ADD_REST" ? change.title : activityTitle(schedule.activities.find((a) => a.id === change.activityId)?.title ?? "Activity")}: {change.type === "REMOVE_ACTIVITY" ? "Remove / reassign" : `${change.startsAt.slice(11, 16)}–${change.endsAt.slice(11, 16)} UTC`}</p>)}<a href="#schedule-proposals">Review and approve proposal</a><small>Pending Houston approval</small></div></div>)}
+          </div></li>;
+        })}</ol>
+        {ground && draft && <details className={styles.editor}><summary>Edit schedule</summary><p>Edit activities and save the complete schedule. Dates and times are UTC. Shared resource IDs must match across crew schedules; leave blank when none are assigned.</p>
           {draft.activities.map((activity, index) => <fieldset className={styles.activity} key={activity.id} disabled={busy || conflict}>
             <legend>Activity {index + 1}</legend>
             <label>Name<input value={activityTitle(activity.title)} onChange={(e) => changeActivity(index, { title: e.target.value })} /></label>
@@ -166,29 +174,29 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
             <label>End<input type="datetime-local" value={inputTime(activity.endsAt)} onChange={(e) => changeActivity(index, { endsAt: utcTime(e.target.value) })} /></label>
             <label>Earliest start<input type="datetime-local" value={inputTime(activity.earliestStart)} onChange={(e) => changeActivity(index, { earliestStart: utcTime(e.target.value) })} /></label>
             <label>Latest end<input type="datetime-local" value={inputTime(activity.latestEnd)} onChange={(e) => changeActivity(index, { latestEnd: utcTime(e.target.value) })} /></label>
-            <label>Type<select value={activity.kind} onChange={(e) => changeActivity(index, { kind: e.target.value as ScheduleActivity["kind"] })}>{["MISSION", "EXERCISE", "MEAL", "REST", "PERSONAL"].map((value) => <option key={value}>{value}</option>)}</select></label>
-            <label>Priority<select value={activity.priority} onChange={(e) => changeActivity(index, { priority: e.target.value as ScheduleActivity["priority"] })}>{["LOW", "NORMAL", "CRITICAL"].map((value) => <option key={value}>{value}</option>)}</select></label>
+            <div><label htmlFor={`activity-type-${index}`}>Type</label><Dropdown id={`activity-type-${index}`} label="Activity type" value={activity.kind} onChange={(value) => changeActivity(index, { kind: value as ScheduleActivity["kind"] })} disabled={busy || conflict} options={["MISSION", "EXERCISE", "MEAL", "REST", "PERSONAL"].map((value) => ({ value, label: value.charAt(0) + value.slice(1).toLowerCase() }))} /></div>
+            <div><label htmlFor={`activity-priority-${index}`}>Priority</label><Dropdown id={`activity-priority-${index}`} label="Priority" value={activity.priority} onChange={(value) => changeActivity(index, { priority: value as ScheduleActivity["priority"] })} disabled={busy || conflict} options={["LOW", "NORMAL", "CRITICAL"].map((value) => ({ value, label: value.charAt(0) + value.slice(1).toLowerCase() }))} /></div>
             <label>Shared resource IDs (comma separated)<input key={`${activity.id}-${(activity.sharedResources ?? []).join(",")}`} defaultValue={(activity.sharedResources ?? []).join(", ")} onBlur={(e) => changeActivity(index, { sharedResources: e.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} placeholder="e.g. lab-terminal" /></label>
             <label>Eligible crew IDs (comma separated)<input key={`${activity.id}-crew-${(activity.eligibleAstronautIds ?? []).join(",")}`} defaultValue={(activity.eligibleAstronautIds ?? []).join(", ")} onBlur={(e) => changeActivity(index, { eligibleAstronautIds: e.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} placeholder="e.g. crew-demo-02" /></label>
             <label className={styles.check}><input type="checkbox" checked={activity.movable} onChange={(e) => changeActivity(index, { movable: e.target.checked })} /> Movable</label>
             <button type="button" onClick={() => setDraft({ ...draft, activities: draft.activities.filter((_, i) => i !== index) })}>Remove</button>
           </fieldset>)}
           <button type="button" disabled={busy || conflict || draft.activities.length >= 200} onClick={addActivity}>Add activity</button>
-        </>}
+        </details>}
       </section>
       {ground && <>
         <section className={styles.card}><span className={styles.kicker}>GROUND CONTROL</span><h2>Agent reports</h2>
           {!reports.length && <p>No reports available.</p>}
-          {reports.map((report) => <article className={styles.item} key={report.id}><h3>Check-in {report.checkInId}</h3><p>{format(report.generatedAt)}{report.humanReview.required ? " · Human review required" : ""}</p>
-            {report.humanReview.reason && <p>{report.humanReview.reason}</p>}
-            {report.findings.map((finding, i) => <p key={`finding-${i}`}><strong>{finding.source}:</strong> {finding.text}</p>)}
-            {report.discrepancies.map((finding, i) => <p key={`difference-${i}`}><strong>Discrepancy:</strong> {finding.text}</p>)}
-            {report.uncertainties.map((uncertainty, i) => <p key={`uncertainty-${i}`}><strong>Limitation:</strong> {uncertainty}</p>)}
+          {reports.map((report) => <article className={styles.item} key={report.id}><h3>Check-in report</h3><p>{format(report.generatedAt)}{report.humanReview.required ? " · Human review required" : ""}</p>
+            {report.humanReview.reason && <p>{reportContent(report.humanReview.reason)}</p>}
+            <ReportData report={report} />
+            {report.discrepancies.map((finding, i) => <p key={`difference-${i}`}><strong>Discrepancy:</strong> {reportContent(finding.text)}</p>)}
+            {report.uncertainties.map((uncertainty, i) => <p key={`uncertainty-${i}`}><strong>Limitation:</strong> {reportContent(uncertainty)}</p>)}
             {!report.proposalId && <p>No proposal associated with this report.</p>}
           </article>)}
           {reportCursor && <button type="button" disabled={busy} onClick={() => void more("reports")}>Load more reports</button>}
         </section>
-        <section className={styles.card}><span className={styles.kicker}>HUMAN REVIEW</span><h2>Schedule proposals</h2>
+        <section id="schedule-proposals" className={styles.card}><span className={styles.kicker}>HUMAN REVIEW</span><h2>Schedule proposals</h2>
           {notice && <p className={styles.notice} role="status">{notice}</p>}
           {draft && JSON.stringify(draft) !== JSON.stringify(schedule) && <p>Save or reload the schedule before deciding on proposals.</p>}
           {!proposals.length && <p>No proposals available.</p>}
@@ -197,7 +205,7 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
             const preview = sameSchedule ? applyScheduleChanges(schedule, proposal.candidate.changes) : null;
             const pendingDecision = getPending(proposal.id);
             return <article className={styles.item} key={proposal.id}><div className={styles.sectionHeader}><h3>Proposal · {format(proposal.createdAt)}</h3><strong>{proposal.status}</strong></div>
-              <p>{proposal.candidate.rationale}</p>
+              <p>{reportContent(proposal.candidate.rationale)}</p>
               {!preview && <p>The displayed schedule does not match the proposal version; select the correct date or request a new assessment.</p>}
               {preview && <ul>{proposal.candidate.changes.map((change) => {
                 const before = schedule.activities.find((item) => item.id === change.activityId);

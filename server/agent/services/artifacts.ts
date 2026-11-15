@@ -10,6 +10,8 @@ import { ProposalService } from "./proposals";
 import { repairDemoProposal } from "./demo-proposal-repair";
 import { applyScheduleChanges } from "../lib/schedule";
 import { crossSourceSummary } from "./cross-source-summary";
+import { withReportMeasurements } from "./report-measurements";
+import { discrepancyProposal } from "./discrepancy-proposal";
 import type { VisionConfirmationService } from "../vision/confirmation";
 
 /** Generates both artifacts from a confirmed check-in using separate privacy boundaries. */
@@ -109,8 +111,13 @@ export class ArtifactService {
       }
       const combined = crossSourceSummary(context);
       if (combined && operational.report.findings.length < 30) operational.report.findings.push(combined);
+      operational.report.findings = operational.report.findings.map((finding) => withReportMeasurements(finding, context));
       let proposal = null;
       phase = "validate proposal";
+      if (!operational.proposal && this.deps.allowProposals && operational.report.discrepancies.length && (!this.deps.frozenContext || frozen.schedule)) {
+        const suggestion = discrepancyProposal(context, day, proposals);
+        if (suggestion?.outcome === "proposal") { operational.proposal = suggestion.proposal.candidate; operational.noChangeReason = null; }
+      }
       if (operational.proposal) {
         if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Proposal generation is not yet connected to the authoritative schedule.");
         if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("The check-in has no frozen schedule: open a new check-in.");

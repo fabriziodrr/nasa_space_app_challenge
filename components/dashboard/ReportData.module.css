@@ -1,0 +1,12 @@
+.groups { display: grid; gap: 20px; color: #303940; font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+.groups h4 { margin: 0 0 10px; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: #51458c; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+.card { background: white; border: 1px solid #dde1e7; border-radius: 12px; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
+.reading { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.reading > span { color: #596570; font-size: .8rem; }
+.reading strong { font-size: 1.65rem; line-height: 1.25; white-space: pre-wrap; }
+.reading small { font-size: .85rem; font-weight: 500; }
+.card time { display: block; color: #69737c; font-size: .75rem; margin-top: 8px; }
+.reading em { font-size: .72rem; font-style: normal; color: #806119; }
+.card p { white-space: pre-wrap; margin: 0; }
+.card summary { color: #655b87; cursor: pointer; font-size: .78rem; }

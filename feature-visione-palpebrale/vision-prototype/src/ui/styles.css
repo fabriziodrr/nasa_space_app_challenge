@@ -66,6 +66,17 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: #183e3a; }
 .replay-card { border: 1px solid #cfdbd3; border-radius: 10px; padding: 16px; }
 .replay-card h3, .replay-card p { margin: 0 0 8px; }
 .replay-chart { width: 100%; min-height: 150px; background: #f8faf8; border-radius: 8px; font-size: 13px; }
+.page-embedded { min-width: 0; padding: 12px; background: #f2f4f6; color: #4b5158; font-size: 13px; }
+.page-embedded .brand, .page-embedded .intro { display: none; }
+.page-embedded .camera-panel { margin-top: 12px; padding: 12px; }
+.page-embedded .camera-heading { margin-bottom: 10px; }
+.page-embedded .camera-layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.page-embedded .preview { aspect-ratio: 16 / 10; }
+.page-embedded .camera-actions { margin-top: 10px; }
+.page-embedded button { min-height: 38px; padding: 7px 10px; }
+.page-embedded .live-chart-feature { margin-top: 12px; padding: 10px; border-radius: 10px; background: #f5f4fb; }
+.page-embedded .live-chart-feature h3 { margin: 0; color: #3b1abd; }
+.page-embedded .replay-chart { min-height: 100px; }
 @media (max-width: 760px) {
   .camera-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .intro { margin-top: 36px; }

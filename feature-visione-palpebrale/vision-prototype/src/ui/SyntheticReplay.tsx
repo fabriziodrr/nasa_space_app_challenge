@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Dropdown } from '../../../../components/ui/Dropdown';
 import { fixtures } from '../../fixtures';
 import { prepareReplay } from '../app/replay';
 import type { EyeObservation } from '../contracts/sample';
@@ -57,9 +58,7 @@ export function SyntheticReplay() {
     <div className="camera-heading"><h2 id="replay-title">Synthetic replay</h2><span className="status">Simulated data</span></div>
     <p>Reproducible scenarios without a webcam. Results describe only the synthetic data.</p>
     <label htmlFor="fixture">Scenario</label>{' '}
-    <select id="fixture" value={fixture.name} disabled={playing} onChange={(event) => { setSelected(event.target.value); setIndex(-1); setFinished(false); setError(null); }}>
-      {fixtures.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
-    </select>
+    <Dropdown id="fixture" label="Scenario" value={fixture.name} disabled={playing} onChange={(value) => { setSelected(value); setIndex(-1); setFinished(false); setError(null); }} options={fixtures.map((item) => ({ value: item.name, label: item.name }))} />
     <p className="field-hint">{fixture.description}</p>
     <div className="camera-actions">
       <button className="button-primary" type="button" onClick={play} disabled={playing}>{index >= 0 && !finished ? 'Resume' : 'Start replay'}</button>

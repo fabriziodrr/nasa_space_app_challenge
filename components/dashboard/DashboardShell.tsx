@@ -12,7 +12,8 @@ import { PillNav } from "@/components/reactbits/PillNav";
 import { TextType } from "@/components/reactbits/TextType";
 import { DashboardIcon } from "@/components/dashboard/DashboardIcon";
 import { DashboardTransition } from "@/components/dashboard/DashboardTransition";
-import type { BodyVariant } from "@/components/human-vitals/HumanVitalsBody";
+import { demoCrewMappings } from "@/server/agent/demo-crew";
+import { Dropdown } from "@/components/ui/Dropdown";
 
 type DashboardView = "houston" | "iss";
 
@@ -21,7 +22,13 @@ export function DashboardShell() {
   const [activeView, setActiveView] = useState<DashboardView>("houston");
   const [activeSection, setActiveSection] = useState<"human-vitals" | "crew-data" | "mission" | "sleep-history" | "data-agent">("human-vitals");
   const [resetToken, setResetToken] = useState(0);
-  const [bodyVariant, setBodyVariant] = useState<BodyVariant>("male");
+  const [astronautId, setAstronautId] = useState("astro-1");
+  const bodyVariant = demoCrewMappings.find((member) => member.astronautId === astronautId)?.bodyVariant ?? "male";
+  const selectAstronaut = useCallback((id: string) => {
+    const member = demoCrewMappings.find((item) => item.astronautId === id);
+    if (!member) return;
+    setAstronautId(id);
+  }, []);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,6 +38,11 @@ export function DashboardShell() {
 
   const transitionTo = useCallback((action: () => void) => {
     if (transitionTimer.current) clearTimeout(transitionTimer.current);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      action();
+      setIsTransitioning(false);
+      return;
+    }
     setIsTransitioning(true);
     transitionTimer.current = setTimeout(() => {
       action();
@@ -38,11 +50,15 @@ export function DashboardShell() {
     }, 240);
   }, []);
 
+  const changeAstronaut = useCallback((id: string) => {
+    if (id === astronautId) return;
+    transitionTo(() => { selectAstronaut(id); setResetToken((token) => token + 1); });
+  }, [astronautId, selectAstronaut, transitionTo]);
+
   const returnHome = useCallback(() => {
     transitionTo(() => {
       setActiveView("houston");
       setActiveSection("human-vitals");
-      setBodyVariant("male");
       setResetToken((token) => token + 1);
     });
   }, [transitionTo]);
@@ -55,7 +71,7 @@ export function DashboardShell() {
           brand="S.L.O.T.H."
           onBrandClick={returnHome}
           items={[
-            { label: "Houston", active: activeView === "houston", onClick: () => transitionTo(() => { setActiveView("houston"); setActiveSection("human-vitals"); }), icon: <DashboardIcon name="grid" size={14} />, menu: (
+            { label: "Houston", active: activeView === "houston", onClick: () => transitionTo(() => { setActiveView("houston"); setActiveSection("human-vitals"); selectAstronaut(astronautId); }), icon: <DashboardIcon name="grid" size={14} />, menu: (
               <div className="pill-nav__menu-panel">
                 <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("houston"); setActiveSection("crew-data"); })}>
                   <span className="pill-nav__submenu-icon"><DashboardIcon name="crew" size={15} /></span>
@@ -79,7 +95,7 @@ export function DashboardShell() {
                 </button>
               </div>
             ) },
-            { label: "ISS", active: activeView === "iss", onClick: () => transitionTo(() => { setActiveView("iss"); setActiveSection("human-vitals"); }), icon: <DashboardIcon name="orbit" size={14} />, menu: (
+            { label: "Astronaut", active: activeView === "iss", onClick: () => transitionTo(() => { setActiveView("iss"); setActiveSection("human-vitals"); selectAstronaut(astronautId); }), icon: <DashboardIcon name="orbit" size={14} />, menu: (
               <div className="pill-nav__menu-panel"><button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("iss"); setActiveSection("mission"); })}>
                 <span className="pill-nav__submenu-icon"><DashboardIcon name="activity" size={15} /></span>
                 <span className="pill-nav__submenu-copy"><strong>Schedule</strong><small>Daily program</small></span>
@@ -87,11 +103,9 @@ export function DashboardShell() {
               </button></div>
             ) },
           ]}
-          trailing={(
-            <div className="pill-nav__model-controls" role="group" aria-label="Body model and reset controls">
-              <span className="pill-nav__section-label"><TextType text="Model" /></span>
-              <button className={bodyVariant === "male" ? "is-active" : ""} type="button" aria-pressed={bodyVariant === "male"} onClick={() => transitionTo(() => setBodyVariant("male"))}><TextType text="Male" /></button>
-              <button className={bodyVariant === "female" ? "is-active" : ""} type="button" aria-pressed={bodyVariant === "female"} onClick={() => transitionTo(() => setBodyVariant("female"))}><TextType text="Female" /></button>
+          trailing={activeSection === "human-vitals" && (
+            <div className="pill-nav__model-controls" role="group" aria-label="Astronaut and body view controls">
+              <div className="pill-nav__crew-select"><Dropdown label="Astronaut" value={astronautId} onChange={changeAstronaut} options={demoCrewMappings.map((member) => ({ value: member.astronautId, label: member.name, initials: member.name.split(" ").map((part) => part[0]).join("") }))} /></div>
               <span className="pill-nav__divider" aria-hidden="true" />
               <button className="pill-nav__reset" type="button" aria-label="Reset body view" onClick={() => transitionTo(() => setResetToken((token) => token + 1))}>
                 <RotateCcw size={14} aria-hidden="true" />
@@ -100,7 +114,7 @@ export function DashboardShell() {
             </div>
           )}
         />
-        {activeSection === "human-vitals" ? <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} />
+        {activeSection === "human-vitals" ? <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} astronautId={astronautId} />
           : activeSection === "crew-data" ? <CrewDataDashboard onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />
           : activeSection === "mission" ? <MissionDashboard key={activeView} perspective={activeView} onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />
           : <div className="dashboard-shell__data-panel">{activeSection === "sleep-history" ? <SleepDataPanel /> : <DataAgentPanel />}</div>}

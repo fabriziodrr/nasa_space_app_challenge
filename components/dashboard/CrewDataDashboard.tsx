@@ -10,6 +10,9 @@ import { selectDemoProfile } from "@/client/demo-session";
 import { getReports } from "@/client/dashboard/mission-api";
 import { demoCrewMappings } from "@/server/agent/demo-crew";
 import type { GroundReport } from "@/server/agent/contracts";
+import { reportContent } from "@/client/dashboard/report-content";
+import { ReportData } from "./ReportData";
+import { Dropdown } from "../ui/Dropdown";
 import { TextType } from "@/components/reactbits/TextType";
 import styles from "./CrewDataDashboard.module.css";
 
@@ -120,21 +123,16 @@ function VisionReport({ profileId }: { profileId: string }) {
   return <div className={`${styles.sleepContent} ${styles.reveal}`}>
     <p className={styles.sleepNotice}>The selected astronaut&apos;s shared report uses data frozen at check-in confirmation.</p>
     <div className={styles.visionControls}>
-      {reports.length > 0 && <label>Check-in <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
-        {reports.map((item) => <option key={item.id} value={item.id}>{new Date(item.generatedAt).toLocaleString()} · {item.checkInId}</option>)}
-      </select></label>}
+      {reports.length > 0 && <div><label htmlFor="crew-checkin">Check-in</label><Dropdown id="crew-checkin" label="Check-in" value={selectedId} onChange={setSelectedId} options={reports.map((item) => ({ value: item.id, label: new Date(item.generatedAt).toLocaleString() }))} /></div>}
       <button type="button" disabled={busy} onClick={() => setRefresh((value) => value + 1)}>{busy ? "Loading…" : "Refresh"}</button>
     </div>
     {message && <p className={styles.sleepNotice} role="alert">{message}</p>}
     {report && <div aria-live="polite">
-      <p className={styles.sleepFootnote}>Check-in {report.checkInId} · generated {new Date(report.generatedAt).toLocaleString()}</p>
-      <div className={styles.sleepSensorGrid}>
-        {report.findings.map((finding, index) => <SpotlightCard className={styles.sleepSensor} spotlightColor="rgba(59, 26, 189, 0.12)" style={{ animationDelay: `${index * 55}ms` }} key={`${finding.source}-${index}`}><span>{finding.source}</span><p>{finding.text}</p></SpotlightCard>)}
-        {!report.findings.length && <p>No shared findings.</p>}
-      </div>
-      {report.discrepancies.length > 0 && <><h3>Differences to review</h3><ul>{report.discrepancies.map((finding, index) => <li key={index}>{finding.text}</li>)}</ul></>}
-      {report.uncertainties.length > 0 && <><h3>Limitations</h3><ul>{report.uncertainties.map((item, index) => <li key={index}>{item}</li>)}</ul></>}
-      {report.humanReview.required && <p className={styles.sleepNotice}>Human review: {report.humanReview.reason}</p>}
+      <p className={styles.sleepFootnote}>Generated {new Date(report.generatedAt).toLocaleString()}</p>
+      <ReportData report={report} />
+      {report.discrepancies.length > 0 && <><h3>Differences to review</h3><ul>{report.discrepancies.map((finding, index) => <li key={index}>{reportContent(finding.text)}</li>)}</ul></>}
+      {report.uncertainties.length > 0 && <><h3>Limitations</h3><ul>{report.uncertainties.map((item, index) => <li key={index}>{reportContent(item)}</li>)}</ul></>}
+      {report.humanReview.required && <p className={styles.sleepNotice}>Human review: {reportContent(report.humanReview.reason)}</p>}
     </div>}
   </div>;
 }

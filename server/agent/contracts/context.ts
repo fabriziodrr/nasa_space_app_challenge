@@ -82,6 +82,7 @@ export const EvidenceRefSchema = z.discriminatedUnion("source", [
 ]);
 export const FindingSchema = z.strictObject({
   text: TextSchema,
+  measurements: z.array(z.strictObject({ label: z.string().max(200), value: z.union([z.string().max(8000), z.number()]), unit: z.string().max(40), observedAt: TimestampSchema.nullable(), simulated: z.boolean() })).max(50).optional(),
   source: z.enum(["sensor", "self_report", "vision", "inference"]),
   evidence: z.array(EvidenceRefSchema).min(1).max(50),
 }).refine((finding) => finding.source === "inference"

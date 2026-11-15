@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-*/
 out/
 
 # Local environment and SQLite database
@@ -11,6 +12,8 @@ prisma/*.db-journal
 *.tsbuildinfo
 npm-debug.log*
 .npm-cache/
+.gui-review-temp/
+server/.pytest-*/
 
 # Python data backend
 server/.venv/

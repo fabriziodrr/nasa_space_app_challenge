@@ -2,15 +2,17 @@ import { z } from "zod";
 import { TextSchema } from "./common";
 import { GroundReportSchema, ObservationsSchema } from "./conversation";
 import { ProposalCandidateSchema } from "./scheduling";
+import { FindingSchema } from "./context";
 
 export const ConversationOutputSchema = z.strictObject({
   reply: TextSchema,
   observations: ObservationsSchema,
   missingFields: z.array(z.enum(["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES"])).max(6),
 });
+const AiFindingSchema = z.strictObject({ text: FindingSchema.shape.text, source: FindingSchema.shape.source, evidence: FindingSchema.shape.evidence }).refine((finding) => finding.source === "inference" || finding.evidence.every((ref) => ref.source === finding.source), { message: "Finding sources must match their evidence" });
 export const ReportContentSchema = GroundReportSchema.omit({
   id: true, astronautId: true, checkInId: true, generatedAt: true, proposalId: true,
-});
+}).extend({ findings: z.array(AiFindingSchema).max(30), discrepancies: z.array(AiFindingSchema).max(20) });
 export const OperationalOutputSchema = z.strictObject({
   report: ReportContentSchema,
   proposal: ProposalCandidateSchema.nullable(),

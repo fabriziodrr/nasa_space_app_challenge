@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Dropdown } from '../../../../components/ui/Dropdown';
 import { useWebcam } from '../capture/use-webcam';
 import { SyntheticReplay } from '../ui/SyntheticReplay';
 import { LiveSession } from './live-session';
@@ -26,6 +27,7 @@ const interruptionLabels: Record<SessionInterruptionReason, string> = {
 };
 
 export function App() {
+  const embedded = new URLSearchParams(window.location.search).get('embedded') === '1';
   const [live, setLive] = useState<LiveSnapshot | null>(null);
   const [exportError, setExportError] = useState('');
   const [bridgeState, setBridgeState] = useState<'idle' | 'sending' | 'failed' | 'sent'>('idle');
@@ -67,17 +69,24 @@ export function App() {
       setBridgeError(error instanceof Error ? error.message : 'Sending failed.');
     }
   }, [live, parentOrigin, session]);
+  useEffect(() => {
+    if (!parentOrigin) return;
+    // Final confirmation waits until the current measurement is attached.
+    const pending = live?.phase === 'measuring'
+      || Boolean(live?.engine?.status === 'stopped' && live.exportProfile && bridgeState !== 'sent');
+    window.parent.postMessage({ channel: 'crewready-vision-agent-v1', type: 'MEASUREMENT_STATE', pending }, parentOrigin);
+  }, [live?.phase, live?.engine?.status, live?.exportProfile, bridgeState, parentOrigin]);
   const [mirrored, setMirrored] = useState(true);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(embedded);
   const pending = snapshot.status === 'requesting' || snapshot.status === 'starting';
   const active = snapshot.status === 'active';
   const canStop = pending || active;
 
   return (
-    <main className="page">
+    <main className={`page ${embedded ? 'page-embedded' : ''}`}>
       <header className="brand">CrewReady <span>Local prototype</span></header>
       {!parentOrigin && <p role="alert">Measurement is local only: this page is not connected to an astronaut session. Open “Open eyelid vision” inside your agent check-in to send measurements to the report.</p>}
-      {parentOrigin && <p role="status">Connected to your agent session. After stopping the measurement, wait for “Measurement connected to the agent”.</p>}
+      {parentOrigin && <p role="status">Measurements are added automatically to your check-in draft when stopped. Review the sources and use Complete check-in in the main panel to submit once.</p>}
       <section className="intro" aria-labelledby="page-title">
         <p className="eyebrow">Eyelid observation</p>
         <h1 id="page-title">Eyelid measurement</h1>
@@ -121,6 +130,7 @@ export function App() {
               )}
               {active && <span className="live-label"><span />Live</span>}
             </div>
+            {embedded && <div className="live-chart-feature"><h3>Live eyelid openness</h3><LiveChart points={live?.history ?? []} /></div>}
             <label className="mirror-control">
               <input type="checkbox" checked={mirrored} onChange={(event) => setMirrored(event.target.checked)} />
               Mirror preview
@@ -129,15 +139,11 @@ export function App() {
           </div>
           <div className="camera-controls">
             <label htmlFor="camera-device">Video source</label>
-            <select id="camera-device" value={deviceId} disabled={pending} onChange={(event) => selectDevice(event.target.value)}>
-              <option value="">Default camera</option>
-              {deviceId && !devices.some((device) => device.deviceId === deviceId) && (
-                <option value={deviceId}>Selected camera unavailable</option>
-              )}
-              {devices.map((device, index) => (
-                <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>
-              ))}
-            </select>
+            <Dropdown id="camera-device" label="Video source" value={deviceId} disabled={pending} onChange={selectDevice} options={[
+              { value: '', label: 'Default camera' },
+              ...(deviceId && !devices.some((device) => device.deviceId === deviceId) ? [{ value: deviceId, label: 'Selected camera unavailable' }] : []),
+              ...devices.map((device, index) => ({ value: device.deviceId, label: device.label || `Camera ${index + 1}` })),
+            ]} />
             <p className="field-hint">The list updates after permission is granted. Changing the source stops the preview.</p>
             {deviceMessage && <p className="field-hint">{deviceMessage}</p>}
             <div className="camera-actions">
@@ -179,7 +185,7 @@ export function App() {
           {(['left', 'right'] as const).map((side) => <article className="replay-card" key={side}><h3>Eye {side === 'left' ? 'left' : 'right'}</h3><p>Stato: {{ open: 'Open', closed: 'Closed', unknown: 'Unusable' }[live.engine!.current[side].state]}</p><p>Normalized openness: {live.engine!.current[side].openness?.toFixed(2) ?? 'Unavailable'}</p></article>)}
           <article className="replay-card"><h3>Summary</h3><p>Valid time: {live.engine.session.validMs.toFixed(0)} ms</p><p>Coverage: {live.engine.session.coverage === null ? 'Unavailable' : `${(live.engine.session.coverage * 100).toFixed(1)}%`}</p><p>Experimental closure time fraction: {live.engine.session.closureFraction === null ? 'Unavailable' : `${(live.engine.session.closureFraction * 100).toFixed(1)}%`}</p><p>Complete closures: {live.engine.session.closures.completeCount}; incomplete: {live.engine.session.closures.incompleteCount}</p></article>
         </div>}
-        {live?.engine && <><h3>Measurement timeline</h3>{live.chartReduced && <p>Simplified chart; original samples remain in the export.</p>}<LiveChart points={live.history} /><h3>Bilateral events</h3>{live.engine.session.events.filter((event) => event.kind === 'bilateral').length === 0 ? <p>No events observed.</p> : <ul>{live.engine.session.events.filter((event) => event.kind === 'bilateral').map((event) => <li key={event.id}>{event.durationMs.toFixed(0)} ms · {event.complete ? 'complete' : 'incomplete'} · {event.endedReason ?? 'in progress'}</li>)}</ul>}</>}
+        {live?.engine && <>{!embedded && <><h3>Measurement timeline</h3><LiveChart points={live.history} /></>}{live.chartReduced && <p>Simplified chart; original samples remain in the export.</p>}<h3>Bilateral events</h3>{live.engine.session.events.filter((event) => event.kind === 'bilateral').length === 0 ? <p>No events observed.</p> : <ul>{live.engine.session.events.filter((event) => event.kind === 'bilateral').map((event) => <li key={event.id}>{event.durationMs.toFixed(0)} ms · {event.complete ? 'complete' : 'incomplete'} · {event.endedReason ?? 'in progress'}</li>)}</ul>}</>}
         <button className="button-secondary" type="button" disabled={!live?.engine || !live.exportProfile} onClick={() => {
           if (!live) return;
           try { downloadExport(session.exportSnapshot(live)); setExportError(''); }
@@ -187,16 +193,15 @@ export function App() {
         }}>Export webcam JSON</button>
         {!parentOrigin && <p role="alert">These results have not been sent. A standalone vision page cannot attach them to an astronaut. Keep this page open to export your measurement, or start vision from the agent session.</p>}
         {parentOrigin && <>
-          <button className="button-primary" type="button" disabled={bridgeState === 'sending' || (bridgeState !== 'failed' && (!live?.engine || live.engine.status !== 'stopped' || !live.exportProfile))} onClick={() => {
+          {(bridgeState === 'failed' || (bridgeError && bridgeState !== 'sending')) && <button className="button-primary" type="button" onClick={() => {
             try {
-              if (bridgeState === 'failed') bridge.current?.send('');
-              else if (live) bridge.current?.send(JSON.stringify(session.exportSnapshot(live)));
+              if (live) bridge.current?.send(JSON.stringify(session.exportSnapshot(live)));
               setBridgeError('');
             } catch (error) { setBridgeError(error instanceof Error ? error.message : 'Sending failed.'); }
-          }}>{bridgeState === 'sending' ? 'Sending…' : bridgeState === 'failed' ? 'Retry sending to agent' : 'Send measurement to agent'}</button>
-          {bridgeState === 'failed' && <button className="button-secondary" type="button" onClick={() => { bridge.current?.clear(); setBridgeError(''); }}>Cancel pending submission</button>}
-          {bridgeState === 'sent' && <p role="status">Measurement connected to the agent.</p>}
-          {bridgeState === 'failed' && <p role="alert">Submission unconfirmed. Retry or cancel; the measurement may already have reached the agent.</p>}
+          }}>Retry attaching measurement</button>}
+          {bridgeState === 'sending' && <p role="status">Adding measurement to the check-in draft…</p>}
+          {bridgeState === 'sent' && <p role="status">Measurement added to the check-in draft. Complete the check-in in the main panel when ready.</p>}
+          {bridgeState === 'failed' && <p role="alert">Attachment unconfirmed. Retry before completing the check-in; the measurement may already have reached the draft.</p>}
           {bridgeError && <p role="alert">{bridgeError}</p>}
         </>}
         {exportError && <p role="alert">{exportError}</p>}

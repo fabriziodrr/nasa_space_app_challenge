@@ -17,6 +17,23 @@ type SleepGroup = {
 };
 type Analysis = { status: string; synthetic: boolean; truncated: boolean; groups: SleepGroup[] };
 
+const dateLabel = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+
+function SleepSummaryCards({ group }: { group: SleepGroup }) {
+  const points = [...group.series].sort((a, b) => a.day_utc.localeCompare(b.day_utc));
+  const first = points[0], last = points.at(-1);
+  const period = first && last ? `${dateLabel(first.day_utc)} – ${dateLabel(last.day_utc)}` : "No observations";
+  const coverage = group.coverage.expected_utc_days > 0 ? Math.round(group.coverage.days_with_episode / group.coverage.expected_utc_days * 100) : null;
+  const change = group.trend.last_minus_first_hours;
+  const fatigue = group.feedback_comparison.pairs.length ? group.feedback_comparison.pairs.reduce((sum, pair) => sum + pair.fatigue_rating, 0) / group.feedback_comparison.pairs.length : null;
+  return <div className={styles.metrics}>
+    <SpotlightCard className={styles.metricCard} spotlightColor="rgba(59, 26, 189, .1)"><span className={styles.metricSource}>SPACECRAFT DATA · SIMULATED</span><h4>Average sleep</h4><strong><CountUp value={group.summary.mean_sleep_hours.toFixed(1)} /><small> h</small></strong><p>Median {group.summary.median_sleep_hours.toFixed(1)} h · {group.summary.episode_count} episodes</p><time>{period}</time></SpotlightCard>
+    <SpotlightCard className={styles.metricCard} spotlightColor="rgba(86, 198, 212, .1)"><span className={styles.metricSource}>DATA AVAILABILITY</span><h4>Days covered</h4><strong>{coverage === null ? "—" : <CountUp value={String(coverage)} />}<small> %</small></strong><p>{group.coverage.days_with_episode} of {group.coverage.expected_utc_days} days recorded</p><small className={styles.metricNote}>{group.coverage.missing_utc_days.length ? `${group.coverage.missing_utc_days.length} days missing or invalid` : "No missing days"}</small><time>{period}</time></SpotlightCard>
+    <SpotlightCard className={styles.metricCard} spotlightColor="rgba(214, 167, 68, .1)"><span className={styles.metricSource}>SPACECRAFT DATA · SIMULATED</span><h4>Sleep change</h4><strong>{change === null ? "—" : `${change > 0 ? "+" : ""}${change.toFixed(1)}`}<small> h</small></strong><p>{change === null ? "At least two episodes needed" : change > 0 ? "Longer sleep in the last episode" : change < 0 ? "Shorter sleep in the last episode" : "Same duration in first and last episode"}</p><small className={styles.metricNote}>Last episode compared with first</small><time>{period}</time></SpotlightCard>
+    <SpotlightCard className={`${styles.metricCard} ${styles.speechCard}`} spotlightColor="rgba(59, 26, 189, .1)"><span className={styles.metricSource}>DATA FROM SPEECH · SIMULATED</span><h4>Average reported fatigue</h4><strong>{fatigue === null ? "—" : <CountUp value={fatigue.toFixed(1)} />}<small> / 10</small></strong><p>{fatigue === null ? "No confirmed fatigue reports" : `${group.feedback_comparison.pair_count} confirmed reports paired with sleep`}</p><small className={styles.metricNote}>Reported score, not an optical measurement</small><time>Sleep period: {period}</time></SpotlightCard>
+  </div>;
+}
+
 export function SleepDataPanel() {
   const [subject, setSubject] = useState("sleep-demo-14d");
   const [start, setStart] = useState("2026-11-01");
@@ -57,13 +74,8 @@ export function SleepDataPanel() {
     {status && <p className={styles.notice} role="status">{status}</p>}
     {analysis?.truncated && <p className={styles.notice}>Partial data: the backend limit was reached.</p>}
     {analysis?.groups.map((group) => <article className={`${styles.group} ${styles.reveal}`} key={`${group.device_id}:${group.method}`}>
-      <div className={styles.groupTitle}><div><span className={styles.sectionLabel}>PERIOD OVERVIEW</span><h3>Sleep summary</h3></div><span className={styles.source}>Device: {group.device_id} · Method: {group.method}</span></div>
-      <div className={styles.metrics}>
-        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(59, 26, 189, 0.14)" style={{ animationDelay: "80ms" }}><span>Average duration</span><strong><CountUp value={group.summary.mean_sleep_hours.toFixed(2)} /><small> h</small></strong><em>Per recorded sleep episode</em></SpotlightCard>
-        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(86, 198, 212, 0.16)" style={{ animationDelay: "140ms" }}><span>Data coverage</span><strong><CountUp value={String(group.coverage.days_with_episode)} /> <small>/ {group.coverage.expected_utc_days} days</small></strong><em>Days with a valid episode</em></SpotlightCard>
-        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(214, 167, 68, 0.16)" style={{ animationDelay: "200ms" }}><span>Duration trend</span><strong>{group.trend.direction ?? "Not available"}</strong><em>{group.trend.last_minus_first_hours === null ? "More data needed" : `${group.trend.last_minus_first_hours > 0 ? "+" : ""}${group.trend.last_minus_first_hours.toFixed(1)} h, last vs first`}</em></SpotlightCard>
-        <SpotlightCard className={styles.metricCard} spotlightColor="rgba(59, 26, 189, 0.14)" style={{ animationDelay: "260ms" }}><span>Fatigue reports</span><strong><CountUp value={String(group.feedback_comparison.pair_count)} /></strong><em>Confirmed, paired with sleep</em></SpotlightCard>
-      </div>
+      <div className={styles.groupTitle}><div><span className={styles.sectionLabel}>PERIOD OVERVIEW</span><h3>Sleep summary</h3></div><span className={styles.source}>Simulated spacecraft data & confirmed reports</span></div>
+      <SleepSummaryCards group={group} />
       <div className={styles.chartHeader}><div><span className={styles.sectionLabel}>LONGITUDINAL VIEW</span><h3>Sleep duration</h3><p>One recorded episode per UTC day</p></div><span className={styles.legend}><i /> SLEEP / HOURS</span></div>
        <div className={styles.chartWrap}><div className={styles.axis} aria-hidden="true"><span>12h</span><span>6h</span><span>0h</span></div><div className={styles.chart} aria-label="Sleep duration by day, scale capped at 12 hours">
          {group.series.map((point, index) => {
@@ -73,7 +85,7 @@ export function SleepDataPanel() {
           </div>;
         })}
         </div></div>
-      <div className={styles.infoGrid}><div><span className={styles.sectionLabel}>DATA COMPLETENESS</span><p>Missing or invalid UTC days: {group.coverage.missing_utc_days.join(", ") || "none"}.</p></div><div><span className={styles.sectionLabel}>INTERPRETATION</span><p>F = confirmed self-reported fatigue / 10. Chart is capped at 12 h; values above it remain labeled. Trends are descriptive, not a diagnosis.</p></div></div>
+      <div className={styles.infoGrid}><div><span className={styles.sectionLabel}>DATA COMPLETENESS</span><p>{group.coverage.missing_utc_days.length ? `${group.coverage.missing_utc_days.length} days have missing or invalid observations.` : "Every day in the selected period has a valid episode."}</p>{group.coverage.missing_utc_days.length > 0 && <details><summary>View missing dates</summary><p>{group.coverage.missing_utc_days.map(dateLabel).join(", ")}</p></details>}</div><div><span className={styles.sectionLabel}>READING THIS CHART</span><p>Bars show sleep duration; F shows reported fatigue out of 10. Missing reports stay blank. Changes describe recorded data and do not establish a diagnosis.</p><details><summary>Source details</summary><p>Device: {group.device_id} · Method: {group.method}. UTC dates; chart capped at 12 h, with full values labeled.</p></details></div></div>
       <details className={styles.tableDetails}><summary>View observations as a table</summary><div className={styles.tableScroll}><table><thead><tr><th scope="col">UTC date</th><th scope="col">Sleep duration</th><th scope="col">Reported fatigue</th></tr></thead><tbody>{group.series.map((point) => { const report = group.feedback_comparison.pairs.find((pair) => pair.sleep_observation_id === point.observation_id); return <tr key={point.observation_id}><td>{point.day_utc}</td><td>{point.sleep_hours.toFixed(1)} h</td><td>{report ? `${report.fatigue_rating} / 10` : "Not reported"}</td></tr>; })}</tbody></table></div></details>
     </article>)}
   </section>;

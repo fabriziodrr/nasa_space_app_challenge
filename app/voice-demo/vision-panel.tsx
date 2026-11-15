@@ -5,10 +5,11 @@ import Link from "next/link";
 import { DemoApiError, confirmVision, selectVision, uploadVision } from "../../client/vision/demo-api";
 import { parseVisionBridgeMessage, visionOrigin, VISION_BRIDGE_CHANNEL } from "../../client/vision/bridge";
 import { SessionResponseSchema, type CheckIn, type VisionObservation } from "../../server/agent/contracts";
+import { reportContent } from "../../client/dashboard/report-content";
 import styles from "./voice-demo.module.css";
 
 type Confirmation = { expectedRevision: number; sharedObservationIds: string[]; vision: { visionObservationId: string | null; shareWithGround: boolean } };
-type Props = { token: string; sessionId: string; astronautId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
+type Props = { embedded?: boolean; token: string; sessionId: string; astronautId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
   run<T>(operation: () => Promise<T>): Promise<T>; onCheckIn(checkIn: CheckIn): void; onConfirmationPending(value: boolean): void };
 
 const labels: Record<string, string> = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1–10)",
@@ -18,7 +19,7 @@ const reasonLabels: Record<string, string> = { NO_VALID_TIME: "no valid time", T
   SYNTHETIC_TIME_UNAVAILABLE: "real time unavailable for the synthetic replay" };
 const percent = (value: number | null) => value === null ? "unavailable" : `${(value * 100).toFixed(1)}%`;
 
-export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
+export function VisionPanel({ embedded = false, token, sessionId, astronautId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
   const [observations, setObservations] = useState<VisionObservation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sharedVision, setSharedVision] = useState(false);
@@ -26,7 +27,8 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [selectionUncertain, setSelectionUncertain] = useState(false);
-  const [showVision, setShowVision] = useState(false);
+  const [measurementPending, setMeasurementPending] = useState(false);
+  const [showVision, setShowVision] = useState(embedded);
   const [generation, setGeneration] = useState<"NOT_STARTED" | "PROCESSING" | "READY" | "FAILED" | "UNAVAILABLE">("NOT_STARTED");
   const [noChangeReason, setNoChangeReason] = useState<string | null>(null);
   const [integrated, setIntegrated] = useState<{ sleepHours: number | null; visionStatus: string; visionSource: string | null; visionQuality: string | null } | null>(null);
@@ -69,6 +71,12 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
     if (!bridgeOrigin) return;
     function receive(event: MessageEvent) {
       const frame = iframe.current?.contentWindow ?? null;
+      if (frame && event.source === frame && event.origin === bridgeOrigin && event.data
+          && event.data.channel === VISION_BRIDGE_CHANNEL && event.data.type === "MEASUREMENT_STATE"
+          && typeof event.data.pending === "boolean") {
+        setMeasurementPending(event.data.pending);
+        return;
+      }
       const received = parseVisionBridgeMessage(event, bridgeOrigin!, frame);
       if (!received || !frame || inFlight.current.has(received.requestId)) return;
       const answer = (ok: boolean, message: string) => frame.postMessage({ channel: VISION_BRIDGE_CHANNEL,
@@ -80,8 +88,9 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
         setObservations((current) => [result, ...current.filter((item) => item.id !== result.id)]);
         await selectVision(token, sessionId, result.id);
         setSelectedId(result.id); setSharedVision(false); setIntegrated(null);
-        setMessage("Measurement received and connected to this session.");
-        answer(true, "Measurement received and connected to this session.");
+        setMeasurementPending(false);
+        setMessage("Optical measurement added to the check-in draft. Review it below, then complete the check-in once.");
+        answer(true, "Measurement added to the check-in draft.");
       }).catch((e) => {
         setError(e instanceof Error ? e.message : "Measurement could not be connected. Retry sending it from the vision panel.");
         answer(false, "Upload failed. Check the connection and try again.");
@@ -131,7 +140,7 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
     });
   }
   async function confirm() {
-    if (!checkIn) return;
+    if (!checkIn || measurementPending || inFlight.current.size > 0) return;
     const body = pendingConfirmation.current ?? {
       expectedRevision: checkIn.revision,
       sharedObservationIds: checkIn.observations.filter((item) => sharedIds.includes(item.id)).map((item) => item.id),
@@ -144,7 +153,7 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
       try {
         const result = await confirmVision(token, checkIn.id, body);
         onCheckIn(result.checkIn); pendingConfirmation.current = null; onConfirmationPending(false);
-        setMessage("Check-in confirmed. Report generation has started.");
+        setMessage("Complete check-in submitted. Report generation has started with the shared observations and available sensor context.");
       } catch (e) {
         if (e instanceof DemoApiError && e.status >= 400 && e.status < 500) {
           pendingConfirmation.current = null; onConfirmationPending(false);
@@ -155,17 +164,16 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
     if (!started) { pendingConfirmation.current = null; onConfirmationPending(false); }
   }
 
-  return <section className={styles.panel} aria-labelledby="vision-title">
-    <h2 id="vision-title">Eyelid measurement and check-in</h2>
-    <p>The observations below belong to this session. Houston receives a report after you select what to share and confirm the check-in.</p>
-    <p>The completed eyelid measurement is connected automatically. Its usability is reassessed on confirmation.</p>
-    <p>The selected measurement is used by the agent and may be sent to the configured AI provider. Sharing with ground is chosen separately at confirmation.</p>
+  return <section className={`${styles.panel} ${embedded ? styles.visionEmbedded : ""}`} aria-labelledby="vision-title">
+    <h2 id="vision-title">{embedded ? "Live eye tracking" : "Eyelid measurement and check-in"}</h2>
+    <p>Stopping an optical measurement adds it automatically to this check-in draft and makes it available to the configured AI provider. Complete the check-in below to submit the selected information together. You choose what to share with Houston.</p>
+    {!embedded && <p>The completed eyelid measurement is connected automatically. Its usability is reassessed on confirmation.</p>}
     {bridgeOrigin ? <>
-      <button type="button" onClick={() => setShowVision((value) => !value)} disabled={busy || locked || confirmed}>
+      <button type="button" onClick={() => { if (showVision) setMeasurementPending(false); setShowVision((value) => !value); }} disabled={busy || locked || confirmed}>
         {showVision ? "Close eyelid vision" : "Open eyelid vision"}
       </button>
-      {showVision && !confirmed && <><p>Start the eyelid prototype at {bridgeOrigin}, calibrate and complete the measurement.</p>
-        <iframe ref={iframe} title="Eyelid vision prototype" src={`${bridgeOrigin}/?agent_origin=${encodeURIComponent(window.location.origin)}`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
+      {showVision && !confirmed && <><p>{embedded ? "Start the camera, then calibrate to begin the measurement." : `Start the eyelid prototype at ${bridgeOrigin}, calibrate and complete the measurement.`}</p>
+        <iframe ref={iframe} title="Eyelid vision prototype" src={`${bridgeOrigin}/?agent_origin=${encodeURIComponent(window.location.origin)}${embedded ? "&embedded=1" : ""}`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
       </>}
     </> : <p role="alert">Invalid eyelid prototype address.</p>}
     {observations.length > 0 && <div className={styles.visionList}>
@@ -190,11 +198,16 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
     </div>}
     {selectionUncertain && <><p>The selection may have been received. Retry to verify before continuing.</p>
       <button type="button" disabled={busy} onClick={() => { if (pendingSelection.current) void select(pendingSelection.current.id); }}>Retry selection</button></>}
-    <h3>Check-in review</h3>
+    <h3>Complete check-in</h3>
     {!checkIn ? <p>Send at least one message to create a draft, then choose what to share.</p> : <>
-      <p>Status: {confirmed ? "confirmed" : "draft"}. Select the information you want to share with Houston. Speech is stored as transcribed observations; the report does not contain an audio recording.</p>
-      {checkIn.observations.length === 0 ? <p>No self-reported observations in the draft.</p> :
-        <fieldset disabled={busy || locked || confirmed}><legend>Personal observations to share</legend>
+      <p>Status: {confirmed ? "confirmed" : "draft"}. Review all sources before submitting. The speech data are transcribed observations; the report does not contain an audio recording.</p>
+      <ul aria-label="Check-in sources">
+        <li>Data from speech: {checkIn.observations.filter((item) => sharedIds.includes(item.id)).length} of {checkIn.observations.length} observations selected for Houston.</li>
+        <li>Onboard sensor data: available context is included automatically at confirmation, with its source and quality.</li>
+        <li>Optical sensor: {selected ? (sharedVision ? "selected measurement included for Houston" : "measurement attached; select sharing below to include it for Houston") : "no completed measurement attached"}.</li>
+      </ul>
+      {checkIn.observations.length === 0 ? <p>No data from speech in the draft.</p> :
+        <fieldset disabled={busy || locked || confirmed}><legend>Data from speech to share</legend>
           {checkIn.observations.map((item) => <label className={styles.choice} key={item.id}>
             <input type="checkbox" checked={sharedIds.includes(item.id)} onChange={(event) => {
               const checked = event.target.checked;
@@ -205,13 +218,14 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
         </fieldset>}
       {selected && <label className={styles.choice}><input type="checkbox" checked={sharedVision} disabled={busy || locked || confirmed}
         onChange={(event) => setSharedVision(event.target.checked)} /><span>Share the selected {selected.source === "synthetic" ? "synthetic" : "webcam"} measurement with ground.</span></label>}
-      {!selected && <p>No measurement selected: you can still confirm the check-in.</p>}
-      {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain}>{locked && !selectionUncertain ? "Retry confirmation" : "Confirm check-in"}</button>}
+      {!selected && <p>No optical measurement selected: you can still complete the check-in with the other available data.</p>}
+      {measurementPending && <p role="status">Finish the optical measurement and wait for its attachment before completing the check-in.</p>}
+      {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain || measurementPending}>{locked && !selectionUncertain ? "Retry complete check-in" : "Complete check-in"}</button>}
       {locked && !selectionUncertain && !confirmed && <p>The confirmation may have been received. Retry without changing the selection.</p>}
       {confirmed && <div role="status">
         <p>When the report is ready, open <Link href="/">Houston → Data agent</Link> and select {astronautId} and this check-in.</p>
         <p>{generation === "READY" ? "Report ready for ground control." : generation === "FAILED" ? "Report generation failed." : generation === "UNAVAILABLE" ? "Report status unavailable." : "Report generation in progress."}</p>
-        {generation === "READY" && noChangeReason && <p>No proposal: {noChangeReason}</p>}
+        {generation === "READY" && noChangeReason && <p>No proposal: {reportContent(noChangeReason)}</p>}
         {(generation === "FAILED" || generation === "NOT_STARTED") && <button type="button" disabled={busy} onClick={() => void retryGeneration()}>Retry generation</button>}
       </div>}
     </>}
