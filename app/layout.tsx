@@ -13,6 +13,10 @@ const bebasNeue = Bebas_Neue({
 export const metadata: Metadata = {
   title: "S.L.O.T.H.",
   description: "S.L.O.T.H. mission operations interface.",
+  icons: {
+    icon: "/sloth-face.png",
+    shortcut: "/sloth-face.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
