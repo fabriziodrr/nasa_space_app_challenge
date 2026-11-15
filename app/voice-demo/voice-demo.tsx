@@ -8,6 +8,7 @@ import { speakServerReply } from "../../client/voice/server-speech";
 import type { SpeakHandle } from "../../client/voice/speech";
 import { CreateSessionResponseSchema, MessageResponseSchema, type CheckIn } from "../../server/agent/contracts";
 import { VisionPanel } from "./vision-panel";
+import { demoCrewMappings } from "../../server/agent/demo-crew";
 import styles from "./voice-demo.module.css";
 
 type Message = { id: string; role: "ASTRONAUT" | "ASSISTANT"; text: string };
@@ -15,6 +16,7 @@ type Pending = { id: string; text: string; mode: "TEXT" | "VOICE" };
 
 export function VoiceDemo() {
   const [token, setToken] = useState("");
+  const [astronautId, setAstronautId] = useState("astro-1");
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [starting, setStarting] = useState(false);
@@ -64,7 +66,7 @@ export function VoiceDemo() {
     if (startingRef.current || !token.trim()) return;
     startingRef.current = true; setStarting(true); setError("");
     try {
-      const parsed = CreateSessionResponseSchema.parse(await request("/sessions", { astronautId: "astro-1" }));
+      const parsed = CreateSessionResponseSchema.parse(await request("/sessions", { astronautId }));
       if (mounted.current) setSessionId(parsed.data.id);
     } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Impossibile avviare la sessione."); }
     finally { startingRef.current = false; if (mounted.current) setStarting(false); }
@@ -140,7 +142,9 @@ export function VoiceDemo() {
         <p>Avvia una sessione, detta o scrivi un messaggio e ascolta la risposta.</p></header>
       {!sessionId ? <form className={styles.panel} onSubmit={start}>
         <label htmlFor="demo-token">Token demo astronauta</label>
-        <p>Inserisci il valore di <code>AGENT_DEMO_TOKEN</code> dal file locale <code>.env</code>. Non è la chiave NVIDIA.</p>
+        <label htmlFor="demo-astronaut">Profilo astronauta</label>
+        <select id="demo-astronaut" value={astronautId} onChange={(event) => setAstronautId(event.target.value)}>{demoCrewMappings.map((member) => <option value={member.astronautId} key={member.astronautId}>{member.name}</option>)}</select>
+        <p>Inserisci il valore di <code>{demoCrewMappings.find((member) => member.astronautId === astronautId)?.tokenEnv}</code> dal file locale <code>.env</code>. Non è la chiave NVIDIA.</p>
         <input id="demo-token" type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} />
         <button type="submit" disabled={starting || !token.trim()}>{starting ? "Avvio…" : "Avvia sessione"}</button>
         {error && <p role="alert">{error}</p>}
@@ -161,7 +165,7 @@ export function VoiceDemo() {
           </div>}
           {speechError && <p role="alert">{speechError}</p>}
         </section>
-        <VisionPanel token={token} sessionId={sessionId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+        <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
           run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
         <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
         <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>

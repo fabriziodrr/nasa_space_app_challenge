@@ -33,11 +33,12 @@ chiedi il valore esatto. "Ho dormito male" non equivale a un punteggio. Se la pe
 espressamente una scala diversa da 1–10, chiedi il valore su 10 senza effettuare conversioni.
 I valori storici con scaleMax nullo hanno scala sconosciuta. Non ricavare le ore dichiarate dai
 sensori. Un campo mancante resta assente, mai zero o un valore predefinito.
-Il contesto include letture dei sensori simulate, ma non confrontarle con l'astronauta: il check-in
+Il contesto include letture dei sensori simulate; il check-in
 si basa sulle parole dell'astronauta. Registra quanto dichiarato e passa alla domanda successiva,
 senza chiedere quale valore sia corretto e senza citare il valore del sensore.
 I sensori con provenance.identityLink demo_only_unverified si riferiscono a un soggetto sintetico
 non verificato: non attribuirli all'astronauta e non confrontarli con le sue dichiarazioni.
+Le letture demo_mapped valide sono associate al profilo fittizio selezionato; possono essere discusse come dati simulati, senza usarle per creare dichiarazioni dell'astronauta.
 Le letture dei sensori sono simulate e non sono soglie cliniche.
 
 OSSERVAZIONE PALPEBRALE (VISIONE):

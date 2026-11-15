@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { DemoApiError, confirmVision, selectVision, uploadVision } from "../../client/vision/demo-api";
 import { parseVisionBridgeMessage, visionOrigin, VISION_BRIDGE_CHANNEL } from "../../client/vision/bridge";
-import type { CheckIn, VisionObservation } from "../../server/agent/contracts";
+import { SessionResponseSchema, type CheckIn, type VisionObservation } from "../../server/agent/contracts";
 import styles from "./voice-demo.module.css";
 
 type Confirmation = { expectedRevision: number; sharedObservationIds: string[]; vision: { visionObservationId: string | null; shareWithGround: boolean } };
-type Props = { token: string; sessionId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
+type Props = { token: string; sessionId: string; astronautId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
   run<T>(operation: () => Promise<T>): Promise<T>; onCheckIn(checkIn: CheckIn): void; onConfirmationPending(value: boolean): void };
 
 const labels: Record<string, string> = { SLEEP_HOURS: "Ore di sonno", SLEEP_QUALITY: "Qualità del sonno",
@@ -17,7 +17,7 @@ const reasonLabels: Record<string, string> = { NO_VALID_TIME: "nessun tempo vali
   SYNTHETIC_TIME_UNAVAILABLE: "tempo reale non disponibile per il replay sintetico" };
 const percent = (value: number | null) => value === null ? "non disponibile" : `${(value * 100).toFixed(1)}%`;
 
-export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
+export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [observations, setObservations] = useState<VisionObservation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -27,6 +27,8 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   const [error, setError] = useState("");
   const [selectionUncertain, setSelectionUncertain] = useState(false);
   const [showVision, setShowVision] = useState(false);
+  const [generation, setGeneration] = useState<"NOT_STARTED" | "PROCESSING" | "READY" | "FAILED" | "UNAVAILABLE">("NOT_STARTED");
+  const [noChangeReason, setNoChangeReason] = useState<string | null>(null);
   const [integrated, setIntegrated] = useState<{ sleepHours: number | null; visionStatus: string; visionSource: string | null; visionQuality: string | null } | null>(null);
   const iframe = useRef<HTMLIFrameElement>(null);
   const inFlight = useRef(new Set<string>());
@@ -36,6 +38,33 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   const confirmed = checkIn?.status === "CONFIRMED";
   const selected = observations.find((item) => item.id === selectedId);
   const bridgeOrigin = (() => { try { return visionOrigin(process.env.NEXT_PUBLIC_VISION_ORIGIN); } catch { return null; } })();
+
+  useEffect(() => {
+    if (!confirmed) return;
+    let stopped = false;
+    async function refresh() {
+      try {
+        const response = await fetch(`/api/agent/v1/sessions/${encodeURIComponent(sessionId)}`, { headers: { Authorization: `Bearer ${token.trim()}` }, cache: "no-store" });
+        if (!response.ok) throw new Error();
+        const state = SessionResponseSchema.parse(await response.json()).data;
+        if (!stopped) { setGeneration(state.generationStatus); setNoChangeReason(state.noChangeReason); }
+      } catch { if (!stopped) setGeneration("UNAVAILABLE"); }
+    }
+    void refresh();
+    const timer = setInterval(() => void refresh(), 3000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [confirmed, sessionId, token]);
+
+  async function retryGeneration() {
+    if (!checkIn) return;
+    await perform(async () => {
+      const response = await fetch(`/api/agent/v2/check-ins/${encodeURIComponent(checkIn.id)}/generate`, {
+        method: "POST", headers: { Authorization: `Bearer ${token.trim()}` }, cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Impossibile riavviare la generazione. Riprova.");
+      setGeneration("PROCESSING");
+    });
+  }
 
   useEffect(() => {
     if (!bridgeOrigin) return;
@@ -163,7 +192,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
         </button>
       </article>)}
       {selectedId && <button type="button" onClick={() => select(null)} disabled={busy || locked || confirmed}>Rimuovi selezione</button>}
-      {selectedId && <button type="button" onClick={() => void loadIntegrated()} disabled={busy || locked}>Verifica contesto sonno e vision</button>}
+      {selectedId && astronautId === "astro-1" && <button type="button" onClick={() => void loadIntegrated()} disabled={busy || locked}>Verifica contesto sonno e vision</button>}
       {integrated && <div className={styles.measurement} role="status">
         <strong>Contesto integrato · prova</strong>
         <p>Sonno sintetico: {integrated.sleepHours === null ? "nessuna misura disponibile" : `${integrated.sleepHours} ore`}. Vision: {integrated.visionStatus}, origine {integrated.visionSource ?? "non disponibile"}, qualità {integrated.visionQuality ?? "non disponibile"}.</p>
@@ -190,6 +219,11 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       {!selected && <p>Nessuna misura selezionata: puoi comunque confermare il check-in.</p>}
       {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain}>{locked && !selectionUncertain ? "Riprova la conferma" : "Conferma check-in"}</button>}
       {locked && !selectionUncertain && !confirmed && <p>La conferma potrebbe essere stata ricevuta. Riprova senza cambiare la selezione.</p>}
+      {confirmed && <div role="status">
+        <p>{generation === "READY" ? "Report pronto per la sala di controllo." : generation === "FAILED" ? "Generazione del report non riuscita." : generation === "UNAVAILABLE" ? "Stato del report non disponibile." : "Generazione del report in corso."}</p>
+        {generation === "READY" && noChangeReason && <p>Nessuna proposta: {noChangeReason}</p>}
+        {(generation === "FAILED" || generation === "NOT_STARTED") && <button type="button" disabled={busy} onClick={() => void retryGeneration()}>Riprova generazione</button>}
+      </div>}
     </>}
     {busy && <p role="status">Operazione in corso…</p>}
     {message && <p role="status">{message}</p>}

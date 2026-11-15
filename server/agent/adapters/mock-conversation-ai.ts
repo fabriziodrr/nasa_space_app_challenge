@@ -27,11 +27,11 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       source: "vision" as const, evidence: [{ source: "vision" as const, visionObservationId: vision.id }],
     }] : [];
     const sensorFindings = context.sensors.filter((item) => item.quality !== "UNAVAILABLE").map((item) => ({
-      text: `Sensore${item.simulated ? " simulato" : ""} ${item.metric}: ${item.value} ${item.unit}, osservato ${item.observedAt}; qualità ${item.quality}${item.provenance ? `; periodo ${item.provenance.periodStart} – ${item.provenance.periodEnd}; dispositivo ${item.provenance.deviceId}; metodo ${item.provenance.method}${item.provenance.aggregation ? `; aggregazione ${item.provenance.aggregation}` : ""}; soggetto demo non verificato` : ""}.`,
+      text: `Sensore${item.simulated ? " simulato" : ""} ${item.metric}: ${item.value} ${item.unit}, osservato ${item.observedAt}; qualità ${item.quality}${item.provenance ? `; periodo ${item.provenance.periodStart} – ${item.provenance.periodEnd}; dispositivo ${item.provenance.deviceId}; metodo ${item.provenance.method}${item.provenance.aggregation ? `; aggregazione ${item.provenance.aggregation}` : ""}; ${item.provenance.identityLink === "demo_mapped" ? "profilo demo associato" : "soggetto demo non verificato"}` : ""}.`,
       source: "sensor" as const, evidence: [{ source: "sensor" as const, sensorReadingId: item.id }],
     }));
     const statedSleep = context.checkIn.observations.find((o) => o.field === "SLEEP_HOURS");
-    const measuredSleep = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD" && !s.provenance);
+    const measuredSleep = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD" && (!s.provenance || s.provenance.identityLink === "demo_mapped"));
     const discrepancies = typeof statedSleep?.value === "number" && measuredSleep?.value != null && Math.abs(statedSleep.value - measuredSleep.value) >= 1 ? [{
       text: "Durata del sonno dichiarata e sensore simulato divergono; verificare periodo e attendibilità prima di concludere.", source: "inference" as const,
       evidence: [{ source: "self_report" as const, observationId: statedSleep.id }, { source: "sensor" as const, sensorReadingId: measuredSleep.id }],
@@ -130,7 +130,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       PHYSICAL_NOTES: "Come ti senti fisicamente?",
     };
     const reportedHours = observations.find((o) => o.field === "SLEEP_HOURS")?.value;
-    const sensor = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD" && !s.provenance);
+    const sensor = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD" && (!s.provenance || s.provenance.identityLink === "demo_mapped"));
     const discrepancy = typeof reportedHours === "number" && sensor?.value != null
       && Math.abs(sensor.value - reportedHours) >= 1;
     const alreadyAsked = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("periodo di riposo"));

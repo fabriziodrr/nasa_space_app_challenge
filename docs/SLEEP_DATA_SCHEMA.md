@@ -23,7 +23,7 @@ NASA descrive l'esperimento ESA [Dreams](https://www.nasa.gov/humans-in-space/sc
 
 Il file [nasa_sensor_demo.json](../server/examples/nasa_sensor_demo.json) contiene una notte interamente sintetica: REM, HRV e gli altri valori sono inventati per mostrare il flusso. In **Crew Data → Sleep recovery**, usare **Load sensor demo** e **Refresh**. Se il campione esiste già, non viene sovrascritto. L'agente dati inoltra le misure nel proprio rapporto; non attribuisce soglie cliniche né modifica una diagnosi o il punteggio di fatica.
 
-Con `AGENT_SENSOR_PROVIDER=python`, anche l'agent conversazionale può ricevere latenza, tempo sveglio, efficienza, REM e HRV quando presenti nello snapshot valido: REM e HRV conservano il proprio dispositivo e metodo e HRV anche l'aggregazione. I campi assenti non producono misure. L'identità del soggetto demo resta non verificata e tali dati non sono utilizzabili come evidenza per proporre modifiche alla schedule.
+Con `AGENT_SENSOR_PROVIDER=python`, anche l'agent conversazionale può ricevere latenza, tempo sveglio, efficienza, REM e HRV quando presenti nello snapshot valido: REM e HRV conservano il proprio dispositivo e metodo e HRV anche l'aggregazione. I campi assenti non producono misure. Le letture sintetiche recenti associate al profilo fittizio dal server possono essere considerate nella proposta demo; le associazioni non verificate restano escluse.
 
 ## Contesto intermedio
 

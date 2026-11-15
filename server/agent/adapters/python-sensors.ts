@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { SensorReadingSchema, type SensorReading, type SensorWindow } from "../contracts";
 import type { SensorProvider } from "../ports";
+import { demoCrewMappings } from "../demo-crew";
 
 // Local synthetic demo only. The mapping is deliberately not a verified identity.
 const Measurement = z.object({
@@ -28,17 +29,20 @@ export class PythonSensorProvider implements SensorProvider {
   }
 
   async read(astronautId: string, window: SensorWindow): Promise<SensorReading[]> {
+    const member = demoCrewMappings.find((item) => item.astronautId === astronautId);
+    const subjectId = astronautId === "astro-1" ? this.options.subjectId : member?.subjectId ?? this.options.subjectId;
     const base = { astronautId, observedAt: window.to, source: "sensor" as const, simulated: true,
-      provenance: { backend: "aegis_data" as const, subjectId: this.options.subjectId,
-        identityLink: "demo_only_unverified" as const, snapshotId: null as string | null, backendAsOf: null as string | null, observedId: null as string | null,
+      provenance: { backend: "aegis_data" as const, subjectId,
+        identityLink: (member && subjectId === member.subjectId ? "demo_mapped" : "demo_only_unverified") as "demo_mapped" | "demo_only_unverified", snapshotId: null as string | null, backendAsOf: null as string | null, observedId: null as string | null,
         periodStart: null as string | null, periodEnd: null as string | null, deviceId: null as string | null,
         method: null as string | null, truncated: false, status: "UNAVAILABLE" as "AVAILABLE" | "MISSING" | "STALE" | "UNAVAILABLE" | "INVALID" } };
     const missing = (status: typeof base.provenance.status) => [SensorReadingSchema.parse({ ...base,
       id: "aegis-unavailable-sleep", metric: "SLEEP_DURATION", value: null, unit: "h", quality: "UNAVAILABLE",
       provenance: { ...base.provenance, status } })];
-    if (astronautId !== "astro-1") return missing("INVALID");
+    if (!member) return missing("INVALID");
     try {
-      const response = await this.fetcher(`http://127.0.0.1:8000/v1/subjects/${encodeURIComponent(this.options.subjectId)}/agent-context?synthetic=true`,
+      const query = new URLSearchParams({ synthetic: "true", end: window.to });
+      const response = await this.fetcher(`http://127.0.0.1:8000/v1/subjects/${encodeURIComponent(subjectId)}/agent-context?${query}`,
         { cache: "no-store", signal: AbortSignal.timeout(5000), redirect: "error" });
       if (!response.ok) return missing("UNAVAILABLE");
       if (!response.body) return missing("INVALID");
@@ -58,14 +62,14 @@ export class PythonSensorProvider implements SensorProvider {
       try { payload = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
       catch { return missing("INVALID"); }
       const parsed = Context.safeParse(payload);
-      if (!parsed.success || parsed.data.subject_id !== this.options.subjectId) return missing("INVALID");
+      if (!parsed.success || parsed.data.subject_id !== subjectId) return missing("INVALID");
       const data = parsed.data;
       base.provenance.snapshotId = data.snapshot_id;
       base.provenance.backendAsOf = data.as_of ? new Date(data.as_of).toISOString() : null;
       base.provenance.truncated = data.truncated;
       const reading = data.sleep_context.latest_measurement;
       if (!reading) return missing("MISSING");
-      if (reading.subject_id !== this.options.subjectId) return missing("INVALID");
+      if (reading.subject_id !== subjectId) return missing("INVALID");
       const from = Date.parse(window.from), to = Date.parse(window.to);
       const start = Date.parse(reading.period_start), end = Date.parse(reading.period_end), observed = Date.parse(reading.observed_at);
       if (![from, to, start, end, observed].every(Number.isFinite) || start >= end || observed < end || observed > to) return missing("INVALID");
@@ -73,7 +77,7 @@ export class PythonSensorProvider implements SensorProvider {
         periodStart: new Date(start).toISOString(), periodEnd: new Date(end).toISOString(),
         deviceId: reading.device_id, method: reading.method, status: "AVAILABLE" };
       if (end < from || end > to) return missing("STALE");
-      const common = { ...base, observedAt: new Date(observed).toISOString(), quality: "DEGRADED" as const };
+      const common = { ...base, observedAt: new Date(observed).toISOString(), quality: (base.provenance.identityLink === "demo_mapped" && !data.truncated ? "GOOD" : "DEGRADED") as "GOOD" | "DEGRADED" };
       const result = [SensorReadingSchema.parse({ ...common, id: `${reading.observation_id}_duration`,
         metric: "SLEEP_DURATION", value: reading.sleep_hours, unit: "h" })];
       if (reading.awakenings_count != null) result.push(SensorReadingSchema.parse({ ...common,

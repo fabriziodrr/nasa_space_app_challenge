@@ -20,8 +20,8 @@ function provider(value: unknown) {
 test("Python sleep readings preserve snapshot and provenance without inventing a heart rate", async () => {
   const readings = await provider(payload()).read("astro-1", window);
   assert.deepEqual(readings.map((r) => [r.metric, r.value]), [["SLEEP_DURATION", 5.5], ["SLEEP_INTERRUPTION_COUNT", 2]]);
-  assert.equal(readings[0].quality, "DEGRADED");
-  assert.equal(readings[0].provenance?.identityLink, "demo_only_unverified");
+  assert.equal(readings[0].quality, "GOOD");
+  assert.equal(readings[0].provenance?.identityLink, "demo_mapped");
   assert.equal(readings[0].provenance?.snapshotId, "snapshot-1");
   assert.equal(readings[0].provenance?.periodEnd, "2026-11-15T04:00:00.000Z");
   assert.equal(readings[0].provenance?.observedId, "night-1");
@@ -44,7 +44,7 @@ test("new sleep measurements reach the agent with their own source and aggregati
   assert.equal(hrv?.provenance?.deviceId, "ecg-1");
   assert.equal(hrv?.provenance?.method, "simulated_rmssd");
   assert.equal(hrv?.provenance?.aggregation, "nightly");
-  assert.ok(readings.every((r) => r.quality === "DEGRADED" && r.provenance?.identityLink === "demo_only_unverified"));
+  assert.ok(readings.every((r) => r.quality === "GOOD" && r.provenance?.identityLink === "demo_mapped"));
   const [invalid] = await provider(payload({ ...measurement, sleep_stages: {
     device_id: "eeg-1", method: "simulated_eeg", rem_minutes: 400,
   } })).read("astro-1", window);
@@ -73,7 +73,7 @@ test("an unavailable backend is explicit and never falls back to demo sensor val
   assert.equal(reading.value, null);
 });
 
-test("an unverified demo subject cannot be used as evidence for a schedule proposal", async () => {
+test("a mapped demo subject can support a proposal but an unverified subject cannot", async () => {
   const sensors = await provider(payload()).read("astro-1", window);
   const result = new DemoScheduleValidator().validate({ schedule: demoProgram("astro-1", "2026-11-15"),
     context: { checkIn: { id: "check", astronautId: "astro-1", confirmedAt: window.to,
@@ -83,5 +83,15 @@ test("an unverified demo subject cannot be used as evidence for a schedule propo
       { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-15T09:20:00Z", endsAt: "2026-11-15T10:00:00Z" },
       { type: "ADD_REST", activityId: "rest", title: "Pausa", startsAt: "2026-11-15T09:00:00Z", endsAt: "2026-11-15T09:20:00Z" },
     ] } });
-  assert.equal(result.valid, false);
+  assert.equal(result.valid, true);
+  const unverified = structuredClone(sensors);
+  if (unverified[0].provenance) unverified[0].provenance.identityLink = "demo_only_unverified";
+  const rejected = new DemoScheduleValidator().validate({ schedule: demoProgram("astro-1", "2026-11-15"),
+    context: { checkIn: { id: "check", astronautId: "astro-1", confirmedAt: window.to,
+      observations: [{ id: "fatigue", source: "self_report", field: "FATIGUE", value: 8, scaleMax: 10, recordedAt: window.to }] }, sensors: unverified },
+    candidate: { rationale: "Pausa proposta", evidence: [{ source: "self_report", observationId: "fatigue" }, { source: "sensor", sensorReadingId: sensors[0].id }], changes: [
+      { type: "MOVE_ACTIVITY", activityId: "science-1", startsAt: "2026-11-15T09:20:00Z", endsAt: "2026-11-15T10:00:00Z" },
+      { type: "ADD_REST", activityId: "rest", title: "Pausa", startsAt: "2026-11-15T09:00:00Z", endsAt: "2026-11-15T09:20:00Z" },
+    ] } });
+  assert.equal(rejected.valid, false);
 });

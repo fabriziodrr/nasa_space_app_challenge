@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { demoCrew, type DemoCrewProfile } from "@/server/examples/crew_profiles";
 import { CountUp } from "@/components/reactbits/CountUp";
@@ -138,14 +138,21 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
   const [analysis, setAnalysis] = useState<SleepAnalysis | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const sample = useMemo(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 8 * 60 * 60 * 1000);
+    return { ...profile.sleep, observation_id: `${profile.id}-demo-${end.toISOString().slice(0, 10)}`,
+      period_start: start.toISOString(), period_end: end.toISOString(), observed_at: end.toISOString() };
+  }, [profile]);
   const refresh = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ subject: profile.id, start: "2026-11-01T00:00:00Z", end: "2026-11-16T00:00:00Z" });
+      const end = Date.parse(sample.period_end);
+      const params = new URLSearchParams({ subject: profile.id, start: new Date(end - 14 * 86400000).toISOString(), end: new Date(end + 86400000).toISOString() });
       let response = await fetch(`/api/sleep-demo?${params}`, { cache: "no-store" });
       let result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to load sleep data.");
-      if (!result.groups.some((group: SleepAnalysis["groups"][number]) => group.series.some((point) => point.observation_id === profile.sleep.observation_id))) {
-        const imported = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([profile.sleep]) });
+      if (!result.groups.some((group: SleepAnalysis["groups"][number]) => group.series.some((point) => point.observation_id === sample.observation_id))) {
+        const imported = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([sample]) });
         if (!imported.ok && imported.status !== 409) {
           const error = await imported.json();
           throw new Error(error.error || "Unable to import demo data.");
@@ -160,13 +167,13 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
       setAnalysis(null);
       setStatus(error instanceof Error ? error.message : "Unable to load sleep data.");
     }
-  }, [profile.id, profile.sleep]);
+  }, [profile.id, sample]);
   useEffect(() => { void refresh(); }, [refresh]);
 
   async function loadDemo() {
     setBusy(true);
     try {
-      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([profile.sleep]) });
+      const response = await fetch("/api/sleep-demo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify([sample]) });
       const result = await response.json();
       if (!response.ok && response.status !== 409) throw new Error(result.error || "Unable to import demo data.");
       await refresh();
@@ -180,7 +187,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
   const hours = latest?.sleep_hours ?? null;
   const progress = hours === null ? 0 : Math.min(100, (hours / 8) * 100);
   const qualityColors = ["#c84242", "#df8140", "#cba033", "#81a743", "#398b54"];
-  const qualityColor = qualityColors[Math.max(0, Math.min(4, Math.round(profile.mood.sleep_quality) - 1))];
+  const qualityColor = qualityColors[Math.max(0, Math.min(4, Math.ceil(profile.mood.sleep_quality / 2) - 1))];
   const circumference = 2 * Math.PI * 48;
   const format = (value: number | null | undefined, unit = "") => value == null ? "—" : `${value}${unit}`;
   const metrics = [
@@ -199,7 +206,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
       {!latest && <p className={styles.sleepNotice}>No sleep observation in the demo period. Load the sensor demo to begin.</p>}
       <div className={styles.sleepChart}>
       <div className={styles.chartIntro}><span className={styles.chartLabel} tabIndex={0} data-tooltip="Recorded sleep compared with an 8 hour reference window.">RECOVERY / SLEEP</span></div>
-      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded; color: simulated self-reported sleep quality ${profile.mood.sleep_quality}/5`}>
+      <div className={styles.sleepVisual} tabIndex={0} data-tooltip={`${hours ?? "—"} hours recorded; color: simulated self-reported sleep quality ${profile.mood.sleep_quality}/10`}>
         <svg viewBox="0 0 120 120" role="img" aria-label={`Sleep duration ${hours ?? "unavailable"} hours`}>
           <circle className={styles.ringTrack} cx="60" cy="60" r="48" />
           <circle className={styles.ringValue} cx="60" cy="60" r="48" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress / 100)} style={{ stroke: qualityColor, filter: "none" }} />
@@ -209,7 +216,7 @@ function SleepRecovery({ profile }: { profile: DemoCrewProfile }) {
       <div className={styles.sleepReadout}><span>recorded / UTC</span><strong className={styles.sleepDate}>{latest ? latest.period_end.slice(0, 10) : "—"}</strong><span>{latest?.device ?? "NO OBSERVATION"}</span></div>
       </div>
       <div className={styles.sleepSensorGrid}>{metrics.map((item) => <div className={styles.sleepSensor} key={item.label}><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div>)}</div>
-      <p className={styles.sleepFootnote}>Ring length: hours slept relative to the demo reference of 8 h. Color: simulated self-reported sleep quality ({profile.mood.sleep_quality}/5), not sensor-derived. Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
+      <p className={styles.sleepFootnote}>Ring length: hours slept relative to the demo reference of 8 h. Color: simulated self-reported sleep quality ({profile.mood.sleep_quality}/10), not sensor-derived. Simulated measurements, not NASA data. Vision is a separate measurement; no diagnosis.</p>
     </div>
   );
 }

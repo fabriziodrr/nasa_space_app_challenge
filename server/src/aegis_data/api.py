@@ -123,8 +123,8 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(422, str(exc)) from exc
 
     @app.get("/v1/subjects/{subject_id}/agent-context")
-    def context(subject_id: str, synthetic: bool = False):
-        return AgentDataTools(service, subject_id, synthetic=synthetic).get_context()
+    def context(subject_id: str, synthetic: bool = False, end: AwareDatetime | None = None):
+        return AgentDataTools(service, subject_id, synthetic=synthetic).get_context(end=end)
 
     @app.get("/v1/subjects/{subject_id}/sleep-analysis")
     def sleep_analysis(subject_id: str, start: AwareDatetime, end: AwareDatetime,

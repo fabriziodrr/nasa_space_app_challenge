@@ -39,7 +39,7 @@ function createDemoRuntime() {
     ? new NvidiaConversationProvider({ apiKey: config.NVIDIA_API_KEY!, model: config.NVIDIA_MODEL, timeoutMs: config.AGENT_AI_TIMEOUT_MS })
     : config.AGENT_AI_PROVIDER === "mock" ? new MockConversationAiProvider({ proposalsEnabled: true }) : null;
   return {
-    identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN),
+    identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN, process.env),
     repository,
     visionQuality,
     visionObservations,

@@ -5,6 +5,7 @@ import { ScheduleSnapshotSchema, type GroundReport, type ScheduleActivity, type 
 import { applyScheduleChanges } from "../../server/agent/lib/schedule";
 import { decideProposal, getProposals, getReports, getSchedule, MissionApiError, saveSchedule } from "../../client/dashboard/mission-api";
 import styles from "./MissionDashboard.module.css";
+import { demoCrewMappings } from "../../server/agent/demo-crew";
 
 type Decision = "APPROVE" | "REJECT";
 type PendingDecision = { decision: Decision; key: string };
@@ -135,10 +136,10 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
 
   return <section className={styles.workspace} aria-label={ground ? "Operazioni di Terra" : "Programma astronauta"}>
     <header className={styles.heading}><div><span className={styles.kicker}>{ground ? "HOUSTON / OPERATIONS" : "ISS / SCHEDULE"}</span>
-      <h1>{ground ? "Report e programma" : "Programma della giornata"}</h1><p>Demo locale · orari in UTC</p><p>Usa il valore di {ground ? "AGENT_GROUND_TOKEN" : "AGENT_DEMO_TOKEN"} configurato sul server.</p></div><button type="button" onClick={onBack}>Torna alla dashboard</button></header>
+      <h1>{ground ? "Report e programma" : "Programma della giornata"}</h1><p>Demo locale · orari in UTC</p><p>Usa il valore di {ground ? "AGENT_GROUND_TOKEN" : demoCrewMappings.find((member) => member.astronautId === astronaut)?.tokenEnv} configurato sul server.</p></div><button type="button" onClick={onBack}>Torna alla dashboard</button></header>
     <form className={styles.controls} onSubmit={(event) => { event.preventDefault(); void load(); }}>
       <label>Token {ground ? "Terra" : "astronauta"}<input type="password" autoComplete="off" value={token} onChange={(event) => { setToken(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
-      <label>Astronauta<input value={astronaut} onChange={(event) => { setAstronaut(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
+      <label>Astronauta<select value={astronaut} onChange={(event) => { setAstronaut(event.target.value); setLoaded(false); }} disabled={busy || lockSelection}>{demoCrewMappings.map((member) => <option key={member.astronautId} value={member.astronautId}>{member.name}</option>)}</select></label>
       <label>Data UTC<input type="date" value={date} onChange={(event) => { setDate(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
       <button type="submit" disabled={busy || lockSelection}>{busy ? "Caricamento…" : "Carica dati"}</button>
     </form>

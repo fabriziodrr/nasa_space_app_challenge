@@ -58,12 +58,13 @@ test("operational AI receives only explicitly shared observations; diary stays p
   assert.equal(h.published()?.proposal, null);
 });
 
-test("unshared evidence fails generation before any artifacts are published", async () => {
+test("unshared evidence is excluded and the report requires human review", async () => {
   const h = setup();
   h.makeEvidenceInvalid();
-  await assert.rejects(h.service.generate(identity, h.checkIn.id));
-  assert.equal(h.published(), undefined);
-  assert.equal(h.failed(), true);
+  await h.service.generate(identity, h.checkIn.id);
+  assert.deepEqual(h.published()?.report.findings, []);
+  assert.equal(h.published()?.report.humanReview.required, true);
+  assert.ok(h.published()?.report.uncertainties.some((item) => item.includes("escluse")));
 });
 
 test("ground control cannot generate an astronaut's private diary", async () => {
