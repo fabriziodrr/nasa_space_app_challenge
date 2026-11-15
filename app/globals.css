@@ -532,6 +532,7 @@ button:focus-visible {
 .pill-nav__item .text-type { display: inline-flex; align-items: center; line-height: 1; }
 .pill-nav__item-wrap:has(.pill-nav__icon-hit:hover) .pill-nav__submenu,
 .pill-nav__item-wrap:has(.pill-nav__submenu:hover) .pill-nav__submenu,
+.pill-nav__item-wrap:focus-within .pill-nav__submenu,
 .pill-nav__item-wrap:has(.pill-nav__icon-hit:focus-visible) .pill-nav__submenu { visibility: visible; opacity: 1; transform: translateY(0); }
 .pill-nav__submenu-item { display: grid; grid-template-columns: 27px minmax(0, 1fr) auto; width: 100%; align-items: center; gap: 9px; min-height: 51px; padding: 8px 9px; border: 0; border-radius: 10px; color: var(--dashboard-slate); background: transparent; cursor: pointer; text-align: left; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .pill-nav__submenu-item:hover, .pill-nav__submenu-item:focus-visible { color: var(--aegis-blue); background: rgba(216, 210, 242, .56); outline: none; transform: translateX(3px); }

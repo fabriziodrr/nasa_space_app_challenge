@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 
 import { HumanVitalsDashboard } from "@/components/dashboard/HumanVitalsDashboard";
 import { CrewDataDashboard } from "@/components/dashboard/CrewDataDashboard";
+import { MissionDashboard } from "@/components/dashboard/MissionDashboard";
 import { PillNav } from "@/components/reactbits/PillNav";
 import { TextType } from "@/components/reactbits/TextType";
 import { DashboardIcon } from "@/components/dashboard/DashboardIcon";
@@ -16,7 +17,7 @@ type DashboardView = "houston" | "iss";
 /** Shared frame for the two S.L.O.T.H. mission operations perspectives. */
 export function DashboardShell() {
   const [activeView, setActiveView] = useState<DashboardView>("houston");
-  const [activeSection, setActiveSection] = useState<"human-vitals" | "crew-data">("human-vitals");
+  const [activeSection, setActiveSection] = useState<"human-vitals" | "crew-data" | "mission">("human-vitals");
   const [resetToken, setResetToken] = useState(0);
   const [bodyVariant, setBodyVariant] = useState<BodyVariant>("male");
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -49,14 +50,20 @@ export function DashboardShell() {
                   <span className="pill-nav__submenu-copy"><strong>Crew Data</strong><small>Readiness &amp; recovery</small></span>
                   <DashboardIcon name="chevron" size={13} />
                 </button>
-                <button className="pill-nav__submenu-item is-disabled" type="button" role="menuitem" disabled>
+                <button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("houston"); setActiveSection("mission"); })}>
                   <span className="pill-nav__submenu-icon"><DashboardIcon name="activity" size={15} /></span>
                   <span className="pill-nav__submenu-copy"><strong>Reports</strong><small>Mission summaries</small></span>
-                  <em>SOON</em>
+                  <DashboardIcon name="chevron" size={13} />
                 </button>
               </div>
             ) },
-            { label: "ISS", active: activeView === "iss", onClick: () => transitionTo(() => { setActiveView("iss"); setActiveSection("human-vitals"); }), icon: <DashboardIcon name="orbit" size={14} /> },
+            { label: "ISS", active: activeView === "iss", onClick: () => transitionTo(() => { setActiveView("iss"); setActiveSection("human-vitals"); }), icon: <DashboardIcon name="orbit" size={14} />, menu: (
+              <div className="pill-nav__menu-panel"><button className="pill-nav__submenu-item is-available" type="button" role="menuitem" onClick={() => transitionTo(() => { setActiveView("iss"); setActiveSection("mission"); })}>
+                <span className="pill-nav__submenu-icon"><DashboardIcon name="activity" size={15} /></span>
+                <span className="pill-nav__submenu-copy"><strong>Schedule</strong><small>Daily program</small></span>
+                <DashboardIcon name="chevron" size={13} />
+              </button></div>
+            ) },
           ]}
           trailing={(
             <div className="pill-nav__model-controls" role="group" aria-label="Body model and reset controls">
@@ -71,7 +78,9 @@ export function DashboardShell() {
             </div>
           )}
         />
-        {activeSection === "human-vitals" ? <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} /> : <CrewDataDashboard onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />}
+        {activeSection === "human-vitals" ? <HumanVitalsDashboard perspective={activeView} bodyVariant={bodyVariant} resetToken={resetToken} />
+          : activeSection === "crew-data" ? <CrewDataDashboard onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />
+          : <MissionDashboard key={activeView} perspective={activeView} onBack={() => transitionTo(() => setActiveSection("human-vitals"))} />}
       </main>
       <DashboardTransition visible={isTransitioning} />
     </div>
