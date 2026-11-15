@@ -37,12 +37,12 @@ export class ApprovalService {
     }
 
     if (proposal.status === "STALE") {
-      throw AgentErrors.versionConflict("La proposta e obsoleta.", currentSchedule.version);
+      throw AgentErrors.versionConflict("The proposal is stale.", currentSchedule.version);
     }
     if (proposal.status === "PENDING_REVIEW" && currentSchedule.version !== proposal.baseScheduleVersion) {
       await this.repository.markProposalStale(astronautId, proposalId);
       throw AgentErrors.versionConflict(
-        "La proposta usa una versione obsoleta del programma.",
+        "The proposal uses a stale version of the schedule.",
         currentSchedule.version,
       );
     }
@@ -77,7 +77,7 @@ export class ApprovalService {
 
     if (result.outcome === "STALE") {
       throw AgentErrors.versionConflict(
-        "Il programma e cambiato durante la decisione; la proposta e obsoleta.",
+        "The schedule changed during the decision; the proposal is stale.",
         result.currentVersion,
       );
     }

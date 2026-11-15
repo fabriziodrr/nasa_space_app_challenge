@@ -22,7 +22,7 @@ export class DemoScheduleValidator extends ScheduleValidatorImpl {
         && context.checkIn.observations.some((o) => o.id === ref.observationId && ["FATIGUE", "SLEEP_HOURS", "SLEEP_QUALITY"].includes(o.field)))
       && candidate.evidence.every((ref) => ref.source !== "sensor" || context.sensors.some((s) => s.id === ref.sensorReadingId && s.quality !== "UNAVAILABLE"));
     if (!valid) return { valid: false, violations: [{ code: "OUTSIDE_WINDOW", activityId: move?.activityId ?? null,
-      message: "La demo consente solo una pausa fino a 20 minuti prima di una futura attività flessibile, motivata da dichiarazioni condivise sul riposo o sulla stanchezza." }] };
+      message: "The demo only allows a break of up to 20 minutes before a future flexible activity, justified by shared statements about rest or fatigue." }] };
     return base;
   }
 }

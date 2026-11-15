@@ -28,12 +28,12 @@ export interface RecognitionCallbacks {
 
 export function recognitionError(code: string): string {
   switch (code) {
-    case "not-allowed": case "service-not-allowed": return "Permesso del microfono negato o servizio vocale non disponibile.";
-    case "audio-capture": return "Nessun microfono disponibile. Controlla il dispositivo.";
-    case "network": return "Il servizio di riconoscimento non è raggiungibile. Puoi scrivere il messaggio.";
-    case "no-speech": return "Non ho rilevato parole. Riprova oppure scrivi il messaggio.";
-    case "aborted": return "Registrazione interrotta.";
-    default: return "Riconoscimento vocale non riuscito. Riprova oppure scrivi il messaggio.";
+    case "not-allowed": case "service-not-allowed": return "Microphone permission denied or voice service unavailable.";
+    case "audio-capture": return "No microphone available. Check the device.";
+    case "network": return "The recognition service is unreachable. You can type the message.";
+    case "no-speech": return "No words detected. Try again or type the message.";
+    case "aborted": return "Recording interrupted.";
+    default: return "Voice recognition failed. Try again or type the message.";
   }
 }
 
@@ -49,14 +49,14 @@ export class BrowserVoiceInput {
   get supported(): boolean { return Boolean(this.source.SpeechRecognition ?? this.source.webkitSpeechRecognition); }
 
   start(): void {
-    if (this.disposed || this.recognition) throw new Error("Riconoscimento già avviato o non disponibile.");
+    if (this.disposed || this.recognition) throw new Error("Recognition already started or unavailable.");
     const Constructor = this.source.SpeechRecognition ?? this.source.webkitSpeechRecognition;
-    if (!Constructor) throw new Error("Il browser non supporta il riconoscimento vocale. Puoi scrivere il messaggio.");
+    if (!Constructor) throw new Error("The browser does not support speech recognition. You can type the message.");
     const recognition = new Constructor();
     this.recognition = recognition;
     this.hadFinal = false;
     this.failed = false;
-    recognition.lang = "it-IT";
+    recognition.lang = "en-US";
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = (event) => {

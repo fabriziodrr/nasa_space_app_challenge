@@ -6,7 +6,7 @@ import { ProposalCandidateSchema } from "./scheduling";
 export const ConversationOutputSchema = z.strictObject({
   reply: TextSchema,
   observations: ObservationsSchema,
-  missingFields: z.array(z.enum(["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES"])).max(4),
+  missingFields: z.array(z.enum(["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES"])).max(6),
 });
 export const ReportContentSchema = GroundReportSchema.omit({
   id: true, astronautId: true, checkInId: true, generatedAt: true, proposalId: true,

@@ -24,14 +24,14 @@ export interface ConversationServiceDependencies extends ConversationDependencie
 }
 
 function astronaut(identity: Identity | null): AstronautIdentity {
-  if (identity === null) throw new AgentError("UNAUTHENTICATED", "Autenticazione richiesta.");
-  if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "Funzione riservata all'astronauta.");
+    if (identity === null) throw new AgentError("UNAUTHENTICATED", "Authentication required.");
+    if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "This function is restricted to the astronaut.");
   return identity;
 }
 
 function fromAdapter<S extends z.ZodType>(schema: S, value: unknown): z.output<S> {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw new AgentError("INTERNAL_ERROR", "Dati del servizio non validi.");
+    if (!parsed.success) throw new AgentError("INTERNAL_ERROR", "Invalid service data.");
   return parsed.data;
 }
 
@@ -41,7 +41,7 @@ function savedTurn(value: unknown, astronautId: string, sessionId: string, reque
       || saved.astronautMessage.sessionId !== sessionId || saved.assistantMessage.sessionId !== sessionId
       || saved.astronautMessage.role !== "ASTRONAUT" || saved.assistantMessage.role !== "ASSISTANT"
       || saved.astronautMessage.text !== request.text || saved.astronautMessage.inputMode !== request.inputMode) {
-    throw new AgentError("INTERNAL_ERROR", "Turno salvato non valido.");
+      throw new AgentError("INTERNAL_ERROR", "Invalid saved turn.");
   }
   return saved;
 }
@@ -55,7 +55,7 @@ function buildContext(context: ConversationContext, messageLimit: number): Conve
   while (size() > 64_000 && context.visionObservations.length) context.visionObservations.shift();
   while (size() > 64_000 && context.sensors.length) context.sensors.shift();
   if (size() > 64_000) {
-    throw new AgentError("PROVIDER_UNAVAILABLE", "Il contesto supera i limiti configurati per la conversazione.");
+      throw new AgentError("PROVIDER_UNAVAILABLE", "The context exceeds the configured conversation limits.");
   }
   return context;
 }
@@ -111,9 +111,9 @@ export function createConversationService(deps: ConversationServiceDependencies)
     const id = IdSchema.parse(sessionId);
     const parsedQuery = SessionQuerySchema.parse(query);
     const state = await deps.repository.getSessionState(actor.astronautId, id, parsedQuery.beforeMessageId);
-    if (!state) throw new AgentError("NOT_FOUND", "Sessione non trovata.");
+    if (!state) throw new AgentError("NOT_FOUND", "Session not found.");
     const parsed = fromAdapter(SessionStateSchema, state);
-    if (parsed.session.astronautId !== actor.astronautId) throw new AgentError("NOT_FOUND", "Sessione non trovata.");
+    if (parsed.session.astronautId !== actor.astronautId) throw new AgentError("NOT_FOUND", "Session not found.");
     return parsed;
   }
 
@@ -121,11 +121,11 @@ export function createConversationService(deps: ConversationServiceDependencies)
     const state = await getSession(actor, sessionId);
     const replay = await deps.repository.getTurn(actor.astronautId, sessionId, request.clientMessageId);
     if (replay) {
-      if (!sameMessage(replay.request, request)) throw new AgentError("IDEMPOTENCY_CONFLICT", "ID messaggio gia usato con contenuto diverso.");
+      if (!sameMessage(replay.request, request)) throw new AgentError("IDEMPOTENCY_CONFLICT", "Message ID already used with different content.");
       return savedTurn(replay.result, actor.astronautId, sessionId, request);
     }
     if (state.session.closedAt !== null || state.checkIn?.status === "CONFIRMED") {
-      throw new AgentError("INVALID_STATE", "Check-in concluso. Apri una nuova sessione.");
+      throw new AgentError("INVALID_STATE", "Check-in closed. Open a new session.");
     }
     const timestamp = now().toISOString();
     const astronautMessage = {
@@ -148,14 +148,14 @@ export function createConversationService(deps: ConversationServiceDependencies)
         || sensors.some((s) => s.astronautId !== actor.astronautId)
         || history.some((c) => c.astronautId !== actor.astronautId || c.status !== "CONFIRMED")
         || (vision && (vision.astronautId !== actor.astronautId || vision.sessionId !== sessionId))) {
-      throw new AgentError("INTERNAL_ERROR", "Contesto della conversazione non disponibile.");
+      throw new AgentError("INTERNAL_ERROR", "Conversation context unavailable.");
     }
     if (vision) {
       if (vision.source === "synthetic" && !vision.reasons.includes("SYNTHETIC_TIME_UNAVAILABLE")) {
-        throw new AgentError("INTERNAL_ERROR", "Provenienza della misura non valida.");
+        throw new AgentError("INTERNAL_ERROR", "Invalid measurement provenance.");
       }
       if (vision.endedAt && Date.parse(vision.endedAt) > Date.parse(timestamp) + 5 * 60_000) {
-        throw new AgentError("INTERNAL_ERROR", "Orario della misura non valido.");
+        throw new AgentError("INTERNAL_ERROR", "Invalid measurement time.");
       }
     }
     const visionSummary = vision ? [{ id: vision.id, source: vision.source,
@@ -174,7 +174,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
       rawOutput = await withDeadline((providerSignal) => deps.ai.converse(structuredClone(context), { signal: providerSignal }), timeoutMs, signal);
     } catch (error) {
       if (isAgentError(error)) throw error;
-      throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio AI temporaneamente non disponibile.", true);
+      throw new AgentError("PROVIDER_UNAVAILABLE", "AI service temporarily unavailable.", true);
     }
     const output = validatedObservations(rawOutput, context, astronautMessage.id, newId);
     const checkIn = CheckInSchema.parse({
@@ -191,7 +191,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
       },
       checkIn,
     });
-    if (signal?.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Richiesta interrotta.", true);
+    if (signal?.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Request interrupted.", true);
     const saved = await deps.repository.commitTurn({
       astronautId: actor.astronautId, sessionId, request,
       expectedCheckInRevision: state.checkIn?.revision ?? null, result,
@@ -203,12 +203,12 @@ export function createConversationService(deps: ConversationServiceDependencies)
     async createSession(identity: Identity | null, input: unknown) {
       const actor = astronaut(identity);
       const request = CreateSessionRequestSchema.parse(input);
-      if (request.astronautId !== actor.astronautId) throw new AgentError("NOT_FOUND", "Astronauta non trovato.");
+      if (request.astronautId !== actor.astronautId) throw new AgentError("NOT_FOUND", "Astronaut not found.");
       const saved = await deps.repository.createSession(ConversationSessionSchema.parse({
         id: newId(), astronautId: actor.astronautId, openedAt: now().toISOString(), closedAt: null,
       }));
       const parsed = fromAdapter(ConversationSessionSchema, saved);
-      if (parsed.astronautId !== actor.astronautId) throw new AgentError("INTERNAL_ERROR", "Sessione salvata non valida.");
+      if (parsed.astronautId !== actor.astronautId) throw new AgentError("INTERNAL_ERROR", "Invalid saved session.");
       return parsed;
     },
     getSession,
@@ -219,7 +219,7 @@ export function createConversationService(deps: ConversationServiceDependencies)
       const key = JSON.stringify([actor.astronautId, sessionId, request.clientMessageId]);
       const running = inFlight.get(key);
       if (running) {
-        if (!sameMessage(running.request, request)) throw new AgentError("IDEMPOTENCY_CONFLICT", "ID messaggio gia usato con contenuto diverso.");
+        if (!sameMessage(running.request, request)) throw new AgentError("IDEMPOTENCY_CONFLICT", "Message ID already used with different content.");
         return structuredClone(await running.promise);
       }
       const promise = runTurn(actor, sessionId, request, signal);

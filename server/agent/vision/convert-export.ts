@@ -27,21 +27,21 @@ export function convertValidatedVisionExport(input: unknown, assigned: {
   id: string; astronautId: string; sessionId: string; sha256: string; importedAt: Date; quality: VisionQualityConfig;
 }): VisionObservation {
   const result = MappableExport.safeParse(input);
-  if (!result.success) throw new AgentError("VALIDATION_ERROR", "Riepilogo della sessione non valido.");
+  if (!result.success) throw new AgentError("VALIDATION_ERROR", "Invalid session summary.");
   const data = result.data; const scope = data.snapshot.session;
   const exportedAt = new Date(data.exportedAt);
   const now = assigned.importedAt.getTime();
-  if (!Number.isFinite(now) || exportedAt.getTime() > now + 300_000) throw new AgentError("VALIDATION_ERROR", "Orario di esportazione non valido.");
+  if (!Number.isFinite(now) || exportedAt.getTime() > now + 300_000) throw new AgentError("VALIDATION_ERROR", "Invalid export time.");
   let startedAt: string | null = null; let endedAt: string | null = null;
   if (data.source.kind === "webcam") {
-    if (data.timeOriginUnixMs === null || (scope.startMs === null) !== (scope.endMs === null)) throw new AgentError("VALIDATION_ERROR", "Intervallo webcam non valido.");
+    if (data.timeOriginUnixMs === null || (scope.startMs === null) !== (scope.endMs === null)) throw new AgentError("VALIDATION_ERROR", "Invalid webcam interval.");
     if (scope.startMs !== null && scope.endMs !== null) {
       const start = data.timeOriginUnixMs + scope.startMs; const end = data.timeOriginUnixMs + scope.endMs;
-      if (start < 0 || end < start || end > now + 300_000 || end > exportedAt.getTime() + 300_000) throw new AgentError("VALIDATION_ERROR", "Intervallo webcam non valido.");
+      if (start < 0 || end < start || end > now + 300_000 || end > exportedAt.getTime() + 300_000) throw new AgentError("VALIDATION_ERROR", "Invalid webcam interval.");
       try { startedAt = new Date(start).toISOString(); endedAt = new Date(end).toISOString(); }
-      catch { throw new AgentError("VALIDATION_ERROR", "Intervallo webcam non valido."); }
+      catch { throw new AgentError("VALIDATION_ERROR", "Invalid webcam interval."); }
     }
-  } else if (data.timeOriginUnixMs !== null) throw new AgentError("VALIDATION_ERROR", "Orologio sintetico non valido.");
+  } else if (data.timeOriginUnixMs !== null) throw new AgentError("VALIDATION_ERROR", "Invalid synthetic clock.");
   const preliminary = VisionObservationSchema.safeParse({
     schemaVersion: "vision-observation-1", id: assigned.id, astronautId: assigned.astronautId, sessionId: assigned.sessionId,
     source: data.source.kind, exportSchemaVersion: data.schemaVersion, exportContractVersion: data.contractVersion,
@@ -50,6 +50,6 @@ export function convertValidatedVisionExport(input: unknown, assigned: {
     elapsedMs: scope.elapsedMs, validMs: scope.validMs, coverage: scope.coverage, closureFraction: scope.closureFraction,
     ...scope.closures, interruption: data.application?.interruption ?? null, usability: "USABLE", reasons: [],
   });
-  if (!preliminary.success) throw new AgentError("VALIDATION_ERROR", "Riepilogo della sessione non valido.");
+  if (!preliminary.success) throw new AgentError("VALIDATION_ERROR", "Invalid session summary.");
   return VisionObservationSchema.parse({ ...preliminary.data, ...evaluateVisionQuality(preliminary.data, assigned.importedAt, assigned.quality) });
 }

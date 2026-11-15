@@ -85,17 +85,17 @@ export class NvidiaConversationProvider implements ConversationAiProvider, Opera
           }),
         });
       } catch {
-        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Richiesta NVIDIA interrotta o scaduta.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Impossibile raggiungere il servizio NVIDIA.", true);
+        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "NVIDIA request interrupted or timed out.", true);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "Unable to reach the NVIDIA service.", true);
       }
       if (!response.ok || response.status === 202) {
         // Never expose the upstream body: it may contain input or credential details.
         await response.body?.cancel();
-        if (response.status === 429) throw new AgentError("RATE_LIMITED", "Limite di utilizzo NVIDIA raggiunto. Riprova piu tardi.", true);
-        if (response.status === 408 || response.status === 504) throw new AgentError("PROVIDER_TIMEOUT", "Il servizio NVIDIA non ha risposto in tempo.", true);
-        if (response.status === 202) throw new AgentError("PROVIDER_UNAVAILABLE", "Risposta NVIDIA ancora in attesa. Riprova piu tardi.", true);
-        if (response.status === 410) throw new AgentError("PROVIDER_UNAVAILABLE", "Il modello NVIDIA non e piu disponibile. Aggiornare NVIDIA_MODEL sul server.");
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio NVIDIA non disponibile. Verificare chiave e accesso al modello sul server.", response.status >= 500);
+        if (response.status === 429) throw new AgentError("RATE_LIMITED", "NVIDIA usage limit reached. Try again later.", true);
+        if (response.status === 408 || response.status === 504) throw new AgentError("PROVIDER_TIMEOUT", "The NVIDIA service did not respond in time.", true);
+        if (response.status === 202) throw new AgentError("PROVIDER_UNAVAILABLE", "NVIDIA response still pending. Try again later.", true);
+        if (response.status === 410) throw new AgentError("PROVIDER_UNAVAILABLE", "The NVIDIA model is no longer available. Update NVIDIA_MODEL on the server.");
+        throw new AgentError("PROVIDER_UNAVAILABLE", "NVIDIA service unavailable. Verify the key and model access on the server.", response.status >= 500);
       }
       let raw: unknown;
       try { raw = await response.json(); }

@@ -21,8 +21,8 @@ export class MemoryConversationRepository implements ConversationRepository {
 
   async createSession(input: Parameters<ConversationRepository["createSession"]>[0]) {
     const session = ConversationSessionSchema.parse(input);
-    if (this.sessions.has(session.id)) throw new AgentError("INVALID_STATE", "Sessione gia esistente.");
-    if (this.sessions.size >= 500) throw new AgentError("RATE_LIMITED", "Limite del repository demo raggiunto. Riavvia la demo.");
+    if (this.sessions.has(session.id)) throw new AgentError("INVALID_STATE", "Session already exists.");
+    if (this.sessions.size >= 500) throw new AgentError("RATE_LIMITED", "Demo repository limit reached. Restart the demo.");
     this.sessions.set(session.id, {
       state: {
         session: structuredClone(session), messages: [], nextMessageCursor: null, checkIn: null,
@@ -39,7 +39,7 @@ export class MemoryConversationRepository implements ConversationRepository {
     if (!stored) return null;
     const all = stored.state.messages;
     const end = beforeMessageId === undefined ? all.length : all.findIndex((m) => m.id === beforeMessageId);
-    if (end < 0) throw new AgentError("NOT_FOUND", "Cursore messaggi non trovato.");
+    if (end < 0) throw new AgentError("NOT_FOUND", "Message cursor not found.");
     const start = Math.max(0, end - 200);
     return structuredClone({
       ...stored.state, messages: all.slice(start, end), nextMessageCursor: start > 0 ? all[start].id : null,
@@ -54,19 +54,19 @@ export class MemoryConversationRepository implements ConversationRepository {
   async commitTurn(input: Parameters<ConversationRepository["commitTurn"]>[0]) {
     // No await within this mutation: check + write are atomic in this process.
     const stored = this.owned(input.astronautId, input.sessionId);
-    if (!stored) throw new AgentError("NOT_FOUND", "Sessione non trovata.");
+    if (!stored) throw new AgentError("NOT_FOUND", "Session not found.");
     const existing = stored.turns.get(input.request.clientMessageId);
     if (existing) {
-      if (!sameMessage(existing.request, input.request)) throw new AgentError("IDEMPOTENCY_CONFLICT", "ID messaggio gia usato.");
+      if (!sameMessage(existing.request, input.request)) throw new AgentError("IDEMPOTENCY_CONFLICT", "Message ID already used.");
       return structuredClone(existing.result);
     }
     if (stored.state.session.closedAt !== null || stored.state.checkIn?.status === "CONFIRMED") {
-      throw new AgentError("INVALID_STATE", "Check-in concluso.");
+      throw new AgentError("INVALID_STATE", "Check-in closed.");
     }
     if ((stored.state.checkIn?.revision ?? null) !== input.expectedCheckInRevision) {
-      throw new AgentError("VERSION_CONFLICT", "La bozza e cambiata. Ricarica la sessione e riprova.", true);
+      throw new AgentError("VERSION_CONFLICT", "The draft changed. Reload the session and try again.", true);
     }
-    if (stored.state.messages.length >= 2000) throw new AgentError("RATE_LIMITED", "Sessione demo troppo lunga. Apri una nuova sessione.");
+    if (stored.state.messages.length >= 2000) throw new AgentError("RATE_LIMITED", "Demo session too long. Open a new session.");
     const result = MessageResultSchema.parse(input.result);
     if (result.checkIn.astronautId !== input.astronautId || result.checkIn.sessionId !== input.sessionId
         || result.astronautMessage.sessionId !== input.sessionId || result.assistantMessage.sessionId !== input.sessionId
@@ -74,7 +74,7 @@ export class MemoryConversationRepository implements ConversationRepository {
         || result.checkIn.status !== "DRAFT" || result.checkIn.sharedObservationIds.length !== 0
         || result.checkIn.revision !== (input.expectedCheckInRevision ?? 0) + 1
         || (stored.state.checkIn && result.checkIn.id !== stored.state.checkIn.id)) {
-      throw new AgentError("INTERNAL_ERROR", "Risultato del turno incoerente.");
+      throw new AgentError("INTERNAL_ERROR", "Inconsistent turn result.");
     }
     const saved = structuredClone(result);
     stored.state.messages.push(saved.astronautMessage, saved.assistantMessage);

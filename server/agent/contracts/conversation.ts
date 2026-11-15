@@ -19,7 +19,7 @@ export const ConversationMessageSchema = z.strictObject({
 });
 
 export const ObservationFieldSchema = z.enum([
-  "SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES",
+  "SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES",
 ]);
 const observationBase = {
   id: IdSchema,
@@ -32,8 +32,10 @@ export const ObservationSchema = z.discriminatedUnion("field", [
   z.strictObject({ ...observationBase, field: z.literal("SLEEP_QUALITY"), value: z.number().int().min(1).max(5) }),
   z.strictObject({ ...observationBase, field: z.literal("FATIGUE"), value: z.number().int().min(1).max(5) }),
   z.strictObject({ ...observationBase, field: z.literal("PHYSICAL_NOTES"), value: TextSchema }),
+  z.strictObject({ ...observationBase, field: z.literal("MENTAL_STATE"), value: TextSchema }),
+  z.strictObject({ ...observationBase, field: z.literal("STRESSOR_NOTES"), value: TextSchema }),
 ]);
-export const ObservationsSchema = z.array(ObservationSchema).max(4).refine((items) =>
+export const ObservationsSchema = z.array(ObservationSchema).max(6).refine((items) =>
   new Set(items.map((item) => item.id)).size === items.length
   && new Set(items.map((item) => item.field)).size === items.length,
 { message: "Observation IDs and fields must be unique" });
@@ -45,7 +47,7 @@ export const CheckInSchema = z.strictObject({
   revision: VersionSchema,
   status: z.enum(["DRAFT", "CONFIRMED"]),
   observations: ObservationsSchema,
-  sharedObservationIds: z.array(IdSchema).max(4),
+  sharedObservationIds: z.array(IdSchema).max(6),
   createdAt: TimestampSchema,
   confirmedAt: TimestampSchema.nullable(),
 }).refine((checkIn) => (checkIn.status === "CONFIRMED") === (checkIn.confirmedAt !== null), {
@@ -62,12 +64,14 @@ export const SharedObservationSchema = z.discriminatedUnion("field", [
   ObservationSchema.options[1].omit({ messageIds: true }),
   ObservationSchema.options[2].omit({ messageIds: true }),
   ObservationSchema.options[3].omit({ messageIds: true }),
+  ObservationSchema.options[4].omit({ messageIds: true }),
+  ObservationSchema.options[5].omit({ messageIds: true }),
 ]);
 export const SharedCheckInSchema = z.strictObject({
   id: IdSchema,
   astronautId: IdSchema,
   confirmedAt: TimestampSchema,
-  observations: z.array(SharedObservationSchema).max(4),
+  observations: z.array(SharedObservationSchema).max(6),
 }).refine((checkIn) =>
   new Set(checkIn.observations.map((o) => o.id)).size === checkIn.observations.length
   && new Set(checkIn.observations.map((o) => o.field)).size === checkIn.observations.length,

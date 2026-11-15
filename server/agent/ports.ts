@@ -64,9 +64,9 @@ export interface VoiceProvider {
   transcribe(
     input: { audio: Uint8Array; metadata: TranscriptionMetadata },
     options?: ProviderOptions,
-  ): Promise<{ text: string; language: "it" }>;
+  ): Promise<{ text: string; language: "en" }>;
   synthesize(
-    input: { text: string; language: "it" }, options?: ProviderOptions,
+    input: { text: string; language: "en" }, options?: ProviderOptions,
   ): Promise<{ audio: Uint8Array; mimeType: AudioMimeType }>;
 }
 export interface SensorProvider {

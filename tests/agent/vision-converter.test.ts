@@ -24,5 +24,5 @@ test("synthetic time remains absent and unusable; future webcam intervals are re
   const result = convertValidatedVisionExport({ ...data, source: { kind: "synthetic" }, timeOriginUnixMs: null, application: null }, assignment);
   assert.equal(result.startedAt, null); assert.equal(result.usability, "INSUFFICIENT");
   assert.ok(result.reasons.includes("SYNTHETIC_TIME_UNAVAILABLE"));
-  assert.throws(() => convertValidatedVisionExport({ ...data, timeOriginUnixMs: origin + 900000 }, assignment), /Intervallo/);
+  assert.throws(() => convertValidatedVisionExport({ ...data, timeOriginUnixMs: origin + 900000 }, assignment), /interval/i);
 });

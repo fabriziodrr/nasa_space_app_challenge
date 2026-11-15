@@ -4,9 +4,9 @@ import {
 } from "../contracts";
 import type { ConversationAiProvider, ConversationContext, ProviderOptions, OperationalAiProvider, DiaryAiProvider } from "../ports";
 
-const words = ["zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette", "otto", "nove", "dieci",
-  "undici", "dodici", "tredici", "quattordici", "quindici", "sedici", "diciassette", "diciotto", "diciannove",
-  "venti", "ventuno", "ventidue", "ventitre", "ventiquattro"];
+const words = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+  "twenty", "twenty-one", "twenty-two", "twenty-three", "twenty-four"];
 const numberPattern = `(?:\\d+(?:[.,]\\d+)?|${[...words].sort((a, b) => b.length - a.length).join("|")})`;
 function number(value: string): number {
   const index = words.indexOf(value);
@@ -23,30 +23,30 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       evidence: [{ source: "self_report" as const, observationId: o.id }],
     }));
     const visionFinding = vision?.source === "webcam" && vision.usability === "USABLE" ? [{
-      text: `Osservazione palpebrale: ${vision.validMs} ms validi, copertura ${vision.coverage}, quota di chiusura ${vision.closureFraction}; intervallo ${vision.startedAt} – ${vision.endedAt}.`,
+      text: `Eyelid observation: ${vision.validMs} ms valid, coverage ${vision.coverage}, closure fraction ${vision.closureFraction}; interval ${vision.startedAt} – ${vision.endedAt}.`,
       source: "vision" as const, evidence: [{ source: "vision" as const, visionObservationId: vision.id }],
     }] : [];
     const sensorFindings = context.sensors.filter((item) => item.quality !== "UNAVAILABLE").map((item) => ({
-      text: `Sensore${item.simulated ? " simulato" : ""} ${item.metric}: ${item.value} ${item.unit}, osservato ${item.observedAt}; qualità ${item.quality}.`,
+      text: `Sensor${item.simulated ? " simulated" : ""} ${item.metric}: ${item.value} ${item.unit}, observed ${item.observedAt}; quality ${item.quality}.`,
       source: "sensor" as const, evidence: [{ source: "sensor" as const, sensorReadingId: item.id }],
     }));
     const statedSleep = context.checkIn.observations.find((o) => o.field === "SLEEP_HOURS");
     const measuredSleep = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality !== "UNAVAILABLE");
     const discrepancies = typeof statedSleep?.value === "number" && measuredSleep?.value != null && Math.abs(statedSleep.value - measuredSleep.value) >= 1 ? [{
-      text: "Durata del sonno dichiarata e sensore simulato divergono; verificare periodo e attendibilità prima di concludere.", source: "inference" as const,
+      text: "Reported sleep duration and simulated sensor diverge; verify period and reliability before concluding.", source: "inference" as const,
       evidence: [{ source: "self_report" as const, observationId: statedSleep.id }, { source: "sensor" as const, sensorReadingId: measuredSleep.id }],
     }] : [];
     let proposal: ProposalCandidate | null = null;
-    let noChangeReason: string | null = "Nessuna variazione proposta nella simulazione.";
+    let noChangeReason: string | null = "No change proposed in the simulation.";
     if (this.options.proposalsEnabled) {
       const fatigue = context.checkIn.observations.find((o) => o.field === "FATIGUE");
       const hours = context.checkIn.observations.find((o) => o.field === "SLEEP_HOURS");
       const sleep = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality === "GOOD");
       const poorSleep = typeof hours?.value === "number" ? hours.value <= 6 : sleep?.value != null && sleep.value <= 6;
       if (typeof fatigue?.value !== "number" || (typeof hours?.value !== "number" && sleep?.value == null)) {
-        noChangeReason = "Dati condivisi insufficienti per motivare una variazione: richiedere un approfondimento umano.";
+        noChangeReason = "Insufficient shared data to justify a change: human follow-up required.";
       } else if (discrepancies.length) {
-        noChangeReason = "Dati discordanti: occorre chiarire la durata del riposo prima di proporre una variazione.";
+        noChangeReason = "Conflicting data: rest duration must be clarified before proposing a change.";
       } else if (fatigue.value >= 4 && poorSleep) {
         const activity = schedule.activities.find((a) => a.movable && a.priority !== "CRITICAL"
           && Date.parse(a.startsAt) >= Date.parse(context.checkIn.confirmedAt)
@@ -55,24 +55,24 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
             && Date.parse(other.endsAt) > Date.parse(a.startsAt)));
         if (activity) {
           const pauseEnd = new Date(Date.parse(activity.startsAt) + 1200000).toISOString();
-          proposal = { rationale: "Regola dimostrativa: sonno breve e stanchezza elevata riferita; valutare una pausa di 20 minuti prima di un'attività flessibile. Richiesta approvazione di Terra.",
+          proposal = { rationale: "Demo rule: short sleep and high reported fatigue; consider a 20-minute break before a flexible activity. Ground approval requested.",
             evidence: [{ source: "self_report", observationId: fatigue.id },
               ...(hours ? [{ source: "self_report" as const, observationId: hours.id }] : [{ source: "sensor" as const, sensorReadingId: sleep!.id }])],
             changes: [{ type: "MOVE_ACTIVITY", activityId: activity.id, startsAt: pauseEnd, endsAt: new Date(Date.parse(activity.endsAt) + 1200000).toISOString() },
-              { type: "ADD_REST", activityId: `rest-${context.checkIn.id}`.slice(0, 128), title: "Pausa proposta da valutare", startsAt: activity.startsAt, endsAt: pauseEnd }],
+              { type: "ADD_REST", activityId: `rest-${context.checkIn.id}`.slice(0, 128), title: "Proposed break to review", startsAt: activity.startsAt, endsAt: pauseEnd }],
           };
           noChangeReason = null;
-        } else noChangeReason = "Nessuna attività futura può essere spostata entro i vincoli del programma; richiedere valutazione a Terra.";
-      } else noChangeReason = "Le evidenze condivise non attivano la regola dimostrativa di variazione; mantenere il programma.";
+        } else noChangeReason = "No future activity can be moved within the schedule constraints; human evaluation requested.";
+      } else noChangeReason = "Shared evidence does not trigger the demo change rule; keep the schedule.";
     }
     return {
       report: {
         findings: [...findings, ...sensorFindings, ...visionFinding],
-        discrepancies, uncertainties: ["Dati dimostrativi, nessuna valutazione clinica.",
-          ...(vision && !visionFinding.length ? [`Misura palpebrale ${vision.source === "synthetic" ? "sintetica" : "insufficiente"}; motivi: ${vision.reasons.join(", ") || "non specificati"}.`] : [])],
+        discrepancies, uncertainties: ["Demo data, no clinical evaluation.",
+          ...(vision && !visionFinding.length ? [`Eyelid measurement ${vision.source === "synthetic" ? "synthetic" : "insufficient"}; reasons: ${vision.reasons.join(", ") || "unspecified"}.`] : [])],
         humanReview: { required: discrepancies.length > 0 || context.checkIn.observations.length === 0,
-          reason: discrepancies.length ? "Chiarire i dati discordanti con l'astronauta."
-            : context.checkIn.observations.length === 0 ? "Mancano dichiarazioni condivise dell'astronauta." : null },
+          reason: discrepancies.length ? "Clarify the conflicting data with the astronaut."
+            : context.checkIn.observations.length === 0 ? "Missing shared astronaut statements." : null },
       },
       proposal, noChangeReason,
     };
@@ -80,7 +80,7 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
 
   async generateDiary({ messages }: Parameters<DiaryAiProvider["generateDiary"]>[0]) {
     const text = messages.filter((m) => m.role === "ASTRONAUT").map((m) => m.text).join(" ").slice(0, 7900);
-    return { text: text || "Nessuna osservazione personale registrata." };
+    return { text: text || "No personal observation recorded." };
   }
   async converse(context: ConversationContext, options?: ProviderOptions): Promise<ConversationOutput> {
     options?.signal?.throwIfAborted();
@@ -97,46 +97,56 @@ export class MockConversationAiProvider implements ConversationAiProvider, Opera
       else observations[index] = candidate;
     };
     // Multiple/negated alternatives are left for clarification, not guessed.
-    const hours = [...text.matchAll(new RegExp(`\\bho dormito (${numberPattern}) (?:ore|ora)( e mezz[ao])?\\b`, "g"))];
-    if (hours.length === 1 && !/\b(?:non|forse|circa|o)\b/.test(text)) {
+    const hours = [...text.matchAll(new RegExp(`\\bslept (${numberPattern}) (and a half )?hours?\\b`, "g"))];
+    if (hours.length === 1 && !/\b(?:not|maybe|about|or)\b/.test(text)) {
       const value = number(hours[0][1]) + (hours[0][2] ? 0.5 : 0);
       if (value >= 0 && value <= 24) upsert("SLEEP_HOURS", value);
     }
-    for (const [field, label] of [["SLEEP_QUALITY", "qualita(?: del sonno)?"], ["FATIGUE", "stanchezza"]] as const) {
-      const matches = [...text.matchAll(new RegExp(`\\b${label}\\s*(?:e\\s+|: ?)?(${numberPattern})\\s*(?:su\\s*(?:5|cinque)|/\\s*5)\\b`, "g"))];
-      if (matches.length === 1 && !/\b(?:non|forse|oppure)\b/.test(text)) {
+    for (const [field, label] of [["SLEEP_QUALITY", "sleep quality"], ["FATIGUE", "fatigue"]] as const) {
+      const matches = [...text.matchAll(new RegExp(`\\b${label}\\s*(?:is\\s+|: ?)?(${numberPattern})\\s*(?:out of\\s*(?:5|five)|/\\s*5)\\b`, "g"))];
+      if (matches.length === 1 && !/\b(?:not|maybe|or)\b/.test(text)) {
         const value = number(matches[0][1]);
         if (Number.isInteger(value) && value >= 1 && value <= 5) upsert(field, value);
       }
     }
-    if (/^fisicamente\s*:/i.test(current.text)) {
-      const value = current.text.replace(/^fisicamente\s*:\s*/i, "").trim();
+    if (/^physically\s*:/i.test(current.text)) {
+      const value = current.text.replace(/^physically\s*:\s*/i, "").trim();
       if (value) upsert("PHYSICAL_NOTES", value);
+    }
+    if (/^mentally\s*:/i.test(current.text)) {
+      const value = current.text.replace(/^mentally\s*:\s*/i, "").trim();
+      if (value) upsert("MENTAL_STATE", value);
+    }
+    if (/^annoyance\s*:/i.test(current.text)) {
+      const value = current.text.replace(/^annoyance\s*:\s*/i, "").trim();
+      if (value) upsert("STRESSOR_NOTES", value);
     }
     const missingFields = ObservationFieldSchema.options.filter((field) => !observations.some((o) => o.field === field));
     const questions: Record<Observation["field"], string> = {
-      SLEEP_HOURS: "Quante ore hai dormito?",
-      SLEEP_QUALITY: "Come valuti la qualita del sonno da 1 a 5?",
-      FATIGUE: "Quanto ti senti stanco da 1 a 5?",
-      PHYSICAL_NOTES: "Come ti senti fisicamente?",
+      SLEEP_HOURS: "How many hours did you sleep?",
+      SLEEP_QUALITY: "How would you rate your sleep quality from 1 to 5?",
+      FATIGUE: "How tired do you feel from 1 to 5?",
+      PHYSICAL_NOTES: "How do you feel physically?",
+      MENTAL_STATE: "Is there any background thought occupying your mental space?",
+      STRESSOR_NOTES: "If you could eliminate one small annoyance from today, what would it be?",
     };
     const reportedHours = observations.find((o) => o.field === "SLEEP_HOURS")?.value;
     const sensor = context.sensors.find((s) => s.metric === "SLEEP_DURATION" && s.quality !== "UNAVAILABLE");
     const discrepancy = typeof reportedHours === "number" && sensor?.value != null
       && Math.abs(sensor.value - reportedHours) >= 1;
-    const alreadyAsked = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("periodo di riposo"));
+    const alreadyAsked = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("rest period"));
     let reply = missingFields.length ? questions[missingFields[0]]
-      : "Ho raccolto la bozza del check-in. Potrai verificarla e scegliere quali dati condividere con Terra. Il programma resta invariato in questa fase.";
+      : "I've collected the draft check-in. You'll be able to review it and choose which data to share with Ground. The schedule remains unchanged in this phase.";
     if (discrepancy && !alreadyAsked) {
-      reply = `Il sensore simulato indica ${sensor!.value} ore, mentre tu ne riferisci ${reportedHours}. Si tratta dello stesso periodo di riposo? Conservo entrambi i valori. ${reply}`;
+      reply = `The simulated sensor indicates ${sensor!.value} hours, while you reported ${reportedHours}. Is this the same rest period? I'll keep both values. ${reply}`;
     }
     const vision = context.visionObservations[0];
-    const askedVision = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("osservazione palpebrale"));
+    const askedVision = context.messages.some((m) => m.role === "ASSISTANT" && m.text.includes("eyelid observation"));
     if (vision && !askedVision) {
-      const note = vision.source === "synthetic" ? "L'osservazione palpebrale è sintetica e non rappresenta una misura reale."
-        : vision.usability === "INSUFFICIENT" ? "L'osservazione palpebrale non è sufficientemente utilizzabile."
-        : vision.prolongedCount > 0 ? "L'osservazione palpebrale rileva chiusure prolungate. Come ti senti in questo momento?"
-        : "L'osservazione palpebrale è disponibile come dato contestuale.";
+      const note = vision.source === "synthetic" ? "The eyelid observation is synthetic and does not represent a real measurement."
+        : vision.usability === "INSUFFICIENT" ? "The eyelid observation is not sufficiently usable."
+        : vision.prolongedCount > 0 ? "The eyelid observation detects prolonged closures. How do you feel right now?"
+        : "The eyelid observation is available as contextual data.";
       reply = `${note} ${reply}`;
     }
     return ConversationOutputSchema.parse({

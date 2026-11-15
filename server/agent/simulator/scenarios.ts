@@ -27,7 +27,7 @@ export interface ScenarioDefinition {
 export const SCENARIO_DEFINITIONS: Record<Scenario, ScenarioDefinition> = {
   RESTED: {
     id: "RESTED",
-    label: "Riposo regolare",
+    label: "Regular rest",
     sleepHours: 8,
     interruptions: 1,
     restingHeartRate: 60,
@@ -35,7 +35,7 @@ export const SCENARIO_DEFINITIONS: Record<Scenario, ScenarioDefinition> = {
   },
   POOR_SLEEP: {
     id: "POOR_SLEEP",
-    label: "Riposo insufficiente",
+    label: "Insufficient rest",
     sleepHours: 4.8,
     interruptions: 6,
     restingHeartRate: 72,
@@ -43,7 +43,7 @@ export const SCENARIO_DEFINITIONS: Record<Scenario, ScenarioDefinition> = {
   },
   CONFLICTING_DATA: {
     id: "CONFLICTING_DATA",
-    label: "Dati discordanti",
+    label: "Conflicting data",
     sleepHours: 8,
     interruptions: 1,
     restingHeartRate: 60,

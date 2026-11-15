@@ -8,7 +8,7 @@ export interface TalkingAvatarProps {
   speaking: boolean;
 }
 
-export function TalkingAvatar({ src = "/sloth.png", alt = "Assistente di bordo", speaking }: TalkingAvatarProps) {
+export function TalkingAvatar({ src = "/sloth.png", alt = "Onboard assistant", speaking }: TalkingAvatarProps) {
   return (
     <div className={styles.wrap}>
       <div className={`${styles.avatar} ${speaking ? styles.speaking : ""}`}>

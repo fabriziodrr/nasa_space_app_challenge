@@ -14,7 +14,7 @@ async function context(): Promise<ConversationContext> {
   const providers = createDemoContextProviders("RESTED");
   return {
     astronautId: "astro-1", draft: null, previousCheckIns: [], visionObservations: [],
-    messages: [{ id: "message-1", sessionId: "session-1", role: "ASTRONAUT", text: "Ho dormito 8 ore.", createdAt: "2026-11-14T06:00:00Z", inputMode: "TEXT" }],
+    messages: [{ id: "message-1", sessionId: "session-1", role: "ASTRONAUT", text: "I slept 8 hours.", createdAt: "2026-11-14T06:00:00Z", inputMode: "TEXT" }],
     sensors: await providers.sensors.read("astro-1", { from: "2026-11-13T06:00:00Z", to: "2026-11-14T06:00:00Z" }),
     schedule: await providers.schedule.getDay("astro-1", "2026-11-14"),
   };
@@ -91,7 +91,7 @@ test("truncated output, refusals, tool calls, reasoning text and malformed JSON 
   const toolMessage = { ...toolCall.choices[0].message, tool_calls: [{ type: "function", function: { name: "applySchedule" } }] };
   for (const response of [
     completion(validJson, "length"), completion(validJson, "tool_calls"), completion(null),
-    completion("not JSON"), completion('{"reply":"Ciao"}'), completion(`<think>reasoning</think>${validJson}`),
+    completion("not JSON"),     completion('{"reply":"Hi"}'), completion(`<think>reasoning</think>${validJson}`),
     { choices: [{ ...refusal.choices[0], message: refusedMessage }] },
     { choices: [{ ...toolCall.choices[0], message: toolMessage }] },
     { choices: [completion(validJson).choices[0], completion(validJson).choices[0]] },
@@ -143,21 +143,21 @@ test("NVIDIA generates operational report and private diary through separate inp
     const input = JSON.parse(body.messages[1].content);
     calls++;
     if (calls === 1) {
-      assert.ok(!JSON.stringify(input).includes("messaggio privato"));
+      assert.ok(!JSON.stringify(input).includes("private message"));
       return Response.json(completion(JSON.stringify({ report: {
         findings: [], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null },
-      }, proposal: null, noChangeReason: "Nessuna variazione necessaria." })));
+      }, proposal: null, noChangeReason: "No change necessary." })));
     }
-    assert.ok(JSON.stringify(input).includes("messaggio privato"));
-    return Response.json(completion(JSON.stringify({ text: "Oggi ho parlato del mio riposo." })));
+    assert.ok(JSON.stringify(input).includes("private message"));
+    return Response.json(completion(JSON.stringify({ text: "Today I talked about my rest." })));
   });
   const shared = { id: "checkin-1", astronautId: "astro-1", confirmedAt: "2026-11-14T06:00:00Z", observations: [] };
   const result = await ai.generateOperational({ context: { checkIn: shared, sensors: base.sensors }, schedule: base.schedule });
   assert.equal(result.proposal, null);
-  const diary = await ai.generateDiary({ astronautId: "astro-1", messages: [{ ...base.messages[0], text: "messaggio privato" }], checkIn: {
+  const diary = await ai.generateDiary({ astronautId: "astro-1", messages: [{ ...base.messages[0], text: "private message" }], checkIn: {
     id: "checkin-1", astronautId: "astro-1", sessionId: "session-1", revision: 2, status: "CONFIRMED", observations: [], sharedObservationIds: [], createdAt: "2026-11-14T06:00:00Z", confirmedAt: "2026-11-14T06:00:00Z",
   } });
-  assert.match(diary.text, /riposo/);
+  assert.match(diary.text, /rest/);
   assert.equal(calls, 2);
 });
 
@@ -175,7 +175,7 @@ test("NVIDIA output still passes core provenance checks before any turn is saved
   const actor = { userId: "user-1", role: "ASTRONAUT" as const, astronautId: "astro-1" };
   const session = await service.createSession(actor, { astronautId: "astro-1" });
   await assert.rejects(service.sendMessage(actor, session.id, {
-    clientMessageId: "client-1", text: "Ho dormito 8 ore.", inputMode: "TEXT",
+    clientMessageId: "client-1", text: "I slept 8 hours.", inputMode: "TEXT",
   }), hasCode("INVALID_AI_OUTPUT"));
   assert.equal((await service.getSession(actor, session.id)).messages.length, 0);
 });

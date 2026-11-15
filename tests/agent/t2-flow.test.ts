@@ -23,7 +23,7 @@ test("confirmed shared observations produce a ground report and a private editab
     const service = createConversationService({ ai, repository, ...context });
     const session = await service.createSession(identity, { astronautId: "astro-1" });
     const turn = await service.sendMessage(identity, session.id, {
-      clientMessageId: "message-1", text: "Ho dormito 5 ore. Stanchezza 4 su 5.", inputMode: "TEXT",
+      clientMessageId: "message-1", text: "I slept 5 hours. Fatigue 4 out of 5.", inputMode: "TEXT",
     });
     const hours = turn.checkIn.observations.find((o) => o.field === "SLEEP_HOURS")!;
     const artifacts = new ArtifactService({ repository, ...context, operationalAi: ai, diaryAi: ai, proposals: new ProposalService(new ScheduleValidatorImpl()) });
@@ -59,11 +59,11 @@ test("confirmed shared observations produce a ground report and a private editab
     assert.equal(sharedFindings.length, 1);
     assert.equal(sharedFindings[0].evidence[0].observationId, hours.id);
     assert.ok(report.findings.some((finding: { source: string }) => finding.source === "sensor"));
-    assert.ok(!JSON.stringify(report).includes("Stanchezza"));
+    assert.ok(!JSON.stringify(report).includes("Fatigue"));
     assert.equal((await handlers.diary(req("/diary?astronautId=astro-1", "ground-token-123456789"))).status, 403);
     const diaryResponse = await handlers.diary(req("/diary?astronautId=astro-1", "astronaut-token-123456"));
     const diary = (await diaryResponse.json()).data.items[0];
-    assert.match(diary.text, /Stanchezza/);
+    assert.match(diary.text, /Fatigue/);
     const edited = await handlers.updateDiary(req("/diary/1", "astronaut-token-123456", "PATCH", {
       expectedRevision: diary.revision, text: "Diario corretto.", status: "CONFIRMED",
     }), diary.id);
@@ -86,7 +86,7 @@ test("failed generation can be retried immediately without duplicating artifacts
     const identity = { userId: "astronaut", role: "ASTRONAUT" as const, astronautId: "astro-1" };
     const service = createConversationService({ ai, repository, ...context });
     const session = await service.createSession(identity, { astronautId: "astro-1" });
-    const turn = await service.sendMessage(identity, session.id, { clientMessageId: "message-2", text: "Ho dormito 5 ore.", inputMode: "TEXT" });
+    const turn = await service.sendMessage(identity, session.id, { clientMessageId: "message-2", text: "I slept 5 hours.", inputMode: "TEXT" });
     await new CheckInService(repository).confirm(identity, turn.checkIn.id, { expectedRevision: turn.checkIn.revision, sharedObservationIds: [turn.checkIn.observations[0].id] });
     let calls = 0;
     const artifacts = new ArtifactService({

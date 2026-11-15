@@ -33,7 +33,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
         violations.push({
           code: "UNSHARED_EVIDENCE",
           activityId: null,
-          message: "La proposta cita un'evidenza non condivisa o assente dal contesto operativo.",
+          message: "The proposal cites evidence that is not shared or absent from the operational context.",
         });
       }
     }
@@ -46,7 +46,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
           violations.push({
             code: "UNKNOWN_ACTIVITY",
             activityId: change.activityId,
-            message: "Attivita inesistente nello snapshot del programma.",
+            message: "Activity does not exist in the schedule snapshot.",
           });
           continue;
         }
@@ -54,7 +54,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
           violations.push({
             code: "LOCKED_ACTIVITY",
             activityId: change.activityId,
-            message: "L'attivita e bloccata o critica e non puo essere spostata.",
+            message: "The activity is locked or critical and cannot be moved.",
           });
         }
         const originalDuration = Date.parse(activity.endsAt) - Date.parse(activity.startsAt);
@@ -63,7 +63,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
           violations.push({
             code: "DURATION_CHANGED",
             activityId: change.activityId,
-            message: "Lo spostamento non preserva la durata dell'attivita.",
+            message: "The move does not preserve the activity duration.",
           });
         }
         if (Date.parse(change.startsAt) < Date.parse(activity.earliestStart)
@@ -71,14 +71,14 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
           violations.push({
             code: "OUTSIDE_WINDOW",
             activityId: change.activityId,
-            message: "Lo spostamento esce dalla finestra consentita dell'attivita.",
+            message: "The move falls outside the activity's allowed window.",
           });
         }
       } else if (existing.has(change.activityId)) {
         violations.push({
           code: "DUPLICATE_ACTIVITY",
           activityId: change.activityId,
-          message: "L'identificativo della nuova attivita esiste gia nel programma.",
+          message: "The new activity identifier already exists in the schedule.",
         });
       }
     }
@@ -91,7 +91,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
         violations.push({
           code: "OUTSIDE_DAY",
           activityId: activity.id,
-          message: "L'attivita esce dai limiti della giornata del programma.",
+          message: "The activity falls outside the schedule day bounds.",
         });
       }
     }
@@ -101,7 +101,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
           violations.push({
             code: "OVERLAP",
             activityId: resulting[i].id,
-            message: "Il risultato contiene attivita sovrapposte.",
+            message: "The result contains overlapping activities.",
           });
         }
       }
@@ -113,13 +113,13 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
           violations.push({
             code: "DEPENDENCY_VIOLATION",
             activityId: activity.id,
-            message: "Dipendenza mancante nel programma risultante.",
+            message: "Missing dependency in the resulting schedule.",
           });
         } else if (Date.parse(dependency.endsAt) > Date.parse(activity.startsAt)) {
           violations.push({
             code: "DEPENDENCY_VIOLATION",
             activityId: activity.id,
-            message: "Una dipendenza non termina prima dell'attivita dipendente.",
+            message: "A dependency does not end before the dependent activity.",
           });
         }
       }
@@ -128,7 +128,7 @@ export class ScheduleValidatorImpl implements ScheduleValidator {
       violations.push({
         code: "DEPENDENCY_VIOLATION",
         activityId: null,
-        message: "Le dipendenze del programma risultante formano un ciclo.",
+        message: "The dependencies of the resulting schedule form a cycle.",
       });
     }
 

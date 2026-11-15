@@ -10,12 +10,12 @@ type Confirmation = { expectedRevision: number; sharedObservationIds: string[]; 
 type Props = { token: string; sessionId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
   run<T>(operation: () => Promise<T>): Promise<T>; onCheckIn(checkIn: CheckIn): void; onConfirmationPending(value: boolean): void };
 
-const labels: Record<string, string> = { SLEEP_HOURS: "Ore di sonno", SLEEP_QUALITY: "Qualità del sonno (1–5)",
-  FATIGUE: "Stanchezza (1–5)", PHYSICAL_NOTES: "Condizioni fisiche" };
-const reasonLabels: Record<string, string> = { NO_VALID_TIME: "nessun tempo valido", TOO_SHORT: "misura troppo breve",
-  LOW_COVERAGE: "copertura insufficiente", STALE: "misura non recente", INTERRUPTED: "misura interrotta",
-  SYNTHETIC_TIME_UNAVAILABLE: "tempo reale non disponibile per il replay sintetico" };
-const percent = (value: number | null) => value === null ? "non disponibile" : `${(value * 100).toFixed(1)}%`;
+const labels: Record<string, string> = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1–5)",
+  FATIGUE: "Fatigue (1–5)", PHYSICAL_NOTES: "Physical condition", MENTAL_STATE: "Mental state", STRESSOR_NOTES: "Stressors" };
+const reasonLabels: Record<string, string> = { NO_VALID_TIME: "no valid time", TOO_SHORT: "measurement too short",
+  LOW_COVERAGE: "insufficient coverage", STALE: "stale measurement", INTERRUPTED: "interrupted measurement",
+  SYNTHETIC_TIME_UNAVAILABLE: "real time unavailable for the synthetic replay" };
+const percent = (value: number | null) => value === null ? "unavailable" : `${(value * 100).toFixed(1)}%`;
 
 export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
   const [file, setFile] = useState<File | null>(null);
@@ -44,14 +44,14 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       if (!received || !frame || inFlight.current.has(received.requestId)) return;
       const answer = (ok: boolean, message: string) => frame.postMessage({ channel: VISION_BRIDGE_CHANNEL,
         type: "IMPORT_RESULT", requestId: received.requestId, ok, message }, bridgeOrigin!);
-      if (busy || locked || confirmed) { answer(false, "Completa l'operazione in corso prima di inviare la misura."); return; }
+      if (busy || locked || confirmed) { answer(false, "Complete the current operation before sending the measurement."); return; }
       inFlight.current.add(received.requestId); setError(""); setMessage("");
       void run(async () => {
         const result = await uploadVision(token, sessionId, received.blob, received.requestId);
         setObservations((current) => [result, ...current.filter((item) => item.id !== result.id)]);
-        setMessage("Misura ricevuta. Selezionala per usarla nella conversazione.");
-        answer(true, "Misura ricevuta dall'agent. Selezionala nella pagina principale.");
-      }).catch(() => answer(false, "Invio non riuscito. Controlla la connessione e riprova."))
+        setMessage("Measurement received. Select it to use it in the conversation.");
+        answer(true, "Measurement received by the agent. Select it on the main page.");
+      }).catch(() => answer(false, "Upload failed. Check the connection and try again."))
         .finally(() => { inFlight.current.delete(received.requestId); });
     }
     window.addEventListener("message", receive);
@@ -61,7 +61,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   async function perform(operation: () => Promise<void>) {
     setError(""); setMessage("");
     try { await run(operation); }
-    catch (e) { setError(e instanceof Error ? e.message : "Operazione non riuscita. Riprova."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Operation failed. Try again."); }
   }
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -73,7 +73,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
     await perform(async () => {
       const result = await uploadVision(token, sessionId, chosen, uploadKey.current);
       setObservations((current) => [result, ...current.filter((item) => item.id !== result.id)]);
-      setMessage("File importato. Seleziona la misura per usarla nella conversazione.");
+      setMessage("File imported. Select the measurement to use it in the conversation.");
     });
   }
   async function select(id: string | null) {
@@ -84,7 +84,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       try {
         await selectVision(token, sessionId, id); setSelectedId(id); setSharedVision(false);
         pendingSelection.current = null; setSelectionUncertain(false); onConfirmationPending(false);
-        setMessage(id ? "Misura selezionata per questa sessione." : "Nessuna misura selezionata.");
+        setMessage(id ? "Measurement selected for this session." : "No measurement selected.");
       } catch (e) {
         if (e instanceof DemoApiError && e.status >= 400 && e.status < 500) {
           pendingSelection.current = null; setSelectionUncertain(false); onConfirmationPending(false);
@@ -108,7 +108,7 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
       try {
         const result = await confirmVision(token, checkIn.id, body);
         onCheckIn(result.checkIn); pendingConfirmation.current = null; onConfirmationPending(false);
-        setMessage("Check-in confermato. La generazione del report è stata avviata.");
+        setMessage("Check-in confirmed. Report generation has started.");
       } catch (e) {
         if (e instanceof DemoApiError && e.status >= 400 && e.status < 500) {
           pendingConfirmation.current = null; onConfirmationPending(false);
@@ -120,41 +120,41 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
   }
 
   return <section className={styles.panel} aria-labelledby="vision-title">
-    <h2 id="vision-title">Misura palpebrale e check-in</h2>
-    <p>Importa il JSON esportato dalla feature palpebrale. La misura è sperimentale e non determina da sola la stanchezza. La sua utilizzabilità viene rivalutata alla conferma.</p>
-    <p>La misura selezionata viene usata dall’agent e può essere inviata al provider AI configurato. La condivisione con Terra si sceglie separatamente al momento della conferma.</p>
+    <h2 id="vision-title">Eyelid measurement and check-in</h2>
+    <p>Import the JSON exported by the eyelid feature. The measurement is experimental and does not by itself determine fatigue. Its usability is reassessed on confirmation.</p>
+    <p>The selected measurement is used by the agent and may be sent to the configured AI provider. Sharing with ground is chosen separately at confirmation.</p>
     {bridgeOrigin ? <>
       <button type="button" onClick={() => setShowVision((value) => !value)} disabled={busy || locked || confirmed}>
-        {showVision ? "Chiudi visione palpebrale" : "Apri visione palpebrale"}
+        {showVision ? "Close eyelid vision" : "Open eyelid vision"}
       </button>
-      {showVision && !confirmed && <><p>Avvia il prototipo palpebrale su {bridgeOrigin}, calibra e completa la misura; poi usa il pulsante di invio nel prototipo.</p>
-        <iframe ref={iframe} title="Prototipo di visione palpebrale" src={`${bridgeOrigin}/`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
+      {showVision && !confirmed && <><p>Start the eyelid prototype at {bridgeOrigin}, calibrate and complete the measurement; then use the send button in the prototype.</p>
+        <iframe ref={iframe} title="Eyelid vision prototype" src={`${bridgeOrigin}/`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
       </>}
-    </> : <p role="alert">Indirizzo del prototipo palpebrale non valido. Puoi usare l’importazione del file.</p>}
-    <label htmlFor="vision-file">File JSON della misura</label>
+    </> : <p role="alert">Invalid eyelid prototype address. You can use file import.</p>}
+    <label htmlFor="vision-file">Measurement JSON file</label>
     <input id="vision-file" type="file" accept="application/json,.json" onChange={onFileChange} disabled={busy || locked || confirmed} />
-    <button type="button" onClick={upload} disabled={!file || busy || locked || confirmed}>Importa misura</button>
+    <button type="button" onClick={upload} disabled={!file || busy || locked || confirmed}>Import measurement</button>
     {observations.length > 0 && <div className={styles.visionList}>
-      <h3>Misure importate</h3>
+      <h3>Imported measurements</h3>
       {observations.map((item) => <article key={item.id} className={styles.measurement}>
-        <strong>{item.source === "synthetic" ? "Replay sintetico" : "Misura webcam"}</strong>{" · "}
-        {item.usability === "USABLE" ? "utilizzabile" : "insufficiente"}
-        <p>Tempo valido: {(item.validMs / 1000).toFixed(1)} s · Copertura: {percent(item.coverage)} · Quota di chiusura: {percent(item.closureFraction)}</p>
-        <p>Intervallo: {item.startedAt && item.endedAt ? `${item.startedAt} – ${item.endedAt}` : "non disponibile"}</p>
-        {item.reasons.length > 0 && <p>Limitazioni: {item.reasons.map((reason) => reasonLabels[reason] ?? reason).join(", ")}.</p>}
+        <strong>{item.source === "synthetic" ? "Synthetic replay" : "Webcam measurement"}</strong>{" · "}
+        {item.usability === "USABLE" ? "usable" : "insufficient"}
+        <p>Valid time: {(item.validMs / 1000).toFixed(1)} s · Coverage: {percent(item.coverage)} · Closure fraction: {percent(item.closureFraction)}</p>
+        <p>Interval: {item.startedAt && item.endedAt ? `${item.startedAt} – ${item.endedAt}` : "unavailable"}</p>
+        {item.reasons.length > 0 && <p>Limitations: {item.reasons.map((reason) => reasonLabels[reason] ?? reason).join(", ")}.</p>}
         <button type="button" onClick={() => select(item.id)} disabled={busy || locked || confirmed || item.id === selectedId}>
-          {item.id === selectedId ? "Selezionata" : "Seleziona misura"}
+          {item.id === selectedId ? "Selected" : "Select measurement"}
         </button>
       </article>)}
-      {selectedId && <button type="button" onClick={() => select(null)} disabled={busy || locked || confirmed}>Rimuovi selezione</button>}
+      {selectedId && <button type="button" onClick={() => select(null)} disabled={busy || locked || confirmed}>Clear selection</button>}
     </div>}
-    {selectionUncertain && <><p>La selezione potrebbe essere stata ricevuta. Riprova per verificarla prima di continuare.</p>
-      <button type="button" disabled={busy} onClick={() => { if (pendingSelection.current) void select(pendingSelection.current.id); }}>Riprova selezione</button></>}
-    <h3>Revisione del check-in</h3>
-    {!checkIn ? <p>Invia almeno un messaggio per creare una bozza, poi scegli cosa condividere.</p> : <>
-      <p>Stato: {confirmed ? "confermato" : "bozza"}. Seleziona le informazioni che vuoi condividere con Terra.</p>
-      {checkIn.observations.length === 0 ? <p>Nessuna osservazione dichiarata nella bozza.</p> :
-        <fieldset disabled={busy || locked || confirmed}><legend>Osservazioni personali da condividere</legend>
+    {selectionUncertain && <><p>The selection may have been received. Retry to verify before continuing.</p>
+      <button type="button" disabled={busy} onClick={() => { if (pendingSelection.current) void select(pendingSelection.current.id); }}>Retry selection</button></>}
+    <h3>Check-in review</h3>
+    {!checkIn ? <p>Send at least one message to create a draft, then choose what to share.</p> : <>
+      <p>Status: {confirmed ? "confirmed" : "draft"}. Select the information you want to share with ground.</p>
+      {checkIn.observations.length === 0 ? <p>No self-reported observations in the draft.</p> :
+        <fieldset disabled={busy || locked || confirmed}><legend>Personal observations to share</legend>
           {checkIn.observations.map((item) => <label className={styles.choice} key={item.id}>
             <input type="checkbox" checked={sharedIds.includes(item.id)} onChange={(event) => {
               const checked = event.target.checked;
@@ -164,12 +164,12 @@ export function VisionPanel({ token, sessionId, checkIn, busy, locked, run, onCh
           </label>)}
         </fieldset>}
       {selected && <label className={styles.choice}><input type="checkbox" checked={sharedVision} disabled={busy || locked || confirmed}
-        onChange={(event) => setSharedVision(event.target.checked)} /><span>Condividi con Terra la misura {selected.source === "synthetic" ? "sintetica" : "webcam"} selezionata.</span></label>}
-      {!selected && <p>Nessuna misura selezionata: puoi comunque confermare il check-in.</p>}
-      {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain}>{locked && !selectionUncertain ? "Riprova la conferma" : "Conferma check-in"}</button>}
-      {locked && !selectionUncertain && !confirmed && <p>La conferma potrebbe essere stata ricevuta. Riprova senza cambiare la selezione.</p>}
+        onChange={(event) => setSharedVision(event.target.checked)} /><span>Share the selected {selected.source === "synthetic" ? "synthetic" : "webcam"} measurement with ground.</span></label>}
+      {!selected && <p>No measurement selected: you can still confirm the check-in.</p>}
+      {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain}>{locked && !selectionUncertain ? "Retry confirmation" : "Confirm check-in"}</button>}
+      {locked && !selectionUncertain && !confirmed && <p>The confirmation may have been received. Retry without changing the selection.</p>}
     </>}
-    {busy && <p role="status">Operazione in corso…</p>}
+    {busy && <p role="status">Operation in progress…</p>}
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
   </section>;

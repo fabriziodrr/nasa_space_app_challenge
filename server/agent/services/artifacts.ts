@@ -28,7 +28,7 @@ export class ArtifactService {
     const { repository, sensors, schedule, operationalAi, diaryAi, proposals } = this.deps;
     const checkIn = await repository.getCheckIn(identity.astronautId, checkInId);
     if (!checkIn) throw AgentErrors.notFound();
-    if (checkIn.status !== "CONFIRMED" || !checkIn.confirmedAt) throw AgentErrors.invalidState("Il check-in non e confermato.");
+    if (checkIn.status !== "CONFIRMED" || !checkIn.confirmedAt) throw AgentErrors.invalidState("The check-in is not confirmed.");
     const claim = await repository.claimGeneration(identity.astronautId, checkIn.id, 120_000);
     if (!claim) return;
     try {
@@ -52,7 +52,7 @@ export class ArtifactService {
       const { sensors: readings, vision } = frozen;
       if (!state || state.session.astronautId !== identity.astronautId || day.astronautId !== identity.astronautId
           || (vision && (vision.astronautId !== identity.astronautId || vision.sessionId !== checkIn.sessionId))
-          || readings.some((reading) => reading.astronautId !== identity.astronautId)) throw AgentErrors.internal("Contesto non valido.");
+          || readings.some((reading) => reading.astronautId !== identity.astronautId)) throw AgentErrors.internal("Invalid context.");
       const visibleVision = vision ? { id: vision.id, source: vision.source, startedAt: vision.startedAt, endedAt: vision.endedAt,
         elapsedMs: vision.elapsedMs, validMs: vision.validMs, coverage: vision.coverage, closureFraction: vision.closureFraction,
         completeCount: vision.completeCount, incompleteCount: vision.incompleteCount, prolongedCount: vision.prolongedCount,
@@ -66,10 +66,10 @@ export class ArtifactService {
       const diaryOutput = DiaryOutputSchema.parse(rawDiary);
       if (context.vision) {
         const item = context.vision;
-        const note = `Misura palpebrale ${item.source === "synthetic" ? "sintetica" : "webcam"}; stato ${item.usability}; `
-          + `intervallo ${item.startedAt ?? "non disponibile"} – ${item.endedAt ?? "non disponibile"}; `
-          + `tempo valido ${item.validMs} ms; copertura ${item.coverage ?? "non disponibile"}; `
-          + `limitazioni: ${item.reasons.length ? item.reasons.join(", ") : "nessuna segnalata"}. Misura sperimentale non diagnostica.`;
+        const note = `Eyelid measurement ${item.source === "synthetic" ? "synthetic" : "webcam"}; status ${item.usability}; `
+          + `interval ${item.startedAt ?? "unavailable"} – ${item.endedAt ?? "unavailable"}; `
+          + `valid time ${item.validMs} ms; coverage ${item.coverage ?? "unavailable"}; `
+          + `limitations: ${item.reasons.length ? item.reasons.join(", ") : "none reported"}. Experimental, non-diagnostic measurement.`;
         operational.report.uncertainties = [note, ...operational.report.uncertainties].slice(0, 20);
       }
       const sensorIds = new Set(readings.map((reading) => reading.id));
@@ -79,20 +79,20 @@ export class ArtifactService {
             : evidence.source === "sensor" ? sensorIds.has(evidence.sensorReadingId)
             : context.vision?.id === evidence.visionObservationId && context.vision.source === "webcam" && context.vision.usability === "USABLE";
           if (!allowed) {
-            throw AgentErrors.invalidAiOutput("Il report contiene evidenze non condivise o non disponibili.");
+            throw AgentErrors.invalidAiOutput("The report contains evidence that is not shared or unavailable.");
           }
         }
       }
       let proposal = null;
       if (operational.proposal) {
-        if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Generazione delle proposte non ancora collegata al programma autorevole.");
-        if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("Il check-in non ha un programma congelato: apri un nuovo check-in.");
+        if (!this.deps.allowProposals) throw AgentErrors.invalidAiOutput("Proposal generation is not yet connected to the authoritative schedule.");
+        if (this.deps.frozenContext && !frozen.schedule) throw AgentErrors.invalidState("The check-in has no frozen schedule: open a new check-in.");
         const built = proposals.build(operational.proposal, context, day);
         if (built.outcome === "proposal") proposal = built.proposal;
         else {
           operational.proposal = null;
-          operational.noChangeReason = "Il consiglio generato non supera i vincoli del programma; mantenere la schedule e richiedere una revisione di Terra.";
-          operational.report.humanReview = { required: true, reason: "La proposta automatica non supera la validazione del programma." };
+          operational.noChangeReason = "The generated recommendation does not satisfy the schedule constraints; keep the schedule and request a Ground review.";
+          operational.report.humanReview = { required: true, reason: "The automatic proposal does not pass schedule validation." };
         }
       }
       const now = new Date().toISOString();

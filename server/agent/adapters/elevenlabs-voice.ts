@@ -29,7 +29,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
   async transcribe(): Promise<never> {
     throw new AgentError(
       "PROVIDER_UNAVAILABLE",
-      "La trascrizione non e fornita da ElevenLabs in questa demo: usa il microfono del browser.",
+      "Transcription is not provided by ElevenLabs in this demo: use the browser microphone.",
     );
   }
 
@@ -38,7 +38,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
     options?: ProviderOptions,
   ): Promise<{ audio: Uint8Array; mimeType: "audio/mpeg" }> {
     if (!input.text.trim() || input.text.length > 2000) {
-      throw new AgentError("VALIDATION_ERROR", "La lettura supporta risposte fino a 2000 caratteri.");
+      throw new AgentError("VALIDATION_ERROR", "Speech supports replies up to 2000 characters.");
     }
     return withDeadline(async (signal) => {
       let response: Response;
@@ -58,16 +58,16 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
           }),
         });
       } catch {
-        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Servizio vocale interrotto o scaduto.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio vocale ElevenLabs non raggiungibile.", true);
+        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Voice service interrupted or timed out.", true);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "ElevenLabs voice service unreachable.", true);
       }
       if (!response.ok) {
         await response.body?.cancel();
-        if (response.status === 401) throw new AgentError("PROVIDER_UNAVAILABLE", "Chiave ElevenLabs non valida.");
-        if (response.status === 429) throw new AgentError("RATE_LIMITED", "Limite del piano ElevenLabs raggiunto.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio ElevenLabs non disponibile.", response.status >= 500);
+        if (response.status === 401) throw new AgentError("PROVIDER_UNAVAILABLE", "Invalid ElevenLabs key.");
+        if (response.status === 429) throw new AgentError("RATE_LIMITED", "ElevenLabs plan limit reached.", true);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "ElevenLabs service unavailable.", response.status >= 500);
       }
-      if (!response.body) throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato assente.");
+      if (!response.body) throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio missing.");
       const reader = response.body.getReader();
       const chunks: Uint8Array[] = [];
       let size = 0;
@@ -78,7 +78,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
           size += value.byteLength;
           if (size > AUDIO_LIMITS.maxBytes) {
             await reader.cancel();
-            throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato troppo grande.");
+            throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio too large.");
           }
           chunks.push(value);
         }
@@ -86,7 +86,7 @@ export class ElevenLabsVoiceProvider implements VoiceProvider {
       const audio = new Uint8Array(size);
       let offset = 0;
       for (const chunk of chunks) { audio.set(chunk, offset); offset += chunk.length; }
-      if (!audio.length) throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato vuoto.");
+      if (!audio.length) throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio empty.");
       return { audio, mimeType: "audio/mpeg" as const };
     }, AUDIO_LIMITS.providerTimeoutMs, options?.signal);
   }

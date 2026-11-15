@@ -1,0 +1,18 @@
+.panel { display: flex; flex-direction: column; gap: 16px; }
+.title { margin: 0; font-size: 1.1rem; }
+.subtitle { margin: -10px 0 0; color: #6b7c8a; font-size: 0.82rem; }
+.trends { display: flex; flex-direction: column; gap: 12px; }
+.trend { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 10px; }
+.trendLabel { font-size: 0.78rem; color: #46586a; font-weight: 600; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 48px; }
+.bar { flex: 1; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #2f7f9f, #1f5d78); opacity: 0.85; }
+.days { display: flex; gap: 4px; padding-left: 102px; }
+.days span { flex: 1; text-align: center; font-size: 0.66rem; color: #8a9aa8; }
+.signals { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.signal { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border-radius: 10px; background: #f2f6f9; }
+.signal strong { font-size: 0.86rem; }
+.signal p { margin: 3px 0 0; font-size: 0.8rem; color: #536b7b; }
+.badge { flex-shrink: 0; padding: 3px 7px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.02em; }
+.ok { background: #d7efe0; color: #1f6b43; }
+.watch { background: #fdeed3; color: #8a5a12; }
+.warn { background: #fbdcdc; color: #a12b2b; }

@@ -94,7 +94,7 @@ export const AUDIO_LIMITS = {
   maxBytes: 10 * 1024 * 1024,
   maxDurationSeconds: 120,
   providerTimeoutMs: 30_000,
-  language: "it",
+  language: "en",
 } as const;
 export const AudioMimeTypeSchema = z.enum([
   "audio/webm", "audio/webm;codecs=opus", "audio/mp4", "audio/wav", "audio/mpeg",
@@ -105,7 +105,7 @@ export const TranscriptionMetadataSchema = z.strictObject({
   sizeBytes: z.number().int().positive().max(AUDIO_LIMITS.maxBytes),
   durationSeconds: z.number().positive().max(AUDIO_LIMITS.maxDurationSeconds),
 });
-export const TranscriptionResultSchema = z.strictObject({ text: TextSchema, language: z.literal("it") });
+export const TranscriptionResultSchema = z.strictObject({ text: TextSchema, language: z.literal("en") });
 export const SpeechRequestSchema = z.strictObject({ sessionId: IdSchema, messageId: IdSchema });
 
 export const CreateSessionResponseSchema = successSchema(ConversationSessionSchema);

@@ -37,9 +37,9 @@ test("import, idempotency, selection and snapshot confirmation use scoped persis
     const first = await vision.import("a1", "s1", "key1", bytes);
     assert.equal(first.source, "synthetic"); assert.equal(first.usability, "INSUFFICIENT");
     assert.deepEqual(await vision.import("a1", "s1", "key1", bytes), first);
-    await assert.rejects(vision.import("a1", "s1", "key1", new TextEncoder().encode("{}")), /altro contenuto/);
-    await assert.rejects(vision.list("a2", "s1"), /non trovata/);
-    await assert.rejects(vision.select("a2", "s1", first.id), /non trovata/);
+    await assert.rejects(vision.import("a1", "s1", "key1", new TextEncoder().encode("{}")), /different content/i);
+    await assert.rejects(vision.list("a2", "s1"), /not found/i);
+    await assert.rejects(vision.select("a2", "s1", first.id), /not found/i);
     await vision.select("a1", "s1", first.id);
     assert.equal((await vision.getSelectedForSession("a1", "s1"))?.id, first.id);
     const confirmation = new VisionConfirmationService(prisma, createDemoContextProviders("RESTED").sensors, DEFAULT_VISION_QUALITY);
@@ -52,8 +52,8 @@ test("import, idempotency, selection and snapshot confirmation use scoped persis
     assert.equal((await confirmation.getFrozenSensors("a1", "c1")).length, 3);
     const snapshot = await prisma.checkInContextSnapshot.findUniqueOrThrow({ where: { checkInId: "c1" } });
     assert.equal(JSON.parse(snapshot.visionJson!).id, first.id);
-    await assert.rejects(vision.select("a1", "s1", null), /conclusa/);
-    await assert.rejects(confirmation.confirm("a1", "c1", { ...request, vision: { ...request.vision, shareWithGround: false } }), /diversi/);
+    await assert.rejects(vision.select("a1", "s1", null), /closed/i);
+    await assert.rejects(confirmation.confirm("a1", "c1", { ...request, vision: { ...request.vision, shareWithGround: false } }), /different data/i);
   } finally { await db.cleanup(); }
 });
 
@@ -65,7 +65,7 @@ test("invalid replay is rejected and private selection is excluded from frozen o
     await prisma.checkIn.create({ data: { id: "c2", astronautId: "a1", sessionId: "s2", revision: 1, status: "DRAFT", observationsJson: "[]", sharedObservationIdsJson: "[]", createdAt: now } });
     const service = new VisionService(prisma, DEFAULT_VISION_QUALITY);
     const tampered = JSON.parse(sampleExport()); tampered.snapshot.session.validMs = 90000;
-    await assert.rejects(service.import("a1", "s2", "bad", new TextEncoder().encode(JSON.stringify(tampered))), /non valido/);
+    await assert.rejects(service.import("a1", "s2", "bad", new TextEncoder().encode(JSON.stringify(tampered))), /invalid/i);
     assert.equal(await prisma.visionObservation.count(), 0);
     const vision = await service.import("a1", "s2", "good", new TextEncoder().encode(sampleExport()));
     await service.select("a1", "s2", vision.id);
@@ -119,9 +119,9 @@ test("historical confirmed check-ins without a snapshot are explicitly unavailab
     await db.prisma.checkIn.create({ data: { id: "legacy-c", astronautId: "a1", sessionId: "legacy-s", revision: 2,
       status: "CONFIRMED", observationsJson: "[]", sharedObservationIdsJson: "[]", createdAt: now, confirmedAt: now } });
     const service = new VisionConfirmationService(db.prisma, createDemoContextProviders("RESTED").sensors, DEFAULT_VISION_QUALITY);
-    await assert.rejects(service.getFrozenSensors("a1", "legacy-c"), /storico non disponibile/);
+    await assert.rejects(service.getFrozenSensors("a1", "legacy-c"), /historical context unavailable/i);
     await assert.rejects(service.confirm("a1", "legacy-c", { expectedRevision: 1, sharedObservationIds: [],
-      vision: { visionObservationId: null, shareWithGround: false } }), /storico non disponibile/);
+      vision: { visionObservationId: null, shareWithGround: false } }), /historical context unavailable/i);
   } finally { await db.cleanup(); }
 });
 

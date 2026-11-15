@@ -18,7 +18,7 @@ export class SimulatedScheduleProvider implements ScheduleProvider {
       where: { astronautId_date: { astronautId, date } },
     });
     if (!row) {
-      throw AgentErrors.notFound("Programma non trovato per l'astronauta e la data richiesti.");
+      throw AgentErrors.notFound("Schedule not found for the requested astronaut and date.");
     }
     return scheduleFromRow(row);
   }
@@ -41,7 +41,7 @@ export class SimulatedScheduleProvider implements ScheduleProvider {
           return {
             outcome: "FAILED",
             retryable: false,
-            reason: "Riconciliazione: comando differente per la stessa coppia proposta/decisione.",
+            reason: "Reconciliation: different command for the same proposal/decision pair.",
           } satisfies ScheduleApplyResult;
         }
         const schedule = await tx.scheduleSnapshot.findUnique({ where: { id: receipt.scheduleId } });
@@ -58,7 +58,7 @@ export class SimulatedScheduleProvider implements ScheduleProvider {
         return {
           outcome: "FAILED",
           retryable: false,
-          reason: "Programma non trovato o non appartenente all'astronauta.",
+          reason: "Schedule not found or not belonging to the astronaut.",
         } satisfies ScheduleApplyResult;
       }
       if (schedule.version !== command.expectedScheduleVersion) {
