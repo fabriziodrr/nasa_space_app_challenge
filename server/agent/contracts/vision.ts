@@ -49,7 +49,7 @@ export const VisionSelectionSchema = z.strictObject({ visionObservationId: IdSch
   .refine((value) => value.visionObservationId !== null || !value.shareWithGround, "A shared selection requires an observation");
 export const ConfirmCheckInWithVisionRequestSchema = z.strictObject({
   expectedRevision: VersionSchema,
-  sharedObservationIds: z.array(IdSchema).max(4).refine((ids) => new Set(ids).size === ids.length),
+  sharedObservationIds: z.array(IdSchema).max(6).refine((ids) => new Set(ids).size === ids.length),
   vision: VisionSelectionSchema,
 });
 export type VisionObservation = z.infer<typeof VisionObservationSchema>;

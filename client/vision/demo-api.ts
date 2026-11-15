@@ -10,7 +10,7 @@ export class DemoApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 async function call(path: string, init: RequestInit, token: string) {
-  const headers = new Headers(init.headers); headers.set("Authorization", `Bearer ${token.trim()}`);
+  const headers = new Headers(init.headers); if (token.trim()) headers.set("Authorization", `Bearer ${token.trim()}`);
   const response = await fetch(path, { ...init, headers, cache: "no-store" });
   if (!response.ok) {
     const message = response.status === 401 ? "Demo token not recognized."

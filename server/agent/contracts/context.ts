@@ -12,7 +12,7 @@ const sensorBase = {
   scenario: ScenarioSchema.optional(),
   quality: z.enum(["GOOD", "DEGRADED", "UNAVAILABLE"]),
   provenance: z.strictObject({
-    backend: z.literal("aegis_data"), subjectId: IdSchema, identityLink: z.enum(["demo_only_unverified", "demo_mapped"]),
+    backend: z.enum(["aegis_data", "demo_fixture"]), subjectId: IdSchema, identityLink: z.enum(["demo_only_unverified", "demo_mapped"]),
     snapshotId: z.string().max(128).nullable(), backendAsOf: TimestampSchema.nullable(), observedId: IdSchema.nullable(),
     periodStart: TimestampSchema.nullable(), periodEnd: TimestampSchema.nullable(),
     deviceId: z.string().max(100).nullable(), method: z.string().max(100).nullable(),

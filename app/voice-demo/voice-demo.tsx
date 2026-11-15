@@ -5,6 +5,7 @@ import { VoiceComposer } from "../../components/agent-voice/VoiceComposer";
 import { VoiceConversation, type SpeakableReply } from "../../components/agent-voice/VoiceConversation";
 import { SlothMascot } from "../../components/agent-avatar/SlothMascot";
 import { speakServerReply } from "../../client/voice/server-speech";
+import { selectDemoProfile } from "../../client/demo-session";
 import type { SpeakHandle } from "../../client/voice/speech";
 import { CreateSessionResponseSchema, MessageResponseSchema, type CheckIn } from "../../server/agent/contracts";
 import { VisionPanel } from "./vision-panel";
@@ -14,8 +15,8 @@ import styles from "./voice-demo.module.css";
 type Message = { id: string; role: "ASTRONAUT" | "ASSISTANT"; text: string };
 type Pending = { id: string; text: string; mode: "TEXT" | "VOICE" };
 
-export function VoiceDemo() {
-  const [token, setToken] = useState("");
+export function VoiceDemo({ embedded = false }: { embedded?: boolean }) {
+  const token = "";
   const [astronautId, setAstronautId] = useState("astro-1");
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -47,13 +48,13 @@ export function VoiceDemo() {
   async function request(path: string, body: object) {
     controller.current = new AbortController();
     const result = await fetch(`/api/agent/v1${path}`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token.trim()}` },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body), signal: controller.current.signal, cache: "no-store",
     });
     const payload: unknown = await result.json();
     if (!result.ok) {
       // Render a controlled message: never display upstream/provider bodies.
-      if (result.status === 401) throw new Error("Token not recognized. Check the astronaut demo token.");
+      if (result.status === 401) throw new Error("Demo session unavailable. Start a new session.");
       if (result.status === 429) throw new Error("Service limit reached. Try again later.");
       if (result.status === 409) throw new Error("The conversation has changed. Reload the page and start a new session.");
       throw new Error("Service unavailable. Check the server and try again.");
@@ -63,9 +64,10 @@ export function VoiceDemo() {
 
   async function start(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (startingRef.current || !token.trim()) return;
+    if (startingRef.current) return;
     startingRef.current = true; setStarting(true); setError("");
     try {
+      await selectDemoProfile(astronautId);
       const parsed = CreateSessionResponseSchema.parse(await request("/sessions", { astronautId }));
       if (mounted.current) setSessionId(parsed.data.id);
     } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "Unable to start the session."); }
@@ -136,23 +138,26 @@ export function VoiceDemo() {
   }
 
   const lastReply = [...messages].reverse().find((item) => item.role === "ASSISTANT");
-  return <main className={styles.page} lang="en">
+  return <section className={`${styles.page} ${embedded ? styles.embedded : ""}`} lang="en" aria-label="S.L.O.T.H. voice assistant">
     <div className={styles.shell}>
       <header><p className={styles.eyebrow}>Local demo · Onboard assistant</p><h1>Talk to the assistant</h1>
         <p>Start a session, dictate or type a message and listen to the reply.</p></header>
+      {embedded && <div className={styles.stage}>
+        <SlothMascot speaking={speaking} size={130} />
+        {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
+      </div>}
       {!sessionId ? <form className={styles.panel} onSubmit={start}>
-        <label htmlFor="demo-token">Astronaut demo token</label>
         <label htmlFor="demo-astronaut">Astronaut profile</label>
         <select id="demo-astronaut" value={astronautId} onChange={(event) => setAstronautId(event.target.value)}>{demoCrewMappings.map((member) => <option value={member.astronautId} key={member.astronautId}>{member.name}</option>)}</select>
-        <p>Enter the value of <code>{demoCrewMappings.find((member) => member.astronautId === astronautId)?.tokenEnv}</code> from the local <code>.env</code> file. It is not the NVIDIA key.</p>
-        <input id="demo-token" type="password" autoComplete="off" value={token} onChange={(event) => setToken(event.target.value)} />
-        <button type="submit" disabled={starting || !token.trim()}>{starting ? "Starting…" : "Start session"}</button>
+        <button type="submit" disabled={starting}>{starting ? "Starting…" : "Start session"}</button>
         {error && <p role="alert">{error}</p>}
       </form> : <>
-        <div className={styles.stage}>
+        {!embedded && <div className={styles.stage}>
           <SlothMascot speaking={speaking} />
           {lastReply && <p className={styles.bubble}>{lastReply.text}</p>}
-        </div>
+        </div>}
+        {embedded && <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>}
+        {embedded && <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>}
         <section className={styles.panel} aria-labelledby="conversation-title">
           <h2 id="conversation-title">Conversation</h2>
           {!messages.length && <p>The session is ready. Start the continuous conversation or type the first message.</p>}
@@ -165,13 +170,14 @@ export function VoiceDemo() {
           </div>}
           {speechError && <p role="alert">{speechError}</p>}
         </section>
-        <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
-          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />
-        <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>
-        <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>
+        {embedded ? <details open className={styles.visionDetails}><summary>Vision and check-in · review and share with Houston</summary><VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} /></details> : <VisionPanel token={token} sessionId={sessionId} astronautId={astronautId} checkIn={checkIn} busy={panelBusy || chatBusy} locked={confirmationPending}
+          run={runPanel} onCheckIn={setCheckIn} onConfirmationPending={setConfirmationPending} />}
+        {!embedded && <div className={styles.panel}><VoiceConversation disabled={panelBusy || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={(text) => send(text, "VOICE")} onSpeak={speakReply} /></div>}
+        {!embedded && <div className={styles.panel}><VoiceComposer disabled={panelBusy || speaking || confirmationPending || checkIn?.status === "CONFIRMED"} onSend={manualSend} /></div>}
         <p className={styles.footnote}>In continuous mode the reply is read aloud and the assistant listens again on its own. You can always interrupt and use manual mode to correct the text. Sharing happens only when the check-in is confirmed.</p>
         <p className={styles.footnote}>Voice: <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">powered by ElevenLabs</a> (with browser fallback).</p>
       </>}
     </div>
-  </main>;
+  </section>;
 }

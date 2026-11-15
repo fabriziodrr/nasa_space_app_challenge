@@ -20,6 +20,8 @@ import { DemoProgramProvider } from "./adapters/demo-program";
 import { ApprovalService } from "./services/approval";
 import { PythonSensorProvider } from "./adapters/python-sensors";
 import { demoCrewMappings } from "./demo-crew";
+import { demoCrewCredentials } from "./adapters/demo-credentials";
+import { SyntheticFallbackSensorProvider } from "./adapters/synthetic-fallback-sensors";
 
 function createDemoRuntime() {
   const config = loadAgentConfig(process.env);
@@ -28,8 +30,9 @@ function createDemoRuntime() {
   }
   const repository = new PrismaAgentRepository(prisma);
   const context = createDemoContextProviders(config.AGENT_DEMO_SCENARIO);
-  if (config.AGENT_SENSOR_PROVIDER === "python") context.sensors = new PythonSensorProvider({ subjectId: config.AGENT_DATA_SUBJECT_ID });
-  const availableCrew = demoCrewMappings.filter((member) => member.astronautId === "astro-1" || !!process.env[member.tokenEnv]?.trim()).map((member) => member.astronautId);
+  if (config.AGENT_SENSOR_PROVIDER === "python") context.sensors = new SyntheticFallbackSensorProvider(new PythonSensorProvider({ subjectId: config.AGENT_DATA_SUBJECT_ID }));
+  const crewCredentials = demoCrewCredentials();
+  const availableCrew = demoCrewMappings.filter((member) => member.astronautId === "astro-1" || !!crewCredentials[member.tokenEnv]?.trim()).map((member) => member.astronautId);
   const schedule = new DemoProgramProvider(prisma, () => new Date(), availableCrew);
   context.schedule = schedule;
   const visionQuality = { minValidMs: config.AGENT_VISION_MIN_VALID_MS, minCoverage: config.AGENT_VISION_MIN_COVERAGE,
@@ -41,7 +44,7 @@ function createDemoRuntime() {
     ? new NvidiaConversationProvider({ apiKey: config.NVIDIA_API_KEY!, model: config.NVIDIA_MODEL, timeoutMs: config.AGENT_AI_TIMEOUT_MS })
     : config.AGENT_AI_PROVIDER === "mock" ? new MockConversationAiProvider({ proposalsEnabled: true }) : null;
   return {
-    identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN, process.env),
+    identity: new DemoIdentityProvider(config.AGENT_DEMO_TOKEN!, config.AGENT_GROUND_TOKEN, crewCredentials),
     repository,
     visionQuality,
     visionObservations,
@@ -65,10 +68,15 @@ function createDemoRuntime() {
 }
 
 export type AgentRuntime = ReturnType<typeof createDemoRuntime>;
-const globalRuntime = globalThis as typeof globalThis & { __issAgentRuntime?: AgentRuntime };
+const globalRuntime = globalThis as typeof globalThis & { __issAgentRuntime?: AgentRuntime; __issAgentRuntimeVersion?: string };
 
 // Process-scoped providers across dev hot reloads; state is persisted through Prisma.
 export function getAgentRuntime(): AgentRuntime {
   loadAgentConfig(process.env);
-  return globalRuntime.__issAgentRuntime ??= createDemoRuntime();
+  const version = "unified-demo-reassignment-4";
+  if (!globalRuntime.__issAgentRuntime || globalRuntime.__issAgentRuntimeVersion !== version) {
+    globalRuntime.__issAgentRuntime = createDemoRuntime();
+    globalRuntime.__issAgentRuntimeVersion = version;
+  }
+  return globalRuntime.__issAgentRuntime;
 }

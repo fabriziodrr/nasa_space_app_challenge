@@ -11,7 +11,7 @@ class IntegratedContext:
     def get(self) -> dict:
         sleep = self._data_tools.get_context()
         try:
-            vision = self._vision_reader.read()
+            vision = self._vision_reader.read() if self._vision_reader else {"status": "not_selected", "observation": None}
         except VisionUnavailable:
             vision = {"status": "unavailable", "observation": None}
         return {

@@ -9,7 +9,7 @@ export class MissionApiError extends Error {
 
 async function call(path: string, token: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${token.trim()}`);
+  if (token.trim()) headers.set("Authorization", `Bearer ${token.trim()}`);
   if (init.body) headers.set("Content-Type", "application/json");
   const response = await fetch(`/api/agent/v2${path}`, { ...init, headers, cache: "no-store", signal: AbortSignal.timeout(30000) });
   const body: unknown = await response.json();

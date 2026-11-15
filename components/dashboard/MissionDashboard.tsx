@@ -6,6 +6,7 @@ import { applyScheduleChanges } from "../../server/agent/lib/schedule";
 import { decideProposal, getProposals, getReports, getSchedule, MissionApiError, saveSchedule } from "../../client/dashboard/mission-api";
 import styles from "./MissionDashboard.module.css";
 import { demoCrewMappings } from "../../server/agent/demo-crew";
+import { selectDemoProfile } from "../../client/demo-session";
 
 type Decision = "APPROVE" | "REJECT";
 type PendingDecision = { decision: Decision; key: string };
@@ -22,8 +23,8 @@ const activityTitle = (title: string) => demoTitles[title] ?? title;
 function message(error: unknown) {
   if (error instanceof MissionApiError) {
     if (error.detail?.startsWith("Shared resource conflict:")) return error.detail;
-    if (error.status === 401) return "Token not recognized.";
-    if (error.status === 403) return "Decision not authorized. Use the AGENT_GROUND_TOKEN configured on the server, reload the data and try again.";
+    if (error.status === 401) return "Demo session unavailable. Reload the data to select your profile again.";
+    if (error.status === 403) return "Decision not authorized. Reload the data in Houston to select the ground-control demo session, then try again.";
     if (error.status === 404) return "Resource unavailable for this astronaut.";
     if (error.status === 409) return "The schedule or proposal has changed. Reload the data before continuing.";
     if (error.status === 400) return "Invalid data: check times, allowed windows and overlaps.";
@@ -33,7 +34,7 @@ function message(error: unknown) {
 
 export function MissionDashboard({ perspective, onBack }: { perspective: "houston" | "iss"; onBack(): void }) {
   const ground = perspective === "houston";
-  const [token, setToken] = useState("");
+  const token = "";
   const [astronaut, setAstronaut] = useState("astro-1");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [schedule, setSchedule] = useState<ScheduleSnapshot | null>(null);
@@ -66,9 +67,10 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
     try { if (item) sessionStorage.setItem(storageKey(id), JSON.stringify(item)); else sessionStorage.removeItem(storageKey(id)); } catch { /* In-memory retry remains possible. */ }
   }
   async function load() {
-    if (!token.trim() || !astronaut.trim() || !date) return;
+    if (!astronaut.trim() || !date) return;
     setBusy(true); setNotice("");
     try {
+      await selectDemoProfile(ground ? "ground" : astronaut);
       const [day, reportPage, proposalPage] = await Promise.all([
         getSchedule(token, astronaut.trim(), date),
         ground ? getReports(token, astronaut.trim()) : Promise.resolve(null),
@@ -143,9 +145,8 @@ export function MissionDashboard({ perspective, onBack }: { perspective: "housto
 
   return <section className={styles.workspace} aria-label={ground ? "Ground operations" : "Astronaut schedule"}>
     <header className={styles.heading}><div><span className={styles.kicker}>{ground ? "HOUSTON / OPERATIONS" : "ISS / SCHEDULE"}</span>
-      <h1>{ground ? "Reports and schedule" : "Daily schedule"}</h1><p>Local demo · times in UTC</p><p>Use the value of {ground ? "AGENT_GROUND_TOKEN" : demoCrewMappings.find((member) => member.astronautId === astronaut)?.tokenEnv} configured on the server.</p></div><button type="button" onClick={onBack}>Back to dashboard</button></header>
+      <h1>{ground ? "Reports and schedule" : "Daily schedule"}</h1><p>Local demo · times in UTC</p></div><button type="button" onClick={onBack}>Back to dashboard</button></header>
     <form className={styles.controls} onSubmit={(event) => { event.preventDefault(); void load(); }}>
-      <label>Token {ground ? "Ground" : "astronaut"}<input type="password" autoComplete="off" value={token} onChange={(event) => { setToken(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
       <label>Astronaut<select value={astronaut} onChange={(event) => { setAstronaut(event.target.value); setLoaded(false); }} disabled={busy || lockSelection}>{demoCrewMappings.map((member) => <option key={member.astronautId} value={member.astronautId}>{member.name}</option>)}</select></label>
       <label>UTC date<input type="date" value={date} onChange={(event) => { setDate(event.target.value); setLoaded(false); }} disabled={busy || lockSelection} required /></label>
       <button type="submit" disabled={busy || lockSelection}>{busy ? "Loading…" : "Load data"}</button>

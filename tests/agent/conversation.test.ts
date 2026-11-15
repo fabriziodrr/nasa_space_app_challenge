@@ -62,6 +62,77 @@ test("check-in records 1–10 scales and leaves explicit 1–5 values for clarif
   assert.ok(!oldScale.checkIn.observations.some((item) => item.field === "FATIGUE"));
 });
 
+test("explicit voice ratings advance past sleep quality even when the model would repeat the question", async () => {
+  for (const answer of ["five", "5", "five out of ten", "It's five."]) {
+    let calls = 0;
+    const mock = new MockConversationAiProvider();
+    const ai: ConversationAiProvider = { async converse(context) {
+      calls++;
+      if (calls > 1) throw new Error("The model must not interpret a simple rating answer");
+      return mock.converse(context);
+    } };
+    const { service } = harness({ ai });
+    const session = await service.createSession(actor, { astronautId: actor.astronautId });
+    await service.sendMessage(actor, session.id, message("hours", "I slept 5 hours."));
+    const quality = await service.sendMessage(actor, session.id, { ...message("quality", answer), inputMode: "VOICE" });
+    const rating = quality.checkIn.observations.find((item) => item.field === "SLEEP_QUALITY");
+    assert.equal(rating?.value, 5);
+    assert.equal(rating?.scaleMax, 10);
+    assert.match(quality.assistantMessage.text, /How tired/);
+    const fatigue = await service.sendMessage(actor, session.id, message("fatigue", "four"));
+    assert.match(fatigue.assistantMessage.text, /physically/);
+    assert.equal(fatigue.checkIn.observations.find((item) => item.field === "FATIGUE")?.value, 4);
+    assert.equal(calls, 1);
+  }
+});
+
+test("model-generated ratings do not acquire an unsupported or contradictory scale", async () => {
+  const cases = [
+    { text: "Fatigue 4 out of 5.", scale: 5 as const, expected: 5 },
+    { text: "Fatigue 4 out of 5.", scale: 10 as const, expected: null },
+    { text: "Fatigue 4 out of 10.", scale: null, expected: null },
+    { text: "I feel tired today.", scale: 10 as const, expected: null },
+    { text: "Sleep quality 4 out of 10. Fatigue 4 out of 5.", scale: 10 as const, expected: null },
+  ];
+  for (const [index, item] of cases.entries()) {
+    const ai: ConversationAiProvider = { async converse(context) {
+      const current = context.messages.at(-1)!;
+      return { reply: "Please review your rating.", observations: [{ id: "candidate", field: "FATIGUE", value: 4,
+        scaleMax: item.scale, source: "self_report", messageIds: [current.id], recordedAt: current.createdAt }],
+        missingFields: ["SLEEP_HOURS", "SLEEP_QUALITY", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES"] };
+    } };
+    const { service } = harness({ ai });
+    const session = await service.createSession(actor, { astronautId: actor.astronautId });
+    const result = await service.sendMessage(actor, session.id, message(`scale-${index}`, item.text));
+    const fatigue = result.checkIn.observations.find((observation) => observation.field === "FATIGUE");
+    assert.equal(fatigue?.scaleMax, item.expected, item.text);
+  }
+});
+
+test("unchanged historical ratings retain their original unknown or five-point scale", async () => {
+  for (const scale of [null, 5] as const) {
+    let turn = 0;
+    const ai: ConversationAiProvider = { async converse(context) {
+      turn++;
+      const current = context.messages.at(-1)!;
+      const previous = context.draft?.observations.find((item) => item.field === "FATIGUE");
+      const observation = previous ? { ...previous, scaleMax: 10 as const } : { id: "candidate", field: "FATIGUE" as const, value: 4,
+        scaleMax: scale, source: "self_report" as const, messageIds: [current.id], recordedAt: current.createdAt };
+      return { reply: "Please continue.", observations: [observation],
+        missingFields: ["SLEEP_HOURS", "SLEEP_QUALITY", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES"] };
+    } };
+    const { service } = harness({ ai });
+    const session = await service.createSession(actor, { astronautId: actor.astronautId });
+    const first = await service.sendMessage(actor, session.id, message("first", "Fatigue 4 out of 5."));
+    const second = await service.sendMessage(actor, session.id, message("second", "I have nothing to add."));
+    const before = first.checkIn.observations.find((item) => item.field === "FATIGUE");
+    const after = second.checkIn.observations.find((item) => item.field === "FATIGUE");
+    assert.equal(before?.scaleMax, scale);
+    assert.equal(after?.scaleMax, scale);
+    assert.equal(turn, 2);
+  }
+});
+
 test("selected synthetic vision reaches the model without becoming a self report", async () => {
   let captured: ConversationContext | undefined;
   const mock = new MockConversationAiProvider();
