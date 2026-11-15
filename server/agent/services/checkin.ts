@@ -19,12 +19,12 @@ export class CheckInService {
     const astronautId = this.#assertAstronaut(identity);
     const draft = await this.repository.getCheckIn(astronautId, checkInId);
     if (!draft) throw AgentErrors.notFound();
-    if (draft.status !== "DRAFT") throw AgentErrors.invalidState("Il check-in confermato non puo essere corretto.");
+    if (draft.status !== "DRAFT") throw AgentErrors.invalidState("A confirmed check-in cannot be edited.");
     for (const observation of request.observations) {
       const sameField = draft.observations.find((item) => item.field === observation.field);
       const sameId = draft.observations.find((item) => item.id === observation.id);
       if ((sameField && sameField.id !== observation.id) || (sameId && sameId.field !== observation.field)) {
-        throw AgentErrors.invalidState("La correzione deve mantenere l'identita delle osservazioni esistenti.");
+        throw AgentErrors.invalidState("The correction must preserve the identity of existing observations.");
       }
     }
     const remaining = new Set(request.observations.flatMap((observation) => observation.messageIds));
@@ -35,16 +35,16 @@ export class CheckInService {
       if (!state) throw AgentErrors.notFound();
       for (const message of state.messages) if (message.role === "ASTRONAUT") remaining.delete(message.id);
       cursor = state.nextMessageCursor ?? undefined;
-      if (cursor && seenCursors.has(cursor)) throw AgentErrors.internal("Paginazione dei messaggi non valida.");
+      if (cursor && seenCursors.has(cursor)) throw AgentErrors.internal("Invalid message pagination.");
       if (cursor) seenCursors.add(cursor);
     } while (remaining.size && cursor);
-    if (remaining.size) throw AgentErrors.invalidState("Le osservazioni devono riferirsi ai messaggi dell'astronauta nella sessione.");
+    if (remaining.size) throw AgentErrors.invalidState("Observations must refer to the astronaut's messages in the session.");
     const observations = request.observations.map((observation) => {
       if (observation.field !== "SLEEP_QUALITY" && observation.field !== "FATIGUE") return observation;
       const previous = draft.observations.find((item) => item.id === observation.id);
       if (previous && previous.field === observation.field && previous.value === observation.value
           && JSON.stringify(previous.messageIds) === JSON.stringify(observation.messageIds)) return previous;
-      if (observation.scaleMax !== 10) throw AgentErrors.invalidState("Per una nuova valutazione serve la scala esplicita 1–10.");
+      if (observation.scaleMax !== 10) throw AgentErrors.invalidState("A new evaluation requires the explicit 1–10 scale.");
       return { ...observation, scaleMax: 10 as const };
     });
     return this.repository.updateCheckIn(astronautId, checkInId, { ...request, observations });
@@ -60,7 +60,7 @@ export class CheckInService {
     if (!draft) throw AgentErrors.notFound();
     const observationIds = new Set(draft.observations.map((o) => o.id));
     if (!request.sharedObservationIds.every((id) => observationIds.has(id))) {
-      throw AgentErrors.invalidState("La selezione condivisa include osservazioni assenti dalla bozza.");
+      throw AgentErrors.invalidState("The shared selection includes observations absent from the draft.");
     }
     if (this.visionConfirmation) return (await this.visionConfirmation.confirm(astronautId, checkInId, {
       ...request, vision: { visionObservationId: null, shareWithGround: false },
@@ -69,7 +69,7 @@ export class CheckInService {
   }
 
   #assertAstronaut(identity: Identity): string {
-    if (identity.role !== "ASTRONAUT") throw AgentErrors.forbidden("Operazione riservata all'astronauta.");
+    if (identity.role !== "ASTRONAUT") throw AgentErrors.forbidden("Operation restricted to the astronaut.");
     return identity.astronautId;
   }
 }

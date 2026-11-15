@@ -12,7 +12,7 @@ export async function withDeadline<T>(
   const aborted = new Promise<never>((_, reject) => { rejectAbort = reject; });
   const abort = () => {
     controller.abort();
-    rejectAbort(new AgentError("PROVIDER_TIMEOUT", "Operazione AI interrotta o scaduta. Puoi riprovare.", true));
+    rejectAbort(new AgentError("PROVIDER_TIMEOUT", "AI operation interrupted or timed out. You can retry.", true));
   };
   const timer = setTimeout(abort, timeoutMs);
   callerSignal?.addEventListener("abort", abort, { once: true });
@@ -21,7 +21,7 @@ export async function withDeadline<T>(
     return await Promise.race([
       aborted,
       Promise.resolve().then(() => {
-        if (controller.signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Operazione interrotta.", true);
+        if (controller.signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Operation interrupted.", true);
         return operation(controller.signal);
       }),
     ]);

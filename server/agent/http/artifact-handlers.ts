@@ -20,7 +20,7 @@ export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
   function query(request: Request) {
     const raw: Record<string, string> = {};
     for (const [key, value] of new URL(request.url).searchParams) {
-      if (key in raw) throw new AgentError("VALIDATION_ERROR", "Parametro duplicato.");
+      if (key in raw) throw new AgentError("VALIDATION_ERROR", "Duplicate parameter.");
       raw[key] = value;
     }
     const limit = raw.limit === undefined ? undefined : Number(raw.limit);
@@ -28,9 +28,9 @@ export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
   }
   function authorize(identity: Identity, astronautId: string, privateOnly: boolean) {
     if (identity.role === "ASTRONAUT") {
-      if (identity.astronautId !== astronautId) throw new AgentError("NOT_FOUND", "Risorsa non trovata.");
-    } else if (privateOnly) throw new AgentError("FORBIDDEN", "Diario riservato all'astronauta.");
-    else if (!identity.astronautIds.includes(astronautId)) throw new AgentError("NOT_FOUND", "Risorsa non trovata.");
+      if (identity.astronautId !== astronautId) throw new AgentError("NOT_FOUND", "Resource not found.");
+    } else if (privateOnly) throw new AgentError("FORBIDDEN", "Diary restricted to the astronaut.");
+    else if (!identity.astronautIds.includes(astronautId)) throw new AgentError("NOT_FOUND", "Resource not found.");
   }
   return {
     updateCheckIn: (request: Request, id: string) => handle(request, async ({ checkIns }, identity, requestId) => {
@@ -38,7 +38,7 @@ export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
       return response(CheckInResponseSchema, result, requestId);
     }),
     confirm: (request: Request, id: string) => handle(request, async ({ checkIns, artifacts, repository }, identity, requestId) => {
-      if (!artifacts) throw new AgentError("PROVIDER_UNAVAILABLE", "Generazione report non configurata per questo provider.");
+      if (!artifacts) throw new AgentError("PROVIDER_UNAVAILABLE", "Report generation not configured for this provider.");
       const checkIn = await checkIns.confirm(identity, IdSchema.parse(id), ConfirmCheckInRequestSchema.parse(await readJson(request)));
       void artifacts.generate(identity, checkIn.id).catch(() => {});
       const state = await repository.getSessionState(checkIn.astronautId, checkIn.sessionId);
@@ -49,7 +49,7 @@ export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
       const page = await repository.listReports(parsed);
       if (page.items.some((report) => [...report.findings, ...report.discrepancies]
         .some((finding) => finding.source === "vision" || finding.evidence.some((ref) => ref.source === "vision")))) {
-        throw new AgentError("INVALID_STATE", "Questo report richiede l'API /api/agent/v2/reports.");
+        throw new AgentError("INVALID_STATE", "This report requires the /api/agent/v2/reports API.");
       }
       return response(ReportListResponseSchema, page, requestId);
     }),
@@ -63,7 +63,7 @@ export function createArtifactHttpHandlers(getRuntime: () => AgentRuntime) {
       return response(DiaryListResponseSchema, await repository.listDiary(parsed.astronautId, parsed.cursor, parsed.limit), requestId);
     }),
     updateDiary: (request: Request, id: string) => handle(request, async ({ repository }, identity, requestId) => {
-      if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "Diario riservato all'astronauta.");
+      if (identity.role !== "ASTRONAUT") throw new AgentError("FORBIDDEN", "Diary restricted to the astronaut.");
       const result = await repository.updateDiary(identity.astronautId, IdSchema.parse(id), UpdateDiaryRequestSchema.parse(await readJson(request)));
       return response(DiaryResponseSchema, result, requestId);
     }),

@@ -23,7 +23,7 @@ export function demoProgram(astronautId: string, date: string): ScheduleSnapshot
         priority: "LOW", movable: true, dependsOn: [], earliestStart: `${date}T14:00:00Z`, latestEnd: `${date}T15:30:00Z` },
       fixed("exercise-2", "Scheduled exercise", "EXERCISE", `${date}T16:00:00Z`, `${date}T17:00:00Z`),
       fixed("meal-3", "Dinner", "MEAL", `${date}T19:00:00Z`, `${date}T20:00:00Z`),
-      fixed("sleep-1", "Opportunità di sonno protetta", "REST", `${date}T21:30:00Z`, `${nextDate}T06:00:00Z`),
+      fixed("sleep-1", "Protected sleep opportunity", "REST", `${date}T21:30:00Z`, `${nextDate}T06:00:00Z`),
     ] });
 }
 
@@ -70,12 +70,12 @@ export class DemoProgramProvider extends SimulatedScheduleProvider {
     if (!proposal || !decision || proposal.decisionId !== decision.id || !["APPROVED", "APPLIED", "APPLY_FAILED"].includes(proposal.status)
         || proposal.scheduleId !== command.scheduleId || proposal.baseScheduleVersion !== command.expectedScheduleVersion
         || JSON.stringify(ProposalCandidateSchema.parse(JSON.parse(proposal.candidateJson)).changes) !== JSON.stringify(command.changes)) {
-      return { outcome: "FAILED", retryable: false, reason: "Il comando non corrisponde a una proposta approvata da Terra." };
+      return { outcome: "FAILED", retryable: false, reason: "The command does not match a proposal approved by Ground." };
     }
     const receipt = await this.getApplication(command.proposalId, command.decisionId);
     if (receipt.outcome === "APPLIED") return receipt;
     if (command.changes.some((c) => Date.parse(c.startsAt) < this.now().getTime()))
-      return { outcome: "FAILED", retryable: false, reason: "La finestra proposta è già iniziata: serve una nuova valutazione di Terra." };
+      return { outcome: "FAILED", retryable: false, reason: "The proposed window has already started: a new Ground review is required." };
     return super.applyApproved(command);
   }
 }

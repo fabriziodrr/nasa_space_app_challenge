@@ -19,7 +19,7 @@ function wav(seconds = 0.1, rate = 16000): Uint8Array<ArrayBuffer> {
 test("WAV validation derives duration from samples and rejects malformed or excessive audio", () => {
   assert.equal(parsePcmWav(wav()).durationSeconds, 0.1);
   assert.throws(() => parsePcmWav(new Uint8Array(44)), /WAV/);
-  assert.throws(() => parsePcmWav(wav(121, 8000)), /durata/);
+  assert.throws(() => parsePcmWav(wav(121, 8000)), /duration/);
   const bad = wav(); new DataView(bad.buffer).setUint16(34, 8, true);
   assert.throws(() => parsePcmWav(bad), /WAV/);
 });
@@ -31,15 +31,15 @@ test("local NIM adapter sends English audio and encodes returned WAV as MP3", as
     assert.equal(form.get("language"), "en-US");
     if (String(url).endsWith("transcriptions")) {
       assert.equal((form.get("file") as File).type, "audio/wav");
-      return Response.json({ text: "Ho dormito bene" });
+      return Response.json({ text: "I slept well" });
     }
-    assert.equal(form.get("text"), "Ciao");
+    assert.equal(form.get("text"), "Hi");
     return new Response(wav().buffer, { headers: { "content-type": "audio/wav" } });
   };
   const provider = new NvidiaNimVoiceProvider({ asrUrl: "http://localhost:9000", ttsUrl: "http://127.0.0.1:9001", fetch: fakeFetch });
   const audio = wav();
-  assert.equal((await provider.transcribe({ audio, metadata: { sessionId: "s1", mimeType: "audio/wav", sizeBytes: audio.length, durationSeconds: 0.1 } })).text, "Ho dormito bene");
-  const output = await provider.synthesize({ text: "Ciao", language: "en" });
+  assert.equal((await provider.transcribe({ audio, metadata: { sessionId: "s1", mimeType: "audio/wav", sizeBytes: audio.length, durationSeconds: 0.1 } })).text, "I slept well");
+  const output = await provider.synthesize({ text: "Hi", language: "en" });
   assert.equal(output.mimeType, "audio/mpeg"); assert.ok(output.audio.length > 100);
   assert.equal(output.audio[0], 0xff); assert.equal(output.audio[1] & 0xe0, 0xe0);
   assert.equal(requests.length, 2);
@@ -53,9 +53,9 @@ test("voice routes enforce identity and only synthesize assistant messages of th
     identity: { authenticate: async () => identity },
     repository: { getSessionState: async (astronautId: string, sessionId: string) => astronautId !== "a1" || sessionId !== "s1" ? null : ({
       session: { astronautId: "a1", closedAt: null }, checkIn: null, nextMessageCursor: null,
-      messages: [{ id: "m1", sessionId: "s1", role: "ASSISTANT", text: "Ciao" }, { id: "m2", sessionId: "s1", role: "ASTRONAUT", text: "Privato" }],
+      messages: [{ id: "m1", sessionId: "s1", role: "ASSISTANT", text: "Hi" }, { id: "m2", sessionId: "s1", role: "ASTRONAUT", text: "Private" }],
     }) },
-    voice: { transcribe: async (input: { metadata: { durationSeconds: number } }) => { observedDuration = input.metadata.durationSeconds; return { text: "ciao", language: "en" }; },
+    voice: { transcribe: async (input: { metadata: { durationSeconds: number } }) => { observedDuration = input.metadata.durationSeconds; return { text: "hi", language: "en" }; },
       synthesize: async () => ({ audio: new Uint8Array([1, 2]), mimeType: "audio/mpeg" }) },
   } as unknown as AgentRuntime;
   const handlers = createVoiceHttpHandlers(() => runtime);

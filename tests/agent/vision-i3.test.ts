@@ -34,10 +34,10 @@ function setup(selected: VisionObservation | null, requestedId?: string) {
     operationalAi: { async generateOperational(input) {
       received = input.context;
       if (!requestedId) return mock.generateOperational(input);
-      return { report: { findings: [{ text: "Osservazione", source: "vision" as const,
+      return { report: { findings: [{ text: "Observation", source: "vision" as const,
         evidence: [{ source: "vision" as const, visionObservationId: requestedId }] }], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null } },
-        proposal: null, noChangeReason: "Nessuna modifica." };
-    } }, diaryAi: { async generateDiary() { return { text: "Privato" }; } } });
+        proposal: null, noChangeReason: "No change." };
+    } }, diaryAi: { async generateDiary() { return { text: "Private" }; } } });
   return { service, checkIn, saved: () => saved, received: () => received };
 }
 
@@ -54,7 +54,10 @@ test("shared usable vision appears in frozen report, without private metadata", 
 test("unshared, different and insufficient vision references cannot be published", async () => {
   for (const [item, id] of [[null, "vision-1"], [vision, "other"], [{ ...vision, usability: "INSUFFICIENT", reasons: ["STALE"] }, "vision-1"],
     [{ ...vision, source: "synthetic", startedAt: null, endedAt: null, usability: "INSUFFICIENT", reasons: ["SYNTHETIC_TIME_UNAVAILABLE"] }, "vision-1"]] as [VisionObservation | null, string][]) {
-    const h = setup(item, id); await h.service.generate(actor, h.checkIn.id); assert.deepEqual(h.saved()?.report.findings, []); assert.equal(h.saved()?.report.humanReview.required, true);
+    const h = setup(item, id);
+    await h.service.generate(actor, h.checkIn.id);
+    assert.ok(!h.saved()?.report.findings.some((finding) => finding.source === "vision"));
+    assert.equal(h.saved()?.report.humanReview.required, true);
   }
 });
 

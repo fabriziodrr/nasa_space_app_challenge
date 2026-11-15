@@ -25,10 +25,10 @@ test("recognition keeps final and interim text separate and never sends a messag
   voice.start();
   const recognition = FakeRecognition.last;
   assert.equal(recognition.lang, "en-US");
-  recognition.onresult?.({ results: { 0: { isFinal: true, 0: { transcript: "Ho dormito" } }, 1: { isFinal: false, 0: { transcript: "cinque ore" } }, length: 2 } });
-  assert.deepEqual(updates, [["Ho dormito", "cinque ore"]]);
-  recognition.onresult?.({ results: { 0: { isFinal: true, 0: { transcript: "Ho dormito cinque ore" } }, length: 1 } });
-  assert.deepEqual(updates.at(-1), ["Ho dormito cinque ore", ""]);
+  recognition.onresult?.({ results: { 0: { isFinal: true, 0: { transcript: "I slept" } }, 1: { isFinal: false, 0: { transcript: "five hours" } }, length: 2 } });
+  assert.deepEqual(updates, [["I slept", "five hours"]]);
+  recognition.onresult?.({ results: { 0: { isFinal: true, 0: { transcript: "I slept five hours" } }, length: 1 } });
+  assert.deepEqual(updates.at(-1), ["I slept five hours", ""]);
   voice.stop();
   assert.equal(recognition.stopped, true);
   recognition.onend?.();
@@ -43,7 +43,7 @@ test("permission errors are understandable and an empty turn remains distinguish
   voice.start();
   FakeRecognition.last.onerror?.({ error: "not-allowed" });
   FakeRecognition.last.onend?.();
-  assert.match(errors[0], /permission/);
+  assert.match(errors[0], /permission/i);
   assert.deepEqual(ends, [true]);
   voice.start();
   FakeRecognition.last.onend?.();

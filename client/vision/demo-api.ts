@@ -15,16 +15,16 @@ async function call(path: string, init: RequestInit, token: string) {
   if (!response.ok) {
     const message = response.status === 401 ? "Demo token not recognized."
       : response.status === 413 ? "The file exceeds the 10 MiB limit."
-      : response.status === 400 ? "Invalid file or request data."
-      : response.status === 409 ? "The session or check-in has changed. Check its status before retrying."
-      : "Action failed. Check the server and try again.";
+      : response.status === 400 ? "The uploaded file or data is invalid."
+      : response.status === 409 ? "The session or check-in changed. Verify the state before retrying."
+      : "Operation failed. Check the server and try again.";
     throw new DemoApiError(response.status, message);
   }
   return response.json() as Promise<unknown>;
 }
 const base = (sessionId: string) => `/api/agent/v1/sessions/${encodeURIComponent(sessionId)}`;
 export async function uploadVision(token: string, sessionId: string, file: Blob, key: string) {
-  if (!file.size || file.size > 10 * 1024 * 1024) throw new DemoApiError(413, "Choose a non-empty JSON file up to 10 MiB.");
+  if (!file.size || file.size > 10 * 1024 * 1024) throw new DemoApiError(413, "Choose a non-empty JSON file, up to 10 MiB.");
   return Item.parse(await call(`${base(sessionId)}/vision-observations`, {
     method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": key }, body: file,
   }, token)).data;

@@ -10,7 +10,7 @@ export function VoicePlayback({ text }: { text: string }) {
   function play() {
     setError("");
     if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
-      setError("Speech playback is unavailable. You can read the reply above.");
+      setError("Voice playback is not available. You can read the reply above.");
       return;
     }
     try {

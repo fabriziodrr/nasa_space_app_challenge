@@ -13,7 +13,7 @@ const identity = { userId: "user-1", role: "ASTRONAUT" as const, astronautId: "a
 function setup(allowProposals = false) {
   const checkIn: CheckIn = structuredClone(fixture.confirmedCheckIn);
   checkIn.sharedObservationIds = ["obs-hours"];
-  const messages: ConversationMessage[] = [{ id: "message-1", sessionId: checkIn.sessionId, role: "ASTRONAUT", text: "Test privato", createdAt: checkIn.createdAt, inputMode: "TEXT" }];
+  const messages: ConversationMessage[] = [{ id: "message-1", sessionId: checkIn.sessionId, role: "ASTRONAUT", text: "Private test", createdAt: checkIn.createdAt, inputMode: "TEXT" }];
   let published: GenerationArtifacts | undefined;
   let received: OperationalContext | undefined;
   let failed = false;
@@ -35,14 +35,14 @@ function setup(allowProposals = false) {
     operationalAi: { async generateOperational({ context }) {
       received = context;
       return {
-        report: { findings: [{ text: "Sonno riferito", source: "self_report", evidence: [{ source: "self_report", observationId: badEvidence ? "obs-fatigue" : "obs-hours" }] }], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null } },
+        report: { findings: [{ text: "Reported sleep", source: "self_report", evidence: [{ source: "self_report", observationId: badEvidence ? "obs-fatigue" : "obs-hours" }] }], discrepancies: [], uncertainties: [], humanReview: { required: false, reason: null } },
         proposal: proposed ? fixture.pendingProposal.candidate : null,
-        noChangeReason: proposed ? null : "Nessuna variazione proposta.",
+        noChangeReason: proposed ? null : "No change proposed.",
       };
     } },
     diaryAi: { async generateDiary(input) {
-      assert.equal(input.messages[0].text, "Test privato");
-      return { text: "Diario personale" };
+      assert.equal(input.messages[0].text, "Private test");
+      return { text: "Personal diary" };
     } },
   });
   return { service, checkIn, published: () => published, received: () => received, failed: () => failed, makeEvidenceInvalid: () => { badEvidence = true; }, makeProposal: () => { proposed = true; } };

@@ -4,7 +4,7 @@ export interface PcmWav { channels: number; sampleRate: number; samples: Int16Ar
 
 /** Parse untrusted RIFF/WAVE PCM16, including optional chunks; no external process or temp file. */
 export function parsePcmWav(bytes: Uint8Array, maxSeconds = 120): PcmWav {
-  const invalid = () => new AgentError("UNSUPPORTED_AUDIO", "Serve un file WAV PCM a 16 bit valido.");
+  const invalid = () => new AgentError("UNSUPPORTED_AUDIO", "A valid 16-bit PCM WAV file is required.");
   if (bytes.length < 44) throw invalid();
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const tag = (offset: number) => String.fromCharCode(...bytes.subarray(offset, offset + 4));
@@ -36,7 +36,7 @@ export function parsePcmWav(bytes: Uint8Array, maxSeconds = 120): PcmWav {
       || ![8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000].includes(rate)
       || align !== channels * 2 || dataOffset < 0 || dataSize === 0 || dataSize % align !== 0) throw invalid();
   const durationSeconds = dataSize / (rate * align);
-  if (durationSeconds > maxSeconds) throw new AgentError("PAYLOAD_TOO_LARGE", "La registrazione supera la durata massima consentita.");
+  if (durationSeconds > maxSeconds) throw new AgentError("PAYLOAD_TOO_LARGE", "The recording exceeds the maximum allowed duration.");
   const samples = new Int16Array(dataSize / 2);
   for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(dataOffset + i * 2, true);
   return { channels, sampleRate: rate, samples, durationSeconds };

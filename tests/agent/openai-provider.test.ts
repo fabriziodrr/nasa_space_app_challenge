@@ -10,7 +10,7 @@ async function context(): Promise<ConversationContext> {
   const providers = createDemoContextProviders("RESTED");
   return {
     astronautId: "astro-1", draft: null, previousCheckIns: [], visionObservations: [],
-    messages: [{ id: "message-1", sessionId: "session-1", role: "ASTRONAUT", text: "Ho dormito 8 ore.", createdAt: "2026-11-14T06:00:00Z", inputMode: "TEXT" }],
+    messages: [{ id: "message-1", sessionId: "session-1", role: "ASTRONAUT", text: "I slept 8 hours.", createdAt: "2026-11-14T06:00:00Z", inputMode: "TEXT" }],
     sensors: await providers.sensors.read("astro-1", { from: "2026-11-13T06:00:00Z", to: "2026-11-14T06:00:00Z" }),
     schedule: await providers.schedule.getDay("astro-1", "2026-11-14"),
   };

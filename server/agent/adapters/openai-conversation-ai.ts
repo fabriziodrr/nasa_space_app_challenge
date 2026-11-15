@@ -68,15 +68,15 @@ export class OpenAiConversationProvider implements ConversationAiProvider {
           }),
         });
       } catch {
-        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Richiesta AI interrotta o scaduta.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Impossibile raggiungere il servizio AI.", true);
+        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "AI request interrupted or timed out.", true);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "Unable to reach the AI service.", true);
       }
       if (!response.ok) {
         // Never return upstream response bodies: they may contain private input or credentials.
         await response.body?.cancel();
-        if (response.status === 429) throw new AgentError("RATE_LIMITED", "Il servizio AI ha raggiunto un limite. Riprova piu tardi.", true);
-        if (response.status === 408 || response.status === 504) throw new AgentError("PROVIDER_TIMEOUT", "Il servizio AI non ha risposto in tempo.", true);
-        throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio AI unavailable. Verificare la configurazione server.", response.status >= 500);
+        if (response.status === 429) throw new AgentError("RATE_LIMITED", "The AI service reached a limit. Try again later.", true);
+        if (response.status === 408 || response.status === 504) throw new AgentError("PROVIDER_TIMEOUT", "The AI service did not respond in time.", true);
+        throw new AgentError("PROVIDER_UNAVAILABLE", "AI service unavailable. Verify the server configuration.", response.status >= 500);
       }
       let raw: unknown;
       try { raw = await response.json(); }

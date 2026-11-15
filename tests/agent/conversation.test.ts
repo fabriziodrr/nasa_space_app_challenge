@@ -19,7 +19,7 @@ const actor: AstronautIdentity = { userId: "user-1", role: "ASTRONAUT", astronau
 const other: AstronautIdentity = { userId: "user-2", role: "ASTRONAUT", astronautId: "astro-2" };
 const ground: Identity = { userId: "ground-1", role: "GROUND_CONTROL", astronautIds: ["astro-1"] };
 const fixedTime = new Date("2026-11-14T06:00:00Z");
-const complete = "Ho dormito 5 ore. Qualita del sonno 2 su 10. Stanchezza 4 su 10.";
+const complete = "I slept 5 hours. Sleep quality 2 out of 10. Fatigue 4 out of 10.";
 const code = (expected: string) => (error: unknown) => error instanceof AgentError && error.code === expected;
 
 function harness(options: {
@@ -52,13 +52,13 @@ test("English check-ins collect explicit ratings and reply in English", async ()
 test("check-in records 1–10 scales and leaves explicit 1–5 values for clarification", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
-  await service.sendMessage(actor, session.id, message("hours", "Ho dormito 5 ore."));
+  await service.sendMessage(actor, session.id, message("hours", "I slept 5 hours."));
   const quality = await service.sendMessage(actor, session.id, message("quality", "10"));
   assert.deepEqual(quality.checkIn.observations.filter((item) => item.field === "SLEEP_QUALITY").map((item) => [item.value, item.scaleMax]), [[10, 10]]);
   const fatigue = await service.sendMessage(actor, session.id, message("fatigue", "8"));
   assert.deepEqual(fatigue.checkIn.observations.filter((item) => item.field === "FATIGUE").map((item) => [item.value, item.scaleMax]), [[8, 10]]);
   const second = await service.createSession(actor, { astronautId: actor.astronautId });
-  const oldScale = await service.sendMessage(actor, second.id, message("old-scale", "Stanchezza 4 su 5."));
+  const oldScale = await service.sendMessage(actor, second.id, message("old-scale", "Fatigue 4 out of 5."));
   assert.ok(!oldScale.checkIn.observations.some((item) => item.field === "FATIGUE"));
 });
 
@@ -68,7 +68,7 @@ test("selected synthetic vision reaches the model without becoming a self report
   const { service } = harness({ vision: new MockVisionReader("POOR_SLEEP", () => fixedTime),
     ai: { async converse(context) { captured = structuredClone(context); return mock.converse(context); } } });
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
-  const result = await service.sendMessage(actor, session.id, { ...message("v1", "Ho dormito 5 ore."), inputMode: "VOICE" });
+  const result = await service.sendMessage(actor, session.id, { ...message("v1", "I slept 5 hours."), inputMode: "VOICE" });
   assert.equal(captured?.visionObservations[0].source, "synthetic");
   assert.equal(captured?.visionObservations[0].usability, "INSUFFICIENT");
   assert.match(result.assistantMessage.text, /synthetic/);
@@ -82,7 +82,7 @@ test("vision reader rejects another astronaut's observation before AI is called"
   const { service } = harness({ vision: { async getSelectedForSession(_astronautId, id) { return mock.getSelectedForSession("other", id); } },
     ai: { async converse() { called = true; throw new Error("unexpected"); } } });
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
-  await assert.rejects(service.sendMessage(actor, session.id, message("v2", "Ciao")), code("INTERNAL_ERROR"));
+  await assert.rejects(service.sendMessage(actor, session.id, message("v2", "Hi")), code("INTERNAL_ERROR"));
   assert.equal(called, false);
 });
 
@@ -96,11 +96,11 @@ test("stale and low coverage observations are identified without deriving fatigu
       validMs: 20_000, coverage: 0.5, usability: "USABLE", reasons: [] };
   } }, ai: { async converse(context) { captured = structuredClone(context); return ai.converse(context); } } });
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
-  const result = await service.sendMessage(actor, session.id, message("v3", "Ciao"));
+  const result = await service.sendMessage(actor, session.id, message("v3", "Hi"));
   assert.deepEqual(new Set(captured?.visionObservations[0].reasons), new Set(["STALE", "LOW_COVERAGE", "TOO_SHORT"]));
   assert.equal(captured?.visionObservations[0].usability, "INSUFFICIENT");
   assert.deepEqual(result.checkIn.observations, []);
-  assert.match(result.assistantMessage.text, /not usable/);
+  assert.match(result.assistantMessage.text, /not sufficiently usable/);
 });
 
 test("usable webcam closure prompts clarification without adding a fatigue score", async () => {
@@ -110,7 +110,7 @@ test("usable webcam closure prompts clarification without adding a fatigue score
     return { ...base, source: "webcam", startedAt: "2026-11-14T05:58:00Z", endedAt: "2026-11-14T05:59:00Z", usability: "USABLE", reasons: [] };
   } } });
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
-  const result = await service.sendMessage(actor, session.id, message("vision-usable", "Mi sento riposato."));
+  const result = await service.sendMessage(actor, session.id, message("vision-usable", "I feel rested."));
   assert.match(result.assistantMessage.text, /prolonged closures/);
   assert.deepEqual(result.checkIn.observations, []);
 });
@@ -118,15 +118,15 @@ test("usable webcam closure prompts clarification without adding a fatigue score
 test("textual check-in accumulates explicit answers and preserves stable observation IDs", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: actor.astronautId });
-  const first = await service.sendMessage(actor, session.id, message("client-1", "Ho dormito cinque ore e mezza."));
+  const first = await service.sendMessage(actor, session.id, message("client-1", "I slept five and a half hours."));
   assert.equal(first.checkIn.observations[0].value, 5.5);
   const hoursId = first.checkIn.observations[0].id;
   assert.match(first.assistantMessage.text, /quality/i);
-  const second = await service.sendMessage(actor, session.id, message("client-2", "Qualita del sonno 2 su 10. Stanchezza 4 su 10."));
+  const second = await service.sendMessage(actor, session.id, message("client-2", "Sleep quality 2 out of 10. Fatigue 4 out of 10."));
   assert.equal(second.checkIn.revision, 2);
   assert.equal(second.checkIn.id, first.checkIn.id);
   assert.equal(second.checkIn.observations.find((o) => o.field === "SLEEP_HOURS")?.id, hoursId);
-  const third = await service.sendMessage(actor, session.id, message("client-3", "Fisicamente: mi sento affaticato."));
+  const third = await service.sendMessage(actor, session.id, message("client-3", "Physically: I feel worn out."));
   assert.equal(third.checkIn.observations.length, 4);
   assert.deepEqual(third.checkIn.sharedObservationIds, []);
   const state = await service.getSession(actor, session.id);
@@ -138,8 +138,8 @@ test("textual check-in accumulates explicit answers and preserves stable observa
 test("sleep corrections update the value and provenance without replacing the observation ID", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  const first = await service.sendMessage(actor, session.id, message("first", "Ho dormito 5 ore."));
-  const corrected = await service.sendMessage(actor, session.id, message("second", "Ho dormito 6 ore."));
+  const first = await service.sendMessage(actor, session.id, message("first", "I slept 5 hours."));
+  const corrected = await service.sendMessage(actor, session.id, message("second", "I slept 6 hours."));
   assert.equal(corrected.checkIn.observations[0].value, 6);
   assert.equal(corrected.checkIn.observations[0].id, first.checkIn.observations[0].id);
   assert.deepEqual(corrected.checkIn.observations[0].messageIds, [corrected.astronautMessage.id]);
@@ -148,7 +148,7 @@ test("sleep corrections update the value and provenance without replacing the ob
 test("missing or qualitative answers do not become fabricated numeric measurements", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  const result = await service.sendMessage(actor, session.id, message("first", "Ho dormito male e mi sento stanco."));
+  const result = await service.sendMessage(actor, session.id, message("first", "I slept badly and I feel tired."));
   assert.deepEqual(result.checkIn.observations, []);
   assert.match(result.assistantMessage.text, /How many hours/);
 });
@@ -156,18 +156,20 @@ test("missing or qualitative answers do not become fabricated numeric measuremen
 test("conflicting sensor and self-report values remain separate and trigger clarification", async () => {
   const { service } = harness({ scenario: "CONFLICTING_DATA" });
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  const result = await service.sendMessage(actor, session.id, message("first", "Ho dormito 4 ore."));
+  const result = await service.sendMessage(actor, session.id, message("first", "I slept 4 hours."));
   assert.equal(result.checkIn.observations[0].value, 4);
   assert.match(result.assistantMessage.text, /8 hours/);
-  assert.match(result.assistantMessage.text, /same sleep period/);
+  assert.match(result.assistantMessage.text, /same rest period/);
 });
 
 test("a rested conversation never applies or invents a schedule proposal in T1", async () => {
   const { service } = harness();
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  await service.sendMessage(actor, session.id, message("first", "Ho dormito 8 ore. Qualita del sonno 4 su 10. Stanchezza 1 su 10."));
-  const result = await service.sendMessage(actor, session.id, message("second", "Fisicamente: mi sento bene."));
-  assert.match(result.assistantMessage.text, /schedule is unchanged/i);
+  await service.sendMessage(actor, session.id, message("first", "I slept 8 hours. Sleep quality 4 out of 10. Fatigue 1 out of 10."));
+  await service.sendMessage(actor, session.id, message("second", "Physically: I feel good."));
+  await service.sendMessage(actor, session.id, message("third", "Mentally: clear and focused."));
+  const result = await service.sendMessage(actor, session.id, message("fourth", "Annoyance: none in particular."));
+  assert.match(result.assistantMessage.text, /schedule remains unchanged/i);
   assert.equal((await service.getSession(actor, session.id)).proposal, null);
 });
 
@@ -209,8 +211,8 @@ test("concurrent different messages cannot silently overwrite the same draft rev
   } } });
   const session = await service.createSession(actor, { astronautId: "astro-1" });
   const results = await Promise.allSettled([
-    service.sendMessage(actor, session.id, message("a", "Ho dormito 5 ore.")),
-    service.sendMessage(actor, session.id, message("b", "Ho dormito 6 ore.")),
+    service.sendMessage(actor, session.id, message("a", "I slept 5 hours.")),
+    service.sendMessage(actor, session.id, message("b", "I slept 6 hours.")),
   ]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
   const failure = results.find((r) => r.status === "rejected");
@@ -244,11 +246,11 @@ test("dropping existing observations in an AI response is rejected atomically", 
   let calls = 0;
   const { service } = harness({ ai: { async converse(context) {
     if (++calls === 1) return mock.converse(context);
-    return { reply: "Wrong", observations: [], missingFields: ["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES"] };
+    return { reply: "Wrong", observations: [], missingFields: ["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES"] };
   } } });
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  const first = await service.sendMessage(actor, session.id, message("first", "Ho dormito 5 ore."));
-  await assert.rejects(service.sendMessage(actor, session.id, message("second", "Ciao")), code("INVALID_AI_OUTPUT"));
+  const first = await service.sendMessage(actor, session.id, message("first", "I slept 5 hours."));
+  await assert.rejects(service.sendMessage(actor, session.id, message("second", "Hi")), code("INVALID_AI_OUTPUT"));
   assert.deepEqual((await service.getSession(actor, session.id)).checkIn, first.checkIn);
 });
 
@@ -262,7 +264,7 @@ test("timeouts abort the provider and never save a late response", async () => {
   const session = await service.createSession(actor, { astronautId: "astro-1" });
   await assert.rejects(service.sendMessage(actor, session.id, message("slow", complete)), code("PROVIDER_TIMEOUT"));
   assert.equal(providerSignal?.aborted, true);
-  finish({ reply: "Late", observations: [], missingFields: ["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES"] });
+  finish({ reply: "Late", observations: [], missingFields: ["SLEEP_HOURS", "SLEEP_QUALITY", "FATIGUE", "PHYSICAL_NOTES", "MENTAL_STATE", "STRESSOR_NOTES"] });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal((await service.getSession(actor, session.id)).messages.length, 0);
 });
@@ -287,9 +289,9 @@ test("context stays bounded while unchanged draft provenance remains valid", asy
     contexts.push(structuredClone(context)); return mock.converse(context);
   } } });
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  await service.sendMessage(actor, session.id, message("first", "Ho dormito 8 ore."));
-  await service.sendMessage(actor, session.id, message("second", "Ciao"));
-  const third = await service.sendMessage(actor, session.id, message("third", "Vorrei parlare."));
+  await service.sendMessage(actor, session.id, message("first", "I slept 8 hours."));
+  await service.sendMessage(actor, session.id, message("second", "Hi"));
+  const third = await service.sendMessage(actor, session.id, message("third", "I'd like to talk."));
   assert.equal(third.checkIn.observations[0].value, 8);
   assert.ok(contexts.every((context) => context.messages.length <= 2 && JSON.stringify(context).length <= 64_000));
 });
@@ -330,8 +332,8 @@ test("confirmed check-ins reject new turns before calling AI", async () => {
   };
   const { service } = harness({ repository });
   const session = await service.createSession(actor, { astronautId: "astro-1" });
-  await service.sendMessage(actor, session.id, message("first", "Ho dormito 8 ore."));
-  await assert.rejects(service.sendMessage(actor, session.id, message("second", "Ciao")), code("INVALID_STATE"));
+  await service.sendMessage(actor, session.id, message("first", "I slept 8 hours."));
+  await assert.rejects(service.sendMessage(actor, session.id, message("second", "Hi")), code("INVALID_STATE"));
 });
 
 function httpHarness(identity: Identity | null = actor) {
@@ -385,7 +387,7 @@ test("HTTP returns correct authorization status and hides arbitrary internal err
 test("HTTP preserves branded domain errors from another route module or JavaScript realm", async () => {
   const foreignError = runInNewContext(`new class extends Error {
     constructor() {
-      super('Messaggio duplicato');
+      super('Duplicate message');
       this[Symbol.for('iss.agent.AgentError')] = true;
       this.code = 'IDEMPOTENCY_CONFLICT';
       this.retryable = false;

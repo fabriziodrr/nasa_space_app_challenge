@@ -4,20 +4,23 @@ import styles from "./sloth-mascot.module.css";
 
 export interface SlothMascotProps {
   speaking: boolean;
+  size?: number;
+  showWaves?: boolean;
 }
 
-export function SlothMascot({ speaking }: SlothMascotProps) {
+export function SlothMascot({ speaking, size = 300, showWaves = true }: SlothMascotProps) {
   return (
     <div className={styles.wrap}>
       <svg
         className={`${styles.mascot} ${speaking ? styles.speaking : ""}`}
+        style={{ width: size }}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 335 315"
         role="img"
         aria-labelledby="sloth-title sloth-desc"
       >
-        <title id="sloth-title">Mascotte bradipo astronauta</title>
-        <desc id="sloth-desc">Illustrazione vettoriale di un bradipo astronauta sorridente. Bocca e occhi sono gruppi SVG separati e animabili.</desc>
+        <title id="sloth-title">Astronaut sloth mascot</title>
+        <desc id="sloth-desc">Vector illustration of a smiling astronaut sloth. Mouth and eyes are separate, animatable SVG groups.</desc>
         <defs>
           <linearGradient id="helmet" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#f9fbfc" /><stop offset=".55" stopColor="#dce4eb" /><stop offset="1" stopColor="#aebdca" />
@@ -134,9 +137,9 @@ export function SlothMascot({ speaking }: SlothMascotProps) {
           <circle cx="-3" cy="-1" r="1.4" fill="#172c43" /><circle cx="5" cy="-1" r="1.4" fill="#172c43" />
         </g>
       </svg>
-      <div className={`${styles.waves} ${speaking ? styles.wavesActive : ""}`} aria-hidden="true">
+      {showWaves && <div className={`${styles.waves} ${speaking ? styles.wavesActive : ""}`} aria-hidden="true">
         <span /><span /><span /><span /><span />
-      </div>
+      </div>}
     </div>
   );
 }

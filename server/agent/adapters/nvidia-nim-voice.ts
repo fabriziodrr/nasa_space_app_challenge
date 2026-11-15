@@ -28,13 +28,13 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
     let response: Response;
     try { response = await this.fetcher(url, { method: "POST", body: form, signal }); }
     catch {
-      if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Servizio vocale interrotto o scaduto.", true);
-      throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio vocale locale non raggiungibile.", true);
+      if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Voice service interrupted or timed out.", true);
+      throw new AgentError("PROVIDER_UNAVAILABLE", "Local voice service unreachable.", true);
     }
     if (!response.ok) {
       await response.body?.cancel();
-      if (response.status === 429) throw new AgentError("RATE_LIMITED", "Servizio vocale occupato. Riprova.", true);
-      throw new AgentError("PROVIDER_UNAVAILABLE", "Servizio vocale locale unavailable.", response.status >= 500);
+      if (response.status === 429) throw new AgentError("RATE_LIMITED", "Voice service busy. Try again.", true);
+      throw new AgentError("PROVIDER_UNAVAILABLE", "Local voice service unavailable.", response.status >= 500);
     }
     return response;
   }
@@ -43,7 +43,7 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
     const wav = parsePcmWav(input.audio);
     if (input.metadata.mimeType !== "audio/wav" || input.metadata.sizeBytes !== input.audio.byteLength
         || Math.abs(input.metadata.durationSeconds - wav.durationSeconds) > 0.01) {
-      throw new AgentError("VALIDATION_ERROR", "I metadati audio non corrispondono al file.");
+      throw new AgentError("VALIDATION_ERROR", "Audio metadata does not match the file.");
     }
     return withDeadline(async (signal) => {
       const form = new FormData();
@@ -51,27 +51,27 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
       form.set("language", "en-US"); form.set("response_format", "json");
       const response = await this.post(`${this.asrUrl}/v1/audio/transcriptions`, form, signal);
       let data: unknown;
-      try { data = await response.json(); } catch { throw new AgentError("INVALID_AI_OUTPUT", "Trascrizione non valida."); }
+      try { data = await response.json(); } catch { throw new AgentError("INVALID_AI_OUTPUT", "Invalid transcription."); }
       const parsed = z.object({ text: z.string().trim().min(1).max(8000) }).safeParse(data);
-      if (!parsed.success) throw new AgentError("INVALID_AI_OUTPUT", "Trascrizione non valida.");
+      if (!parsed.success) throw new AgentError("INVALID_AI_OUTPUT", "Invalid transcription.");
       return TranscriptionResultSchema.parse({ text: parsed.data.text, language: "en" });
     }, AUDIO_LIMITS.providerTimeoutMs, options?.signal);
   }
 
   async synthesize(input: Parameters<VoiceProvider["synthesize"]>[0], options?: ProviderOptions) {
-    if (!input.text.trim() || input.text.length > 2000) throw new AgentError("VALIDATION_ERROR", "La lettura supporta risposte fino a 2000 caratteri.");
+    if (!input.text.trim() || input.text.length > 2000) throw new AgentError("VALIDATION_ERROR", "Speech supports replies up to 2000 characters.");
     return withDeadline(async (signal) => {
       const form = new FormData(); form.set("text", input.text); form.set("language", "en-US");
       const response = await this.post(`${this.ttsUrl}/v1/audio/synthesize`, form, signal);
       const declared = Number(response.headers.get("content-length"));
-      if (declared > AUDIO_LIMITS.maxBytes) { await response.body?.cancel(); throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato troppo grande."); }
-      if (!response.body) throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato assente.");
+      if (declared > AUDIO_LIMITS.maxBytes) { await response.body?.cancel(); throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio too large."); }
+      if (!response.body) throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio missing.");
       const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let size = 0;
       try {
         for (;;) {
           const { done, value } = await reader.read(); if (done) break;
           size += value.byteLength;
-          if (size > AUDIO_LIMITS.maxBytes) { await reader.cancel(); throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato troppo grande."); }
+          if (size > AUDIO_LIMITS.maxBytes) { await reader.cancel(); throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio too large."); }
           chunks.push(value);
         }
       } finally { reader.releaseLock(); }
@@ -79,12 +79,12 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
       for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
       let wav: ReturnType<typeof parsePcmWav>;
       try { wav = parsePcmWav(bytes, 240); }
-      catch { throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato non valido."); }
+      catch { throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio invalid."); }
       const { Mp3Encoder } = await import("@breezystack/lamejs");
       const encoder = new Mp3Encoder(wav.channels, wav.sampleRate, 128);
       const encoded: Uint8Array[] = [];
       for (let i = 0; i < wav.samples.length / wav.channels; i += 1152) {
-        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Lettura interrotta.", true);
+        if (signal.aborted) throw new AgentError("PROVIDER_TIMEOUT", "Speech interrupted.", true);
         const count = Math.min(1152, wav.samples.length / wav.channels - i);
         const left = new Int16Array(count), right = wav.channels === 2 ? new Int16Array(count) : undefined;
         for (let j = 0; j < count; j++) {
@@ -96,7 +96,7 @@ export class NvidiaNimVoiceProvider implements VoiceProvider {
       const tail = encoder.flush(); if (tail.length) encoded.push(Uint8Array.from(tail));
       const result = new Uint8Array(encoded.reduce((sum, part) => sum + part.length, 0));
       let position = 0; for (const part of encoded) { result.set(part, position); position += part.length; }
-      if (!result.length) throw new AgentError("PROVIDER_UNAVAILABLE", "Audio generato vuoto.");
+      if (!result.length) throw new AgentError("PROVIDER_UNAVAILABLE", "Generated audio empty.");
       return { audio: result, mimeType: "audio/mpeg" as const };
     }, AUDIO_LIMITS.providerTimeoutMs, options?.signal);
   }

@@ -37,7 +37,7 @@ export function speakEnglish(
   options: SpeakOptions = {},
 ): SpeakHandle {
   if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
-    onError("Speech playback is unavailable. You can read the reply above.");
+    onError("Voice playback is not available. You can read the reply above.");
     return { cancel() {} };
   }
   const synth = window.speechSynthesis;

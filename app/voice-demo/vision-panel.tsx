@@ -10,11 +10,11 @@ type Confirmation = { expectedRevision: number; sharedObservationIds: string[]; 
 type Props = { token: string; sessionId: string; astronautId: string; checkIn: CheckIn | null; busy: boolean; locked: boolean;
   run<T>(operation: () => Promise<T>): Promise<T>; onCheckIn(checkIn: CheckIn): void; onConfirmationPending(value: boolean): void };
 
-const labels: Record<string, string> = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality",
-  FATIGUE: "Fatigue", PHYSICAL_NOTES: "Physical condition" };
+const labels: Record<string, string> = { SLEEP_HOURS: "Sleep hours", SLEEP_QUALITY: "Sleep quality (1–10)",
+  FATIGUE: "Fatigue (1–10)", PHYSICAL_NOTES: "Physical condition", MENTAL_STATE: "Mental state", STRESSOR_NOTES: "Stressors" };
 const reasonLabels: Record<string, string> = { NO_VALID_TIME: "no valid time", TOO_SHORT: "measurement too short",
-  LOW_COVERAGE: "insufficient coverage", STALE: "outdated measurement", INTERRUPTED: "measurement interrupted",
-  SYNTHETIC_TIME_UNAVAILABLE: "real time unavailable for synthetic replay" };
+  LOW_COVERAGE: "insufficient coverage", STALE: "stale measurement", INTERRUPTED: "interrupted measurement",
+  SYNTHETIC_TIME_UNAVAILABLE: "real time unavailable for the synthetic replay" };
 const percent = (value: number | null) => value === null ? "unavailable" : `${(value * 100).toFixed(1)}%`;
 
 export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, locked, run, onCheckIn, onConfirmationPending }: Props) {
@@ -74,14 +74,14 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
       if (!received || !frame || inFlight.current.has(received.requestId)) return;
       const answer = (ok: boolean, message: string) => frame.postMessage({ channel: VISION_BRIDGE_CHANNEL,
         type: "IMPORT_RESULT", requestId: received.requestId, ok, message }, bridgeOrigin!);
-      if (busy || locked || confirmed) { answer(false, "Finish the current action before sending the measurement."); return; }
+      if (busy || locked || confirmed) { answer(false, "Complete the current operation before sending the measurement."); return; }
       inFlight.current.add(received.requestId); setError(""); setMessage("");
       void run(async () => {
         const result = await uploadVision(token, sessionId, received.blob, received.requestId);
         setObservations((current) => [result, ...current.filter((item) => item.id !== result.id)]);
         setMessage("Measurement received. Select it to use it in the conversation.");
         answer(true, "Measurement received by the agent. Select it on the main page.");
-      }).catch(() => answer(false, "Sending failed. Check your connection and try again."))
+      }).catch(() => answer(false, "Upload failed. Check the connection and try again."))
         .finally(() => { inFlight.current.delete(received.requestId); });
     }
     window.addEventListener("message", receive);
@@ -91,7 +91,7 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
   async function perform(operation: () => Promise<void>) {
     setError(""); setMessage("");
     try { await run(operation); }
-    catch (e) { setError(e instanceof Error ? e.message : "Action failed. Try again."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Operation failed. Try again."); }
   }
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -131,7 +131,7 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ vision_session_id: sessionId }), cache: "no-store",
       });
-      if (!response.ok) throw new Error("Contesto integrato unavailable. Controlla il backend dati e il token demo.");
+      if (!response.ok) throw new Error("Integrated context unavailable. Check the data backend and the demo token.");
       const result = await response.json();
       setIntegrated({ sleepHours: result.sleep?.sleep_context?.latest_measurement?.sleep_hours ?? null,
         visionStatus: result.vision?.status ?? "unavailable", visionSource: result.vision?.observation?.source ?? null,
@@ -165,17 +165,17 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
 
   return <section className={styles.panel} aria-labelledby="vision-title">
     <h2 id="vision-title">Eyelid measurement and check-in</h2>
-    <p>Dashboard session code: <code>{sessionId}</code></p>
-    <p>Import the JSON exported by the eyelid feature. This experimental measurement alone does not establish fatigue. Usability is reassessed at confirmation.</p>
-    <p>The selected measurement is used by the agent and may be sent to the configured AI provider. Select ground sharing separately when confirming the check-in.</p>
+    <p>Session code for the dashboard: <code>{sessionId}</code></p>
+    <p>Import the JSON exported by the eyelid feature. The measurement is experimental and does not by itself determine fatigue. Its usability is reassessed on confirmation.</p>
+    <p>The selected measurement is used by the agent and may be sent to the configured AI provider. Sharing with ground is chosen separately at confirmation.</p>
     {bridgeOrigin ? <>
       <button type="button" onClick={() => setShowVision((value) => !value)} disabled={busy || locked || confirmed}>
-        {showVision ? "Close eyelid measurement" : "Open eyelid measurement"}
+        {showVision ? "Close eyelid vision" : "Open eyelid vision"}
       </button>
-      {showVision && !confirmed && <><p>Start the eyelid prototype at {bridgeOrigin}, calibrate and complete a measurement, then use the prototype send button.</p>
-        <iframe ref={iframe} title="Eyelid measurement prototype" src={`${bridgeOrigin}/`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
+      {showVision && !confirmed && <><p>Start the eyelid prototype at {bridgeOrigin}, calibrate and complete the measurement; then use the send button in the prototype.</p>
+        <iframe ref={iframe} title="Eyelid vision prototype" src={`${bridgeOrigin}/`} allow="camera" referrerPolicy="origin" className={styles.visionFrame} />
       </>}
-    </> : <p role="alert">Invalid eyelid prototype address. You can import a file instead.</p>}
+    </> : <p role="alert">Invalid eyelid prototype address. You can use file import.</p>}
     <label htmlFor="vision-file">Measurement JSON file</label>
     <input id="vision-file" type="file" accept="application/json,.json" onChange={onFileChange} disabled={busy || locked || confirmed} />
     <button type="button" onClick={upload} disabled={!file || busy || locked || confirmed}>Import measurement</button>
@@ -183,7 +183,7 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
       <h3>Imported measurements</h3>
       {observations.map((item) => <article key={item.id} className={styles.measurement}>
         <strong>{item.source === "synthetic" ? "Synthetic replay" : "Webcam measurement"}</strong>{" · "}
-        {item.usability === "USABLE" ? "utilizzabile" : "insufficiente"}
+        {item.usability === "USABLE" ? "usable" : "insufficient"}
         <p>Valid time: {(item.validMs / 1000).toFixed(1)} s · Coverage: {percent(item.coverage)} · Closure fraction: {percent(item.closureFraction)}</p>
         <p>Interval: {item.startedAt && item.endedAt ? `${item.startedAt} – ${item.endedAt}` : "unavailable"}</p>
         {item.reasons.length > 0 && <p>Limitations: {item.reasons.map((reason) => reasonLabels[reason] ?? reason).join(", ")}.</p>}
@@ -192,35 +192,35 @@ export function VisionPanel({ token, sessionId, astronautId, checkIn, busy, lock
         </button>
       </article>)}
       {selectedId && <button type="button" onClick={() => select(null)} disabled={busy || locked || confirmed}>Clear selection</button>}
-      {selectedId && astronautId === "astro-1" && <button type="button" onClick={() => void loadIntegrated()} disabled={busy || locked}>Check sleep and vision context</button>}
+      {selectedId && astronautId === "astro-1" && <button type="button" onClick={() => void loadIntegrated()} disabled={busy || locked}>Verify sleep and vision context</button>}
       {integrated && <div className={styles.measurement} role="status">
-        <strong>Contesto integrato · prova</strong>
+        <strong>Integrated context · demo</strong>
         <p>Synthetic sleep: {integrated.sleepHours === null ? "no measurement available" : `${integrated.sleepHours} hours`}. Vision: {integrated.visionStatus}, source {integrated.visionSource ?? "unavailable"}, quality {integrated.visionQuality ?? "unavailable"}.</p>
-        <p>The datasets do not share a verified identity. These data do not establish a diagnosis.</p>
+        <p>The identities of the two datasets are not linked yet. This data is not a diagnosis.</p>
       </div>}
     </div>}
-    {selectionUncertain && <><p>The selection may have been received. Retry to verify it before continuing.</p>
+    {selectionUncertain && <><p>The selection may have been received. Retry to verify before continuing.</p>
       <button type="button" disabled={busy} onClick={() => { if (pendingSelection.current) void select(pendingSelection.current.id); }}>Retry selection</button></>}
     <h3>Check-in review</h3>
     {!checkIn ? <p>Send at least one message to create a draft, then choose what to share.</p> : <>
-      <p>Status: {confirmed ? "confirmed" : "draft"}. Select the information to share with ground control.</p>
-      {checkIn.observations.length === 0 ? <p>No reported observations in the draft.</p> :
+      <p>Status: {confirmed ? "confirmed" : "draft"}. Select the information you want to share with ground.</p>
+      {checkIn.observations.length === 0 ? <p>No self-reported observations in the draft.</p> :
         <fieldset disabled={busy || locked || confirmed}><legend>Personal observations to share</legend>
           {checkIn.observations.map((item) => <label className={styles.choice} key={item.id}>
             <input type="checkbox" checked={sharedIds.includes(item.id)} onChange={(event) => {
               const checked = event.target.checked;
               setSharedIds((ids) => checked ? [...ids, item.id] : ids.filter((id) => id !== item.id));
             }} />
-            <span>{labels[item.field] ?? item.field}: {String(item.value)}{(item.field === "SLEEP_QUALITY" || item.field === "FATIGUE") ? (item.scaleMax ? ` / ${item.scaleMax}` : " (historical scale unspecified)") : ""}</span>
+            <span>{labels[item.field] ?? item.field}: {String(item.value)}{(item.field === "SLEEP_QUALITY" || item.field === "FATIGUE") ? (item.scaleMax ? ` / ${item.scaleMax}` : " (historical scale not specified)") : ""}</span>
           </label>)}
         </fieldset>}
       {selected && <label className={styles.choice}><input type="checkbox" checked={sharedVision} disabled={busy || locked || confirmed}
-        onChange={(event) => setSharedVision(event.target.checked)} /><span>Share the selected {selected.source === "synthetic" ? "synthetic" : "webcam"} measurement with ground control.</span></label>}
-      {!selected && <p>No measurement selected. You can still confirm the check-in.</p>}
+        onChange={(event) => setSharedVision(event.target.checked)} /><span>Share the selected {selected.source === "synthetic" ? "synthetic" : "webcam"} measurement with ground.</span></label>}
+      {!selected && <p>No measurement selected: you can still confirm the check-in.</p>}
       {!confirmed && <button type="button" onClick={confirm} disabled={busy || selectionUncertain}>{locked && !selectionUncertain ? "Retry confirmation" : "Confirm check-in"}</button>}
-      {locked && !selectionUncertain && !confirmed && <p>Confirmation may have been received. Retry with the same selection.</p>}
+      {locked && !selectionUncertain && !confirmed && <p>The confirmation may have been received. Retry without changing the selection.</p>}
       {confirmed && <div role="status">
-        <p>{generation === "READY" ? "Report ready for ground control." : generation === "FAILED" ? "Report generation failed." : generation === "UNAVAILABLE" ? "Report status unavailable." : "Generating report."}</p>
+        <p>{generation === "READY" ? "Report ready for ground control." : generation === "FAILED" ? "Report generation failed." : generation === "UNAVAILABLE" ? "Report status unavailable." : "Report generation in progress."}</p>
         {generation === "READY" && noChangeReason && <p>No proposal: {noChangeReason}</p>}
         {(generation === "FAILED" || generation === "NOT_STARTED") && <button type="button" disabled={busy} onClick={() => void retryGeneration()}>Retry generation</button>}
       </div>}

@@ -67,7 +67,7 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
     try {
       input.current?.start();
     } catch {
-      setError("Unable to start the microphone. Check permissions or type your message.");
+      setError("Unable to start the microphone. Check permissions or type the message.");
       stopEverything();
     }
   }, [clearQuiet, stopEverything]);
@@ -80,7 +80,7 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
     try {
       result = await onSendRef.current(text);
     } catch (e) {
-      if (mounted.current) setError(e instanceof Error ? e.message : "Message could not be sent. Restart the conversation to try again.");
+      if (mounted.current) setError(e instanceof Error ? e.message : "Send failed. Restart the conversation to try again.");
       stopEverything();
       return;
     }
@@ -161,7 +161,7 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
   function toggle() {
     if (active.current) { stopEverything(); return; }
     if (!input.current?.supported) {
-      setError("Speech recognition is unavailable in this browser; you can type your message.");
+      setError("Voice recognition is not available in this browser; you can type the message.");
       return;
     }
     setError("");
@@ -171,14 +171,14 @@ export function VoiceConversation({ disabled = false, onSend, onSpeak, quietMs =
 
   const running = phase !== "idle";
   return <section aria-label="Continuous voice conversation">
-    <p>The assistant listens, detects when you finish speaking, replies, then listens again.</p>
+    <p>The assistant listens, detects when you have finished the sentence and replies, then listens again.</p>
     <button type="button" onClick={toggle} disabled={disabled || !supported}>
       {running ? "End conversation" : "Start conversation"}
     </button>
     {phase === "listening" && <p role="status" aria-live="polite">Listening…{interim ? ` ${interim}` : ""}</p>}
-    {phase === "thinking" && <p role="status">Thinking…</p>}
+    {phase === "thinking" && <p role="status">Processing…</p>}
     {phase === "speaking" && <p role="status">Playing reply…</p>}
-    {!supported && <p>Speech recognition is unavailable in this browser; you can type your message.</p>}
+    {!supported && <p>Voice recognition is not available in this browser; you can type the message.</p>}
     {error && <p role="alert">{error}</p>}
   </section>;
 }

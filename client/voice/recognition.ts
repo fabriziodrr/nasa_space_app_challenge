@@ -28,12 +28,12 @@ export interface RecognitionCallbacks {
 
 export function recognitionError(code: string): string {
   switch (code) {
-    case "not-allowed": case "service-not-allowed": return "Microphone permission denied or speech service unavailable.";
-    case "audio-capture": return "No microphone available. Check your device.";
-    case "network": return "Speech recognition service is unreachable. You can type your message.";
-    case "no-speech": return "No speech detected. Try again or type your message.";
-    case "aborted": return "Recording stopped.";
-    default: return "Speech recognition failed. Try again or type your message.";
+    case "not-allowed": case "service-not-allowed": return "Microphone permission denied or voice service unavailable.";
+    case "audio-capture": return "No microphone available. Check the device.";
+    case "network": return "The recognition service is unreachable. You can type the message.";
+    case "no-speech": return "No words detected. Try again or type the message.";
+    case "aborted": return "Recording interrupted.";
+    default: return "Voice recognition failed. Try again or type the message.";
   }
 }
 
@@ -49,9 +49,9 @@ export class BrowserVoiceInput {
   get supported(): boolean { return Boolean(this.source.SpeechRecognition ?? this.source.webkitSpeechRecognition); }
 
   start(): void {
-    if (this.disposed || this.recognition) throw new Error("Speech recognition is already running or unavailable.");
+    if (this.disposed || this.recognition) throw new Error("Recognition already started or unavailable.");
     const Constructor = this.source.SpeechRecognition ?? this.source.webkitSpeechRecognition;
-    if (!Constructor) throw new Error("This browser does not support speech recognition. You can type your message.");
+    if (!Constructor) throw new Error("The browser does not support speech recognition. You can type the message.");
     const recognition = new Constructor();
     this.recognition = recognition;
     this.hadFinal = false;

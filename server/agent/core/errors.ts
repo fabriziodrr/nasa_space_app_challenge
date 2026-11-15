@@ -15,11 +15,11 @@ export class AgentError extends Error {
   }
 }
 
-export function notFound(message = "Risorsa non trovata o non accessibile."): AgentError {
+export function notFound(message = "Resource not found or not accessible."): AgentError {
   return new AgentError("NOT_FOUND", message);
 }
 
-export function forbidden(message = "Operazione non consentita per il ruolo corrente."): AgentError {
+export function forbidden(message = "Operation not allowed for the current role."): AgentError {
   return new AgentError("FORBIDDEN", message);
 }
 
@@ -31,11 +31,11 @@ export function versionConflict(message: string, currentVersion: number): AgentE
   return new AgentError("VERSION_CONFLICT", message, false, currentVersion);
 }
 
-export function idempotencyConflict(message = "Richiesta ripetuta con payload o operatore differente."): AgentError {
+export function idempotencyConflict(message = "Request repeated with a different payload or operator."): AgentError {
   return new AgentError("IDEMPOTENCY_CONFLICT", message);
 }
 
-export function internal(message = "Errore interno."): AgentError {
+export function internal(message = "Internal error."): AgentError {
   return new AgentError("INTERNAL_ERROR", message, true);
 }
 
@@ -61,7 +61,7 @@ export function isAgentError(value: unknown): value is AgentError {
     && typeof candidate.retryable === "boolean";
 }
 
-export function invalidAiOutput(message = "La risposta AI non e valida. Il check-in non e stato modificato."): AgentError {
+export function invalidAiOutput(message = "The AI response is invalid. The check-in was not modified."): AgentError {
   return new AgentError("INVALID_AI_OUTPUT", message);
 }
 
